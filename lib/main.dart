@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sliding_puzzle/game_screen.dart';
+import 'game_screen.dart';
 
 void main() {
   runApp(const SlidingPuzzleApp());
@@ -37,7 +39,15 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
-            ElevatedButton(onPressed: () {}, child: const Text('Jugar')),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const GameScreen()),
+                );
+              },
+              child: const Text('Jugar'),
+            ),
           ],
         ),
       ),
