@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sliding_puzzle/game_screen.dart';
-import 'game_screen.dart';
 
 void main() {
   runApp(const SlidingPuzzleApp());
