@@ -37,10 +37,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text('Jugar'),
-            ),
+            ElevatedButton(onPressed: () {}, child: const Text('Jugar')),
           ],
         ),
       ),
