@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'puzzle_logic.dart';
+import 'dart:async';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -15,6 +16,9 @@ class _GameScreenState extends State<GameScreen> {
   static const int size = 3; // tablero 3x3
   late List<int> _tablero;
   int _movimientos = 0;
+  int _segundos = 0;
+  Timer? _timer;
+  bool _juegoIniciado = false;
 
   @override
   void initState() {
@@ -23,9 +27,28 @@ class _GameScreenState extends State<GameScreen> {
     _tablero = PuzzleLogic.generarTablero(size);
   }
 
+  /// Inicia el cronómetro sumando 1 segundo cada tick
+  void _iniciarTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => _segundos++);
+    });
+  }
+
+  /// Detiene el cronómetro
+  void _detenerTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
   /// Maneja el tap en una ficha
   void _onTapFicha(int indice) {
     if (!PuzzleLogic.puedeMover(_tablero, indice, size)) return;
+
+    // Arranca el timer en el primer movimiento
+    if (!_juegoIniciado) {
+      _juegoIniciado = true;
+      _iniciarTimer();
+    }
 
     setState(() {
       _tablero = PuzzleLogic.mover(_tablero, indice);
@@ -33,6 +56,7 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     if (PuzzleLogic.estaResuelto(_tablero)) {
+      _detenerTimer();
       _mostrarVictoria();
     }
   }
@@ -63,7 +87,15 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _tablero = PuzzleLogic.generarTablero(size);
       _movimientos = 0;
+      _segundos = 0;
+      _juegoIniciado = false;
     });
+  }
+
+  @override
+  void dispose() {
+    _detenerTimer();
+    super.dispose();
   }
 
   @override
@@ -88,9 +120,29 @@ class _GameScreenState extends State<GameScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Contador de movimientos
-          Text(
-            'Movimientos: $_movimientos',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.timer, color: Colors.indigo),
+              const SizedBox(width: 8),
+              Text(
+                '${_segundos}s',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 24),
+              const Icon(Icons.sports_esports, color: Colors.indigo),
+              const SizedBox(width: 8),
+              Text(
+                '$_movimientos mov',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           // Tablero
