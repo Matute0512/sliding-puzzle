@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'puzzle_logic.dart';
-import 'dart:async';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final int size;
+  const GameScreen({super.key, required this.size});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -13,7 +14,6 @@ class GameScreen extends StatefulWidget {
 /// StatefulWidget porque el tablero cambia cada vez
 /// que el usuario mueve una ficha.
 class _GameScreenState extends State<GameScreen> {
-  static const int size = 3; // tablero 3x3
   late List<int> _tablero;
   int _movimientos = 0;
   int _segundos = 0;
@@ -24,7 +24,7 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     // Generamos el tablero mezclado al iniciar la pantalla
-    _tablero = PuzzleLogic.generarTablero(size);
+    _tablero = PuzzleLogic.generarTablero(widget.size);
   }
 
   /// Inicia el cronómetro sumando 1 segundo cada tick
@@ -42,7 +42,7 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Maneja el tap en una ficha
   void _onTapFicha(int indice) {
-    if (!PuzzleLogic.puedeMover(_tablero, indice, size)) return;
+    if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) return;
 
     // Arranca el timer en el primer movimiento
     if (!_juegoIniciado) {
@@ -85,7 +85,7 @@ class _GameScreenState extends State<GameScreen> {
   /// Reinicia el tablero
   void _reiniciar() {
     setState(() {
-      _tablero = PuzzleLogic.generarTablero(size);
+      _tablero = PuzzleLogic.generarTablero(widget.size);
       _movimientos = 0;
       _segundos = 0;
       _juegoIniciado = false;
@@ -152,12 +152,12 @@ class _GameScreenState extends State<GameScreen> {
               height: 300,
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: size,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: widget.size,
                   crossAxisSpacing: 6,
                   mainAxisSpacing: 6,
                 ),
-                itemCount: size * size,
+                itemCount: widget.size * widget.size,
                 itemBuilder: (context, indice) {
                   final numero = _tablero[indice];
                   final esVacio = numero == 0;
