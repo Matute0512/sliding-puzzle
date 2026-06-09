@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'puzzle_logic.dart';
+import 'records_service.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -62,13 +63,38 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// Muestra el diálogo de victoria
-  void _mostrarVictoria() {
+  Future<void> _mostrarVictoria() async {
+    final esPrecord = await RecordsService.guardarSiEsMejor(
+      size: widget.size,
+      tiempo: _segundos,
+      movimientos: _movimientos,
+    );
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: const Text('🎉 ¡Ganaste!'),
-        content: Text('Lo resolviste en $_movimientos movimientos.'),
+        title: Text(esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Tiempo: $_segundos segundos'),
+            Text('Movimientos: $_movimientos'),
+            if (esPrecord)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  '¡Superaste tu mejor marca!',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () {

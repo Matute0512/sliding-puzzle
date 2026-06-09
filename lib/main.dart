@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sliding_puzzle/game_screen.dart';
+import 'records_screen.dart';
 
 void main() {
   runApp(const SlidingPuzzleApp());
@@ -70,10 +71,25 @@ class HomeScreen extends StatelessWidget {
               color: Colors.red,
               onTap: () => _navegarAJuego(context, 5),
             ),
-          ],
-        ),
-      ),
-    );
+            const SizedBox(height: 32), // 👈 agregado
+            TextButton.icon(
+              // 👈 agregado
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RecordsScreen()),
+                );
+              },
+              icon: const Icon(Icons.emoji_events, color: Colors.indigo),
+              label: const Text(
+                'Ver récords',
+                style: TextStyle(color: Colors.indigo, fontSize: 16),
+              ),
+            ),
+          ], // cierre de children
+        ), // cierre de Column
+      ), // cierre de Center
+    ); // cierre de Scaffold
   }
 }
 
