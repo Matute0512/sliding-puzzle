@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sliding_puzzle/game_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'game_screen.dart';
 import 'records_screen.dart';
 
 void main() {
@@ -15,8 +16,10 @@ class SlidingPuzzleApp extends StatelessWidget {
       title: 'Sliding Puzzle',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4361EE)),
         useMaterial3: true,
+        // Poppins como fuente global
+        textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: const HomeScreen(),
     );
@@ -36,64 +39,85 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.indigo[50],
+      backgroundColor: const Color(0xFFF4F6F9),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              '🧩 Sliding Puzzle',
-              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo / título
+                const Text('🧩', style: TextStyle(fontSize: 64)),
+                const SizedBox(height: 16),
+                Text(
+                  'Sliding Puzzle',
+                  style: GoogleFonts.poppins(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Elegí una dificultad',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 48),
+                _BotonDificultad(
+                  label: '😊  Fácil',
+                  descripcion: 'Tablero 3x3',
+                  color: const Color(0xFF10B981),
+                  onTap: () => _navegarAJuego(context, 3),
+                ),
+                const SizedBox(height: 16),
+                _BotonDificultad(
+                  label: '😤  Medio',
+                  descripcion: 'Tablero 4x4',
+                  color: const Color(0xFFF59E0B),
+                  onTap: () => _navegarAJuego(context, 4),
+                ),
+                const SizedBox(height: 16),
+                _BotonDificultad(
+                  label: '💀  Difícil',
+                  descripcion: 'Tablero 5x5',
+                  color: const Color(0xFFEF4444),
+                  onTap: () => _navegarAJuego(context, 5),
+                ),
+                const SizedBox(height: 32),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RecordsScreen()),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.emoji_events,
+                    color: Color(0xFF4361EE),
+                  ),
+                  label: Text(
+                    'Ver récords',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF4361EE),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Elegí una dificultad',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 40),
-            _BotonDificultad(
-              label: 'Fácil',
-              descripcion: 'Tablero 3x3',
-              color: Colors.green,
-              onTap: () => _navegarAJuego(context, 3),
-            ),
-            const SizedBox(height: 16),
-            _BotonDificultad(
-              label: 'Medio',
-              descripcion: 'Tablero 4x4',
-              color: Colors.orange,
-              onTap: () => _navegarAJuego(context, 4),
-            ),
-            const SizedBox(height: 16),
-            _BotonDificultad(
-              label: 'Difícil',
-              descripcion: 'Tablero 5x5',
-              color: Colors.red,
-              onTap: () => _navegarAJuego(context, 5),
-            ),
-            const SizedBox(height: 32), // 👈 agregado
-            TextButton.icon(
-              // 👈 agregado
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RecordsScreen()),
-                );
-              },
-              icon: const Icon(Icons.emoji_events, color: Colors.indigo),
-              label: const Text(
-                'Ver récords',
-                style: TextStyle(color: Colors.indigo, fontSize: 16),
-              ),
-            ),
-          ], // cierre de children
-        ), // cierre de Column
-      ), // cierre de Center
-    ); // cierre de Scaffold
+          ),
+        ),
+      ),
+    );
   }
 }
 
-/// Widget reutilizable para cada botón de dificultad
 class _BotonDificultad extends StatelessWidget {
   final String label;
   final String descripcion;
@@ -109,22 +133,31 @@ class _BotonDificultad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        minimumSize: const Size(220, 56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      onPressed: onTap,
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          Text(descripcion, style: const TextStyle(fontSize: 12)),
-        ],
+          elevation: 3,
+        ),
+        onPressed: onTap,
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(descripcion, style: GoogleFonts.poppins(fontSize: 12)),
+          ],
+        ),
       ),
     );
   }

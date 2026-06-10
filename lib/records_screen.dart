@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'records_service.dart';
 
-/// Pantalla
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
 
   @override
-  State<RecordsScreen> createState() => _RecordsScreen();
+  State<RecordsScreen> createState() => _RecordsScreenState();
 }
 
-class _RecordsScreen extends State<RecordsScreen> {
-  // Mapa que guarda los récords de cada dificultad
+class _RecordsScreenState extends State<RecordsScreen> {
   final Map<int, Map<String, int?>> _records = {};
-  bool _cargado = true;
+  bool _cargando = true;
 
   @override
   void initState() {
@@ -20,60 +19,70 @@ class _RecordsScreen extends State<RecordsScreen> {
     _cargarRecords();
   }
 
-  /// Carga los récords de las 3 dificultades al iniciar la pantalla.
   Future<void> _cargarRecords() async {
     for (final size in [3, 4, 5]) {
       final tiempo = await RecordsService.obtenerMejorTiempo(size);
       final movimientos = await RecordsService.obtenerMejorMovimientos(size);
       _records[size] = {'tiempo': tiempo, 'movimientos': movimientos};
     }
-    setState(() => _cargado = false);
+    setState(() => _cargando = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.indigo[50],
+      backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
-        title: const Text('🏆 Récords', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        title: Text(
+          '🏆 Récords',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF1E293B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: _cargado
+      body: _cargando
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                _TarjetaRecord(
-                  dificultad: '😊 Fácil',
-                  descripcion: 'Tablero 3x3',
-                  color: Colors.green,
-                  tiempo: _records[3]?['tiempo'],
-                  movimientos: _records[3]?['movimientos'],
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    _TarjetaRecord(
+                      dificultad: '😊  Fácil',
+                      descripcion: 'Tablero 3x3',
+                      color: const Color(0xFF10B981),
+                      tiempo: _records[3]?['tiempo'],
+                      movimientos: _records[3]?['movimientos'],
+                    ),
+                    const SizedBox(height: 16),
+                    _TarjetaRecord(
+                      dificultad: '😤  Medio',
+                      descripcion: 'Tablero 4x4',
+                      color: const Color(0xFFF59E0B),
+                      tiempo: _records[4]?['tiempo'],
+                      movimientos: _records[4]?['movimientos'],
+                    ),
+                    const SizedBox(height: 16),
+                    _TarjetaRecord(
+                      dificultad: '💀  Difícil',
+                      descripcion: 'Tablero 5x5',
+                      color: const Color(0xFFEF4444),
+                      tiempo: _records[5]?['tiempo'],
+                      movimientos: _records[5]?['movimientos'],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _TarjetaRecord(
-                  dificultad: '😤 Medio',
-                  descripcion: 'Tablero 4x4',
-                  color: Colors.orange,
-                  tiempo: _records[4]?['tiempo'],
-                  movimientos: _records[4]?['movimientos'],
-                ),
-                const SizedBox(height: 16),
-                _TarjetaRecord(
-                  dificultad: '💀 Difícil',
-                  descripcion: 'Tablero 5x5',
-                  color: Colors.red,
-                  tiempo: _records[5]?['tiempo'],
-                  movimientos: _records[5]?['movimientos'],
-                ),
-              ],
+              ),
             ),
     );
   }
 }
 
-// Widget reutilizable para mostrar el récord de cada dificultad
 class _TarjetaRecord extends StatelessWidget {
   final String dificultad;
   final String descripcion;
@@ -93,69 +102,119 @@ class _TarjetaRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final sinRecord = tiempo == null && movimientos == null;
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header de la tarjeta
+          Row(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                dificultad,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                descripcion,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Contenido
+          sinRecord
+              ? Text(
+                  'Sin récord todavía — ¡jugá para establecer uno!',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF64748B),
+                    fontSize: 13,
+                  ),
+                )
+              : Row(
+                  children: [
+                    _ItemRecord(
+                      icono: Icons.timer,
+                      label: 'Mejor tiempo',
+                      valor: '${tiempo ?? '-'}s',
+                    ),
+                    const SizedBox(width: 24),
+                    _ItemRecord(
+                      icono: Icons.sports_esports,
+                      label: 'Menos movimientos',
+                      valor: '${movimientos ?? '-'}',
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemRecord extends StatelessWidget {
+  final IconData icono;
+  final String label;
+  final String valor;
+
+  const _ItemRecord({
+    required this.icono,
+    required this.label,
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  dificultad,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  descripcion,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
+            Icon(icono, size: 16, color: const Color(0xFF4361EE)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: const Color(0xFF64748B),
+              ),
             ),
-            const SizedBox(height: 12),
-            sinRecord
-                ? const Text(
-                    'Sin récord todavía — ¡jugá para establecer uno!',
-                    style: TextStyle(color: Colors.grey),
-                  )
-                : Row(
-                    children: [
-                      const Icon(Icons.timer, size: 18, color: Colors.indigo),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${tiempo ?? '-'}s',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(width: 24),
-                      const Icon(
-                        Icons.sports_esports,
-                        size: 18,
-                        color: Colors.indigo,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${movimientos ?? '-'} mov',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
           ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          valor,
+          style: GoogleFonts.poppins(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+      ],
     );
   }
 }
