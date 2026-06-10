@@ -148,6 +148,74 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  /// Muestra el dialog de ayuda con las reglas del juego
+  void _mostrarAyuda() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          '🧩 ¿Cómo jugar?',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ItemAyuda(
+              texto: 'Tocá una ficha adyacente al espacio vacío para moverla.',
+            ),
+            _ItemAyuda(
+              texto: 'El objetivo es ordenar los números en orden ascendente.',
+            ),
+            _ItemAyuda(
+              texto:
+                  'El espacio vacío debe quedar en la esquina inferior derecha.',
+            ),
+            _ItemAyuda(
+              texto:
+                  '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
+            ),
+            const SizedBox(height: 16),
+            // Ejemplo visual del tablero resuelto
+            Center(
+              child: Text(
+                '1  2  3\n4  5  6\n7  8  ☐',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF4361EE),
+                  height: 1.8,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4361EE),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                '¡Entendido!',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _detenerTimer();
@@ -164,6 +232,10 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Color(0xFF1E293B)),
+            onPressed: _mostrarAyuda,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFF1E293B)),
             onPressed: _reiniciar,
@@ -362,3 +434,35 @@ class _FilaResultado extends StatelessWidget {
     );
   }
 }
+
+/// Item de ayuda para el dialog de instrucciones
+class _ItemAyuda extends StatelessWidget {
+  final String texto;
+
+  const _ItemAyuda({required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '• ',
+            style: TextStyle(color: Color(0xFF4361EE), fontSize: 16),
+          ),
+          Expanded(
+            child: Text(
+              texto,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+} // ← cierre de _ItemAyuda
