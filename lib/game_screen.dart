@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'puzzle_logic.dart';
 import 'records_service.dart';
 
@@ -76,32 +77,60 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: Text(esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Tiempo: $_segundos segundos'),
-            Text('Movimientos: $_movimientos'),
+            _FilaResultado(
+              icono: Icons.timer,
+              label: 'Tiempo',
+              valor: '${_segundos}s',
+            ),
+            const SizedBox(height: 8),
+            _FilaResultado(
+              icono: Icons.sports_esports,
+              label: 'Movimientos',
+              valor: '$_movimientos',
+            ),
             if (esPrecord)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   '¡Superaste tu mejor marca!',
-                  style: TextStyle(
-                    color: Colors.orange,
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFFF59E0B),
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _reiniciar();
-            },
-            child: const Text('Jugar de nuevo'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4361EE),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _reiniciar();
+              },
+              child: Text(
+                'Jugar de nuevo',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),
@@ -110,6 +139,7 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Reinicia el tablero
   void _reiniciar() {
+    _detenerTimer();
     setState(() {
       _tablero = PuzzleLogic.generarTablero(widget.size);
       _movimientos = 0;
@@ -127,95 +157,208 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.indigo[50],
+      backgroundColor: const Color(0xFFF4F6F9),
+      // AppBar transparente e integrada al diseño
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
-        title: const Text(
-          'Sliding Puzzle',
-          style: TextStyle(color: Colors.white),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
         actions: [
-          // Botón para reiniciar desde el appbar
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Color(0xFF1E293B)),
             onPressed: _reiniciar,
           ),
         ],
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Contador de movimientos
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.timer, color: Colors.indigo),
-              const SizedBox(width: 8),
-              Text(
-                '${_segundos}s',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 24),
-              const Icon(Icons.sports_esports, color: Colors.indigo),
-              const SizedBox(width: 8),
-              Text(
-                '$_movimientos mov',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Tablero
-          Center(
-            child: SizedBox(
-              width: 300,
-              height: 300,
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: widget.size,
-                  crossAxisSpacing: 6,
-                  mainAxisSpacing: 6,
-                ),
-                itemCount: widget.size * widget.size,
-                itemBuilder: (context, indice) {
-                  final numero = _tablero[indice];
-                  final esVacio = numero == 0;
+      body: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // HUD con tarjetas dedicadas
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TarjetaHUD(
+                          icono: Icons.timer,
+                          label: 'Tiempo',
+                          valor: '${_segundos}s',
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _TarjetaHUD(
+                          icono: Icons.sports_esports,
+                          label: 'Movimientos',
+                          valor: '$_movimientos',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  // Tablero
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: widget.size,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: widget.size * widget.size,
+                      itemBuilder: (context, indice) {
+                        final numero = _tablero[indice];
+                        final esVacio = numero == 0;
 
-                  return GestureDetector(
-                    onTap: () => _onTapFicha(indice),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      decoration: BoxDecoration(
-                        color: esVacio ? Colors.transparent : Colors.indigo,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: esVacio
-                            ? null
-                            : Text(
-                                '$numero',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                        return GestureDetector(
+                          onTap: () => _onTapFicha(indice),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            decoration: BoxDecoration(
+                              color: esVacio
+                                  ? const Color(0xFFE2E8F0)
+                                  : const Color(0xFF4361EE),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: esVacio
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : [
+                                      const BoxShadow(
+                                        color: Color(0xFF3146B5),
+                                        offset: Offset(0, 4),
+                                        blurRadius: 0,
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                            ),
+                            child: Center(
+                              child: esVacio
+                                  ? null
+                                  : Text(
+                                      '$numero',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: widget.size == 3
+                                            ? 28
+                                            : widget.size == 4
+                                            ? 22
+                                            : 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta del HUD para mostrar tiempo y movimientos
+class _TarjetaHUD extends StatelessWidget {
+  final IconData icono;
+  final String label;
+  final String valor;
+
+  const _TarjetaHUD({
+    required this.icono,
+    required this.label,
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icono, color: const Color(0xFF4361EE), size: 22),
+          const SizedBox(height: 4),
+          Text(
+            valor,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFF64748B),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Fila de resultado en el diálogo de victoria
+class _FilaResultado extends StatelessWidget {
+  final IconData icono;
+  final String label;
+  final String valor;
+
+  const _FilaResultado({
+    required this.icono,
+    required this.label,
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icono, color: const Color(0xFF4361EE), size: 20),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: GoogleFonts.poppins(color: const Color(0xFF64748B)),
+        ),
+        Text(
+          valor,
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+      ],
     );
   }
 }
