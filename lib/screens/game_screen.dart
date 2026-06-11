@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
 import '../widgets/hud_card.dart';
-import '../widgets/puzzle_title.dart';
+import '../widgets/puzzle_tile.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -21,16 +22,21 @@ class _GameScreenState extends State<GameScreen> {
   int _segundos = 0;
   Timer? _timer;
   bool _juegoIniciado = false;
+  late ConfettiController _confettiController;
 
   @override
   void initState() {
     super.initState();
     _tablero = PuzzleLogic.generarTablero(widget.size);
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 4),
+    );
   }
 
   @override
   void dispose() {
     _detenerTimer();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -77,64 +83,87 @@ class _GameScreenState extends State<GameScreen> {
 
     if (!mounted) return;
 
+    _confettiController.play();
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _FilaResultado(
-              icono: Icons.timer,
-              label: 'Tiempo',
-              valor: '${_segundos}s',
+      builder: (_) => Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 8),
-            _FilaResultado(
-              icono: Icons.sports_esports,
-              label: 'Movimientos',
-              valor: '$_movimientos',
+            title: Text(
+              esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            if (esPrecord)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  '¡Superaste tu mejor marca!',
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFFF59E0B),
-                    fontWeight: FontWeight.bold,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _FilaResultado(
+                  icono: Icons.timer,
+                  label: 'Tiempo',
+                  valor: '${_segundos}s',
+                ),
+                const SizedBox(height: 8),
+                _FilaResultado(
+                  icono: Icons.sports_esports,
+                  label: 'Movimientos',
+                  valor: '$_movimientos',
+                ),
+                if (esPrecord)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      '¡Superaste tu mejor marca!',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFF59E0B),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4361EE),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                _reiniciar();
-              },
-              child: Text(
-                'Jugar de nuevo',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
+              ],
             ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4361EE),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _reiniciar();
+                  },
+                  child: Text(
+                    'Jugar de nuevo',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Confetti encima del dialog
+          ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            numberOfParticles: 30,
+            gravity: 0.3,
+            colors: const [
+              Color(0xFF4361EE),
+              Color(0xFF10B981),
+              Color(0xFFF59E0B),
+              Color(0xFFEF4444),
+              Colors.white,
+            ],
           ),
         ],
       ),
@@ -167,17 +196,17 @@ class _GameScreenState extends State<GameScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ItemAyuda(
+            const _ItemAyuda(
               texto: 'Tocá una ficha adyacente al espacio vacío para moverla.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto: 'El objetivo es ordenar los números en orden ascendente.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto:
                   'El espacio vacío debe quedar en la esquina inferior derecha.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto:
                   '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
             ),
@@ -238,59 +267,85 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
+      body: Stack(
+        children: [
+          // Juego normal
+          SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: HubCard(
-                          icono: Icons.timer,
-                          label: 'Tiempo',
-                          valor: '${_segundos}s',
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: HudCard(
+                              icono: Icons.timer,
+                              label: 'Tiempo',
+                              valor: '${_segundos}s',
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: HudCard(
+                              icono: Icons.sports_esports,
+                              label: 'Movimientos',
+                              valor: '$_movimientos',
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: HubCard(
-                          icono: Icons.sports_esports,
-                          label: 'Movimientos',
-                          valor: '$_movimientos',
+                      const SizedBox(height: 32),
+                      AspectRatio(
+                        aspectRatio: 1,
+                        child: GridView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: widget.size,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                          itemCount: widget.size * widget.size,
+                          itemBuilder: (context, indice) {
+                            return PuzzleTile(
+                              numero: _tablero[indice],
+                              size: widget.size,
+                              onTap: () => _onTapFicha(indice),
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: widget.size,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: widget.size * widget.size,
-                      itemBuilder: (context, indice) {
-                        return PuzzleTitle(
-                          numero: _tablero[indice],
-                          size: widget.size,
-                          onTap: () => _onTapFicha(indice),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          // Confetti encima del juego
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 30,
+              gravity: 0.3,
+              colors: const [
+                Color(0xFF4361EE),
+                Color(0xFF10B981),
+                Color(0xFFF59E0B),
+                Color(0xFFEF4444),
+                Colors.white,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

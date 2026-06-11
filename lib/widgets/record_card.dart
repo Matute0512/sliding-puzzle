@@ -10,6 +10,7 @@ class RecordCard extends StatelessWidget {
   final int? movimientos;
 
   const RecordCard({
+    super.key,
     required this.dificultad,
     required this.descripcion,
     required this.color,
@@ -28,9 +29,9 @@ class RecordCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
