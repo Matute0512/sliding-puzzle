@@ -1,26 +1,57 @@
 import 'dart:math';
 
-/// Contiene toda la lógica del tablero, sin tocar la UI.
+/// Contiene toda la lógica central del Sliding Puzzle.
+/// Opera de forma independiente a la interfaz gráfica.
 class PuzzleLogic {
-  /// Genera un tablero mezclado que siempre tiene solución.
+  /// Genera un tablero aleatorio garantizando matemáticamente
+  /// que tenga solución y que no comience ya resuelto.
   static List<int> generarTablero(int size) {
-    List<int> tablero;
-    // Repetimos hasta generar uno que tenga solución
+    final random = Random();
+
+    List<int> tablero = List.generate(size * size, (i) => i);
     do {
-      tablero = List.generate(size * size, (i) => i); // [0,1,2,3,4,5,6,7,8]
-      tablero.shuffle(Random());
-    } while (!tieneSolucion(tablero, size));
+      tablero.shuffle(random);
+
+      // Si el tablero no tiene solucion,
+      // corregimos la paridad intercambiando dos fichas.
+      if (!tieneSolucion(tablero, size)) {
+        _corregirParidad(tablero, random);
+      }
+    } while (estaResuelto(tablero));
+
     return tablero;
   }
 
+  /// Corrige la paridad del tablero intercambiando
+  /// dos fichas aleatorias distintas (excluyendo el 0).
+  static void _corregirParidad(List<int> tablero, Random random) {
+    final indices = List.generate(
+      tablero.length,
+      (i) => i,
+    ).where((i) => tablero[i] != 0).toList();
+
+    indices.shuffle(random);
+
+    int a = indices[0];
+    int b = indices[1];
+
+    int temp = tablero[a];
+    tablero[a] = tablero[b];
+    tablero[b] = temp;
+  }
+
+  /// Determina si la ficha seleccionada puede moverse.
   static bool puedeMover(List<int> tablero, int indice, int size) {
     int posVacio = tablero.indexOf(0);
 
     int filaFicha = indice ~/ size;
     int colFicha = indice % size;
+
     int filaVacio = posVacio ~/ size;
     int colVacio = posVacio % size;
 
+    // Son adyacentes si comparten fila y su diferencia en columnas es 1,
+    // o viceversa.
     bool mismaFila = filaFicha == filaVacio && (colFicha - colVacio).abs() == 1;
     bool mismaColumna =
         colFicha == colVacio && (filaFicha - filaVacio).abs() == 1;
@@ -28,10 +59,16 @@ class PuzzleLogic {
     return mismaFila || mismaColumna;
   }
 
-  /// Mueve la ficha en [indice] intercambiandola con el espacio vacio
-  /// Devuelve una nueva lista (no modifica la original)
-  static List<int> mover(List<int> tablero, int indice) {
+  /// Mueve una ficha si el movimiento es válido.
+  ///
+  /// Retorna una nueva lista para preservar la inmutabilidad.
+  static List<int> mover(List<int> tablero, int indice, int size) {
+    if (!puedeMover(tablero, indice, size)) {
+      return List.from(tablero);
+    }
+
     int posVacio = tablero.indexOf(0);
+
     List<int> nuevo = List.from(tablero);
     nuevo[posVacio] = nuevo[indice];
     nuevo[indice] = 0;
@@ -39,12 +76,13 @@ class PuzzleLogic {
     return nuevo;
   }
 
-  /// Verifica si el tablero está resuelto: [1,2,3,4,5,6,7,8,0]
+  /// Verifica si las fichas están ordenadas y el espacio vacío
+  /// se encuentra en la última posición.
   static bool estaResuelto(List<int> tablero) {
     for (int i = 0; i < tablero.length - 1; i++) {
       if (tablero[i] != i + 1) return false;
     }
-    return true;
+    return tablero.last == 0;
   }
 
   /// Verifica si el tablero tiene solucion usando el conteo de inversiones.
@@ -54,17 +92,22 @@ class PuzzleLogic {
     List<int> sinCero = tablero.where((n) => n != 0).toList();
 
     for (int i = 0; i < sinCero.length; i++) {
-      for (int j = 0; j < sinCero.length - 1; j++) {
+      for (int j = i + 1; j < sinCero.length; j++) {
         if (sinCero[i] > sinCero[j]) inversiones++;
       }
     }
 
-    if (size % 2 != 0) {
-      // Tablero impar: tiene solución si inversiones es par
-      return inversiones % 2 == 0;
-    } else {
-      int filaVacio = size - (tablero.indexOf(0) ~/ size);
-      return (filaVacio % 2 == 0) == (inversiones % 2 != 0);
+    if (size.isOdd) {
+      return inversiones.isEven;
     }
+
+    // Tableros pares (4x4,6x6,...). Por si los agregamos mas adelante.
+    int posVacio = tablero.indexOf(0);
+    int filaVacioDesdeAbajo = size - (posVacio ~/ size);
+
+    if (filaVacioDesdeAbajo.isEven) {
+      return inversiones.isOdd;
+    }
+    return inversiones.isEven;
   }
 }
