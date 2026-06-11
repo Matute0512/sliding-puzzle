@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'puzzle_logic.dart';
-import 'records_service.dart';
+import '../logic/puzzle_logic.dart';
+import '../services/records_service.dart';
+import '../widgets/hud_card.dart';
+import '../widgets/puzzle_title.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -13,8 +15,6 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-/// StatefulWidget porque el tablero cambia cada vez
-/// que el usuario mueve una ficha.
 class _GameScreenState extends State<GameScreen> {
   late List<int> _tablero;
   int _movimientos = 0;
@@ -25,8 +25,13 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    // Generamos el tablero mezclado al iniciar la pantalla
     _tablero = PuzzleLogic.generarTablero(widget.size);
+  }
+
+  @override
+  void dispose() {
+    _detenerTimer();
+    super.dispose();
   }
 
   /// Inicia el cronómetro sumando 1 segundo cada tick
@@ -46,7 +51,6 @@ class _GameScreenState extends State<GameScreen> {
   void _onTapFicha(int indice) {
     if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) return;
 
-    // Arranca el timer en el primer movimiento
     if (!_juegoIniciado) {
       _juegoIniciado = true;
       _iniciarTimer();
@@ -63,7 +67,7 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  /// Muestra el diálogo de victoria
+  /// Guarda el récord y muestra el diálogo de victoria
   Future<void> _mostrarVictoria() async {
     final esPrecord = await RecordsService.guardarSiEsMejor(
       size: widget.size,
@@ -178,7 +182,6 @@ class _GameScreenState extends State<GameScreen> {
                   '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
             ),
             const SizedBox(height: 16),
-            // Ejemplo visual del tablero resuelto
             Center(
               child: Text(
                 '1  2  3\n4  5  6\n7  8  ☐',
@@ -217,16 +220,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   @override
-  void dispose() {
-    _detenerTimer();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
-      // AppBar transparente e integrada al diseño
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -251,11 +247,10 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // HUD con tarjetas dedicadas
                   Row(
                     children: [
                       Expanded(
-                        child: _TarjetaHUD(
+                        child: HubCard(
                           icono: Icons.timer,
                           label: 'Tiempo',
                           valor: '${_segundos}s',
@@ -263,7 +258,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _TarjetaHUD(
+                        child: HubCard(
                           icono: Icons.sports_esports,
                           label: 'Movimientos',
                           valor: '$_movimientos',
@@ -272,7 +267,6 @@ class _GameScreenState extends State<GameScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  // Tablero
                   AspectRatio(
                     aspectRatio: 1,
                     child: GridView.builder(
@@ -284,56 +278,10 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       itemCount: widget.size * widget.size,
                       itemBuilder: (context, indice) {
-                        final numero = _tablero[indice];
-                        final esVacio = numero == 0;
-
-                        return GestureDetector(
+                        return PuzzleTitle(
+                          numero: _tablero[indice],
+                          size: widget.size,
                           onTap: () => _onTapFicha(indice),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            decoration: BoxDecoration(
-                              color: esVacio
-                                  ? const Color(0xFFE2E8F0)
-                                  : const Color(0xFF4361EE),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: esVacio
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : [
-                                      const BoxShadow(
-                                        color: Color(0xFF3146B5),
-                                        offset: Offset(0, 4),
-                                        blurRadius: 0,
-                                      ),
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                            ),
-                            child: Center(
-                              child: esVacio
-                                  ? null
-                                  : Text(
-                                      '$numero',
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: widget.size == 3
-                                            ? 28
-                                            : widget.size == 4
-                                            ? 22
-                                            : 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
                         );
                       },
                     ),
@@ -343,58 +291,6 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Tarjeta del HUD para mostrar tiempo y movimientos
-class _TarjetaHUD extends StatelessWidget {
-  final IconData icono;
-  final String label;
-  final String valor;
-
-  const _TarjetaHUD({
-    required this.icono,
-    required this.label,
-    required this.valor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icono, color: const Color(0xFF4361EE), size: 22),
-          const SizedBox(height: 4),
-          Text(
-            valor,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
-            ),
-          ),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -465,4 +361,4 @@ class _ItemAyuda extends StatelessWidget {
       ),
     );
   }
-} // ← cierre de _ItemAyuda
+}
