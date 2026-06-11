@@ -17,6 +17,7 @@ class PuzzleLogic {
       if (!tieneSolucion(tablero, size)) {
         _corregirParidad(tablero, random);
       }
+      // Garantizado: tiene solución. Solo repetir si quedó resuelto.
     } while (estaResuelto(tablero));
 
     return tablero;
