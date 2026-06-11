@@ -63,7 +63,7 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     setState(() {
-      _tablero = PuzzleLogic.mover(_tablero, indice);
+      _tablero = PuzzleLogic.mover(_tablero, indice, widget.size);
       _movimientos++;
     });
 
