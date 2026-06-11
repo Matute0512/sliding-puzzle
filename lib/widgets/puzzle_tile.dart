@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Ficha individual del tablero del puzzle
-class PuzzleTitle extends StatelessWidget {
+class PuzzleTile extends StatelessWidget {
   final int numero;
   final int size;
   final VoidCallback onTap;
 
-  const PuzzleTitle({
+  const PuzzleTile({
+    super.key,
     required this.numero,
     required this.size,
     required this.onTap,
@@ -27,7 +28,7 @@ class PuzzleTitle extends StatelessWidget {
           boxShadow: esVacio
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -39,9 +40,9 @@ class PuzzleTitle extends StatelessWidget {
                     blurRadius: 0,
                   ),
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 8,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
         ),

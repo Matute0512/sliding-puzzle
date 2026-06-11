@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Tarjeta del HUD para mostrar tiempos y movimientos
-class HubCard extends StatelessWidget {
+class HudCard extends StatelessWidget {
   final IconData icono;
   final String label;
   final String valor;
 
-  const HubCard({
+  const HudCard({
+    super.key,
     required this.icono,
     required this.label,
     required this.valor,
@@ -22,7 +23,7 @@ class HubCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -37,7 +38,7 @@ class HubCard extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: const Color(0xFF1E293B),
             ),
           ),
           Text(
