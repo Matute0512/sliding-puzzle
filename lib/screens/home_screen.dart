@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
+import '../theme/app_theme.dart';
 import '../widgets/difficulty_button.dart';
 
 /// Pantalla de inicio con selección de dificultad.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeChanged;
+
+  const HomeScreen({
+    super.key,
+    required this.themeMode,
+    required this.onThemeChanged,
+  });
 
   void _navegarAJuego(BuildContext context, int size) {
     Navigator.push(
@@ -15,10 +23,45 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  ThemeMode _siguienteModo(ThemeMode actual) {
+    switch (actual) {
+      case ThemeMode.light:
+        return ThemeMode.dark;
+      case ThemeMode.dark:
+        return ThemeMode.system;
+      case ThemeMode.system:
+        return ThemeMode.light;
+    }
+  }
+
+  IconData _iconoParaModo(ThemeMode modo) {
+    switch (modo) {
+      case ThemeMode.light:
+        return Icons.light_mode;
+      case ThemeMode.dark:
+        return Icons.dark_mode;
+      case ThemeMode.system:
+        return Icons.brightness_auto;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Cambiar tema',
+            icon: Icon(_iconoParaModo(themeMode), color: colors.textPrimary),
+            onPressed: () => onThemeChanged(_siguienteModo(themeMode)),
+          ),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
@@ -34,7 +77,7 @@ class HomeScreen extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E293B),
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -42,7 +85,7 @@ class HomeScreen extends StatelessWidget {
                   'Elegí una dificultad',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
-                    color: const Color(0xFF64748B),
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 48),
@@ -76,12 +119,12 @@ class HomeScreen extends StatelessWidget {
                   },
                   icon: const Icon(
                     Icons.emoji_events,
-                    color: Color(0xFF4361EE),
+                    color: AppTheme.seedColor,
                   ),
                   label: Text(
                     'Ver récords',
                     style: GoogleFonts.poppins(
-                      color: const Color(0xFF4361EE),
+                      color: AppTheme.seedColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

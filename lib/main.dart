@@ -1,26 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'screens/home_screen.dart';
+import 'services/theme_service.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const SlidingPuzzleApp());
 }
 
-class SlidingPuzzleApp extends StatelessWidget {
+class SlidingPuzzleApp extends StatefulWidget {
   const SlidingPuzzleApp({super.key});
+
+  @override
+  State<SlidingPuzzleApp> createState() => _SlidingPuzzleAppState();
+}
+
+class _SlidingPuzzleAppState extends State<SlidingPuzzleApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarTema();
+  }
+
+  Future<void> _cargarTema() async {
+    final mode = await ThemeService.cargarThemeMode();
+    if (!mounted) return;
+    setState(() => _themeMode = mode);
+  }
+
+  void cambiarTema(ThemeMode mode) {
+    setState(() => _themeMode = mode);
+    ThemeService.guardarThemeMode(mode);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sliding Puzzle',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4361EE)),
-        useMaterial3: true,
-        // Poppins como fuente global
-        textTheme: GoogleFonts.poppinsTextTheme(),
-      ),
-      home: const HomeScreen(),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      home: HomeScreen(themeMode: _themeMode, onThemeChanged: cambiarTema),
     );
   }
 }

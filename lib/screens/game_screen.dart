@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_tile.dart';
 
@@ -40,20 +41,17 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
-  /// Inicia el cronómetro sumando 1 segundo cada tick
   void _iniciarTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _segundos++);
     });
   }
 
-  /// Detiene el cronómetro
   void _detenerTimer() {
     _timer?.cancel();
     _timer = null;
   }
 
-  /// Maneja el tap en una ficha
   void _onTapFicha(int indice) {
     if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) return;
 
@@ -73,7 +71,6 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  /// Guarda el récord y muestra el diálogo de victoria
   Future<void> _mostrarVictoria() async {
     final esPrecord = await RecordsService.guardarSiEsMejor(
       size: widget.size,
@@ -133,7 +130,7 @@ class _GameScreenState extends State<GameScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4361EE),
+                    backgroundColor: AppTheme.seedColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -170,7 +167,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Reinicia el tablero
   void _reiniciar() {
     _detenerTimer();
     setState(() {
@@ -181,7 +177,6 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  /// Muestra el dialog de ayuda con las reglas del juego
   void _mostrarAyuda() {
     showDialog(
       context: context,
@@ -218,7 +213,7 @@ class _GameScreenState extends State<GameScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF4361EE),
+                  color: AppTheme.seedColor,
                   height: 1.8,
                 ),
               ),
@@ -230,7 +225,7 @@ class _GameScreenState extends State<GameScreen> {
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4361EE),
+                backgroundColor: AppTheme.seedColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -250,19 +245,21 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        iconTheme: IconThemeData(color: colors.textPrimary),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, color: Color(0xFF1E293B)),
+            icon: Icon(Icons.help_outline, color: colors.textPrimary),
             onPressed: _mostrarAyuda,
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF1E293B)),
+            icon: Icon(Icons.refresh, color: colors.textPrimary),
             onPressed: _reiniciar,
           ),
         ],
@@ -365,20 +362,22 @@ class _FilaResultado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icono, color: const Color(0xFF4361EE), size: 20),
+        Icon(icono, color: AppTheme.seedColor, size: 20),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: GoogleFonts.poppins(color: const Color(0xFF64748B)),
+          style: GoogleFonts.poppins(color: colors.textSecondary),
         ),
         Text(
           valor,
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1E293B),
+            color: colors.textPrimary,
           ),
         ),
       ],
@@ -394,6 +393,8 @@ class _ItemAyuda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -401,14 +402,14 @@ class _ItemAyuda extends StatelessWidget {
         children: [
           const Text(
             '• ',
-            style: TextStyle(color: Color(0xFF4361EE), fontSize: 16),
+            style: TextStyle(color: AppTheme.seedColor, fontSize: 16),
           ),
           Expanded(
             child: Text(
               texto,
               style: GoogleFonts.poppins(
                 fontSize: 14,
-                color: const Color(0xFF1E293B),
+                color: colors.textPrimary,
               ),
             ),
           ),
