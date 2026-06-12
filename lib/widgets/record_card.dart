@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 /// Tarjeta reutilizable para mostrar el récord de cada dificultad.
 class RecordCard extends StatelessWidget {
@@ -20,12 +21,13 @@ class RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
     final sinRecord = tiempo == null && movimientos == null;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -51,7 +53,7 @@ class RecordCard extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1E293B),
+                  color: colors.textPrimary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -59,7 +61,7 @@ class RecordCard extends StatelessWidget {
                 descripcion,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: const Color(0xFF64748B),
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -69,7 +71,7 @@ class RecordCard extends StatelessWidget {
               ? Text(
                   'Sin récord todavía - ¡jugá para establecer uno!',
                   style: GoogleFonts.poppins(
-                    color: const Color(0xFF64748B),
+                    color: colors.textSecondary,
                     fontSize: 13,
                   ),
                 )
@@ -108,18 +110,20 @@ class _ItemRecord extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icono, size: 16, color: const Color(0xFF4361EE)),
+            Icon(icono, size: 16, color: AppTheme.seedColor),
             const SizedBox(width: 4),
             Text(
               label,
               style: GoogleFonts.poppins(
                 fontSize: 12,
-                color: const Color(0xFF64748B),
+                color: colors.textSecondary,
               ),
             ),
           ],
@@ -130,7 +134,7 @@ class _ItemRecord extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1E293B),
+            color: colors.textPrimary,
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 /// Tarjeta del HUD para mostrar tiempos y movimientos
 class HudCard extends StatelessWidget {
@@ -16,10 +17,12 @@ class HudCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -31,21 +34,21 @@ class HudCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icono, color: const Color(0xFF4361EE), size: 22),
+          Icon(icono, color: AppTheme.seedColor, size: 22),
           const SizedBox(height: 4),
           Text(
             valor,
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+              color: colors.textPrimary,
             ),
           ),
           Text(
             label,
             style: GoogleFonts.poppins(
               fontSize: 12,
-              color: const Color(0xFF64748B),
+              color: colors.textSecondary,
             ),
           ),
         ],
