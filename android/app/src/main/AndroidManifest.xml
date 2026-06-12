@@ -2,7 +2,7 @@
     <application
         android:label="sliding_puzzle"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name="dev.matute.slidingpuzzle.MainActivity"
             android:exported="true"

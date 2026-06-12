@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/records_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/record_card.dart';
 
 /// Pantalla que muestra los récords locales por dificultad.
@@ -33,16 +34,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
           '🏆 Récords',
           style: GoogleFonts.poppins(
-            color: const Color(0xFF1E293B),
+            color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
