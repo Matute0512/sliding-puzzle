@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'services/sound_service.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SoundService.inicializar();
   runApp(const SlidingPuzzleApp());
 }
 
