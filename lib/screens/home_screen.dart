@@ -1,48 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
+import '../screens/settings_screen.dart';
+import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/difficulty_button.dart';
 
 /// Pantalla de inicio con selección de dificultad.
-class HomeScreen extends StatelessWidget {
-  final ThemeMode themeMode;
-  final ValueChanged<ThemeMode> onThemeChanged;
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-  const HomeScreen({
-    super.key,
-    required this.themeMode,
-    required this.onThemeChanged,
-  });
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-  void _navegarAJuego(BuildContext context, int size) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => GameScreen(size: size)),
+class _HomeScreenState extends State<HomeScreen> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    SoundService.iniciarMusica();
+
+    _lifecycleListener = AppLifecycleListener(
+      onResume: SoundService.reanudarMusica,
+      onHide: SoundService.pausarMusica,
+      onPause: SoundService.pausarMusica,
     );
   }
 
-  ThemeMode _siguienteModo(ThemeMode actual) {
-    switch (actual) {
-      case ThemeMode.light:
-        return ThemeMode.dark;
-      case ThemeMode.dark:
-        return ThemeMode.system;
-      case ThemeMode.system:
-        return ThemeMode.light;
-    }
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    SoundService.detenerMusica();
+    super.dispose();
   }
 
-  IconData _iconoParaModo(ThemeMode modo) {
-    switch (modo) {
-      case ThemeMode.light:
-        return Icons.light_mode;
-      case ThemeMode.dark:
-        return Icons.dark_mode;
-      case ThemeMode.system:
-        return Icons.brightness_auto;
-    }
+  void _navegarAJuego(BuildContext context, int size) async {
+    // Pausamos la música del menú antes de entrar al juego.
+    await SoundService.pausarMusica();
+    if (!context.mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => GameScreen(size: size)),
+    );
+    // Al volver del juego, reanudamos la música del menú.
+    SoundService.reanudarMusica();
   }
 
   @override
@@ -56,9 +61,14 @@ class HomeScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Cambiar tema',
-            icon: Icon(_iconoParaModo(themeMode), color: colors.textPrimary),
-            onPressed: () => onThemeChanged(_siguienteModo(themeMode)),
+            tooltip: 'Configuración',
+            icon: Icon(Icons.settings_outlined, color: colors.textPrimary),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
           ),
         ],
       ),
