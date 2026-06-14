@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
+import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_tile.dart';
@@ -25,6 +26,9 @@ class _GameScreenState extends State<GameScreen> {
   bool _juegoIniciado = false;
   late ConfettiController _confettiController;
 
+  bool _sonidoActivado = SoundService.sonidoActivado;
+  bool _musicaActivada = SoundService.musicaActivada;
+
   @override
   void initState() {
     super.initState();
@@ -32,12 +36,14 @@ class _GameScreenState extends State<GameScreen> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 4),
     );
+    SoundService.iniciarMusica();
   }
 
   @override
   void dispose() {
     _detenerTimer();
     _confettiController.dispose();
+    SoundService.detenerMusica();
     super.dispose();
   }
 
@@ -52,6 +58,16 @@ class _GameScreenState extends State<GameScreen> {
     _timer = null;
   }
 
+  void _alternarSonido() {
+    SoundService.alternarSonido();
+    setState(() => _sonidoActivado = SoundService.sonidoActivado);
+  }
+
+  void _alternarMusica() {
+    SoundService.alternarMusica();
+    setState(() => _musicaActivada = SoundService.musicaActivada);
+  }
+
   void _onTapFicha(int indice) {
     if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) return;
 
@@ -59,6 +75,8 @@ class _GameScreenState extends State<GameScreen> {
       _juegoIniciado = true;
       _iniciarTimer();
     }
+
+    SoundService.reproducirClick();
 
     setState(() {
       _tablero = PuzzleLogic.mover(_tablero, indice, widget.size);
@@ -80,6 +98,8 @@ class _GameScreenState extends State<GameScreen> {
 
     if (!mounted) return;
 
+    await SoundService.pausarMusica();
+    SoundService.reproducirVictoria();
     _confettiController.play();
 
     showDialog(
@@ -169,6 +189,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _reiniciar() {
     _detenerTimer();
+    SoundService.reanudarMusica();
     setState(() {
       _tablero = PuzzleLogic.generarTablero(widget.size);
       _movimientos = 0;
