@@ -26,9 +26,6 @@ class _GameScreenState extends State<GameScreen> {
   bool _juegoIniciado = false;
   late ConfettiController _confettiController;
 
-  bool _sonidoActivado = SoundService.sonidoActivado;
-  bool _musicaActivada = SoundService.musicaActivada;
-
   @override
   void initState() {
     super.initState();
@@ -56,16 +53,6 @@ class _GameScreenState extends State<GameScreen> {
   void _detenerTimer() {
     _timer?.cancel();
     _timer = null;
-  }
-
-  void _alternarSonido() {
-    SoundService.alternarSonido();
-    setState(() => _sonidoActivado = SoundService.sonidoActivado);
-  }
-
-  void _alternarMusica() {
-    SoundService.alternarMusica();
-    setState(() => _musicaActivada = SoundService.musicaActivada);
   }
 
   void _onTapFicha(int indice) {
