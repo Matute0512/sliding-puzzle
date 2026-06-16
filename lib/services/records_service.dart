@@ -1,37 +1,66 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sliding_puzzle/models/record_game.dart';
 
-/// Servicio para guardar y leer récords locales por dificultad.
+/// Servicio para guardar y leer el historial de récords locales.
+///
+/// Almacena hasta [_maxRecords] partidas por dificultad,
+/// ordenadas por tiempo ascendente.
 class RecordsService {
-  static Future<int?> obtenerMejorTiempo(int size) async {
+  static const int _maxRecords = 5;
+  static const String _prefijo = 'historial_records_';
+
+  // Claves del formato viejo — se limpian al migrar.
+  static const List<String> _clavesViejas = [
+    'record_tiempo_3',
+    'record_tiempo_4',
+    'record_tiempo_5',
+    'record_movimientos_3',
+    'record_movimientos_4',
+    'record_movimientos_5',
+  ];
+
+  /// Elimina datos del formato anterior si existen.
+  static Future<void> limpiarDatosViejos() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('record_tiempo_$size');
+    for (final clave in _clavesViejas) {
+      await prefs.remove(clave);
+    }
   }
 
-  static Future<int?> obtenerMejorMovimientos(int size) async {
+  /// Devuelve el historial de partidas para una dificultad (puede ser vacío).
+  static Future<List<RecordGame>> obtenerHistorial(int size) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('record_movimientos_$size');
+    final raw = prefs.getString('$_prefijo$size');
+    if (raw == null) return [];
+    try {
+      return RecordGame.decodeList(raw);
+    } catch (_) {
+      return [];
+    }
   }
 
-  static Future<bool> guardarSiEsMejor({
+  /// Guarda la partida en el historial y retorna si es el nuevo #1.
+  static Future<bool> guardarPartida({
     required int size,
     required int tiempo,
     required int movimientos,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    bool nuevoPrecord = false;
+    final historial = await obtenerHistorial(size);
 
-    final mejorTiempo = prefs.getInt('record_tiempo_$size');
-    if (mejorTiempo == null || tiempo < mejorTiempo) {
-      await prefs.setInt('record_tiempo_$size', tiempo);
-      nuevoPrecord = true;
-    }
+    final nueva = RecordGame(tiempo: tiempo, movimientos: movimientos);
 
-    final mejorMovimientos = prefs.getInt('record_movimientos_$size');
-    if (mejorMovimientos == null || movimientos < mejorMovimientos) {
-      await prefs.setInt('record_movimientos_$size', movimientos);
-      nuevoPrecord = true;
-    }
+    // Verificamos si es récord #1 antes de insertar
+    final esPrimerPuesto = historial.isEmpty || tiempo < historial.first.tiempo;
 
-    return nuevoPrecord;
+    historial.add(nueva);
+
+    // Ordenamos por tiempo ascendente y recortamos al límite
+    historial.sort((a, b) => a.tiempo.compareTo(b.tiempo));
+    final top = historial.take(_maxRecords).toList();
+
+    await prefs.setString('$_prefijo$size', RecordGame.encodeList(top));
+
+    return esPrimerPuesto;
   }
 }
