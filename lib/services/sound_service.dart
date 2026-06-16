@@ -1,17 +1,24 @@
-import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Servicio centralizado de audio usando SoLoud — motor de audio de baja
+/// latencia diseñado para juegos. Reemplaza a audioplayers, que generaba
+/// lag y crashes con taps rápidos y repetidos (clicks de fichas).
 class SoundService {
   static const String _claveSonido = 'sonido_activado';
   static const String _claveMusica = 'musica_activada';
 
-  static final AudioPlayer _musica = AudioPlayer();
+  static final SoLoud _soloud = SoLoud.instance;
+
+  static AudioSource? _fuenteClick;
+  static AudioSource? _fuenteVictoria;
+  static AudioSource? _fuenteMusica;
+  static SoundHandle? _handleMusica;
 
   static bool sonidoActivado = true;
   static bool musicaActivada = true;
+  static bool _inicializado = false;
   static bool _pausadoPorCicloDeVida = false;
 
   static Future<void> inicializar() async {
@@ -20,63 +27,43 @@ class SoundService {
       sonidoActivado = prefs.getBool(_claveSonido) ?? true;
       musicaActivada = prefs.getBool(_claveMusica) ?? true;
 
-      await _musica.setReleaseMode(ReleaseMode.loop);
-      await _musica.setVolume(0.35);
-      // Configuramos el AudioContext para que no interrumpa otros sonidos
-      await _musica.setAudioContext(
-        AudioContext(
-          android: AudioContextAndroid(
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-            usageType: AndroidUsageType.game,
-            contentType: AndroidContentType.music,
-          ),
-        ),
+      await _soloud.init();
+      _inicializado = true;
+
+      // Precargamos los 3 assets en memoria — quedan listos para
+      // reproducirse instantáneamente sin recargar el archivo.
+      _fuenteClick = await _soloud.loadAsset('assets/sounds/click.mp3');
+      _fuenteVictoria = await _soloud.loadAsset('assets/sounds/victory.mp3');
+      _fuenteMusica = await _soloud.loadAsset(
+        'assets/sounds/background_music.mp3',
       );
     } catch (e) {
       debugPrint('Error inicializando SoundService: $e');
     }
   }
 
+  /// Reproduce el click. SoLoud crea una nueva "voz" (instancia de
+  /// reproducción) cada vez sin recargar el archivo ni bloquear el
+  /// hilo principal — soporta clicks tan rápidos como el usuario tapee.
   static void reproducirClick() {
-    if (!sonidoActivado) return;
-    unawaited(_reproducirEfecto('sounds/click.mp3', 0.6));
+    if (!sonidoActivado || !_inicializado || _fuenteClick == null) return;
+    _soloud.play(_fuenteClick!, volume: 0.6);
   }
 
   static void reproducirVictoria() {
-    if (!sonidoActivado) return;
-    unawaited(_reproducirEfecto('sounds/victory.mp3', 0.8));
-  }
-
-  static Future<void> _reproducirEfecto(String asset, double volumen) async {
-    AudioPlayer? player;
-    try {
-      player = AudioPlayer();
-      await player.setAudioContext(
-        AudioContext(
-          android: AudioContextAndroid(
-            // gainTransientMayDuck: baja la música levemente en lugar
-            // de cortar el foco completamente (evita la cascada AUDIOFOCUS_LOSS)
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-            usageType: AndroidUsageType.game,
-            contentType: AndroidContentType.sonification,
-          ),
-        ),
-      );
-      await player.setPlayerMode(PlayerMode.lowLatency);
-      await player.setVolume(volumen);
-      await player.play(AssetSource(asset));
-      await player.onPlayerComplete.first;
-    } catch (e) {
-      debugPrint('Error en efecto ($asset): $e');
-    } finally {
-      await player?.dispose();
-    }
+    if (!sonidoActivado || !_inicializado || _fuenteVictoria == null) return;
+    _soloud.play(_fuenteVictoria!, volume: 0.8);
   }
 
   static Future<void> iniciarMusica() async {
-    if (!musicaActivada) return;
+    if (!musicaActivada || !_inicializado || _fuenteMusica == null) return;
     try {
-      await _musica.play(AssetSource('sounds/background_music.mp3'));
+      // Si ya hay una instancia sonando, no abrimos otra encima.
+      if (_handleMusica != null &&
+          _soloud.getIsValidVoiceHandle(_handleMusica!)) {
+        return;
+      }
+      _handleMusica = _soloud.play(_fuenteMusica!, volume: 0.35, looping: true);
     } catch (e) {
       debugPrint('Error al iniciar música: $e');
     }
@@ -84,8 +71,9 @@ class SoundService {
 
   static Future<void> pausarMusica() async {
     try {
-      if (_musica.state == PlayerState.playing) {
-        await _musica.pause();
+      if (_handleMusica != null &&
+          _soloud.getIsValidVoiceHandle(_handleMusica!)) {
+        _soloud.setPause(_handleMusica!, true);
       }
     } catch (e) {
       debugPrint('Error al pausar música: $e');
@@ -95,8 +83,12 @@ class SoundService {
   static Future<void> reanudarMusica() async {
     if (!musicaActivada) return;
     try {
-      if (_musica.state == PlayerState.paused) {
-        await _musica.resume();
+      if (_handleMusica != null &&
+          _soloud.getIsValidVoiceHandle(_handleMusica!)) {
+        _soloud.setPause(_handleMusica!, false);
+      } else {
+        // El handle ya no es válido (se detuvo), arrancamos de nuevo.
+        await iniciarMusica();
       }
     } catch (e) {
       debugPrint('Error al reanudar música: $e');
@@ -105,7 +97,10 @@ class SoundService {
 
   static Future<void> detenerMusica() async {
     try {
-      await _musica.stop();
+      if (_handleMusica != null) {
+        await _soloud.stop(_handleMusica!);
+        _handleMusica = null;
+      }
     } catch (e) {
       debugPrint('Error al detener música: $e');
     }
@@ -114,7 +109,9 @@ class SoundService {
   static void manejarCicloDeVida(AppLifecycleState estado) {
     if (estado == AppLifecycleState.paused ||
         estado == AppLifecycleState.inactive) {
-      if (musicaActivada && _musica.state == PlayerState.playing) {
+      if (musicaActivada &&
+          _handleMusica != null &&
+          _soloud.getIsValidVoiceHandle(_handleMusica!)) {
         pausarMusica();
         _pausadoPorCicloDeVida = true;
       }
@@ -130,6 +127,9 @@ class SoundService {
     sonidoActivado = !sonidoActivado;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_claveSonido, sonidoActivado);
+    if (sonidoActivado) {
+      reproducirClick();
+    }
   }
 
   static Future<void> alternarMusica() async {
