@@ -77,7 +77,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _mostrarVictoria() async {
-    final esPrecord = await RecordsService.guardarSiEsMejor(
+    final esPrecord = await RecordsService.guardarPartida(
       size: widget.size,
       tiempo: _segundos,
       movimientos: _movimientos,
