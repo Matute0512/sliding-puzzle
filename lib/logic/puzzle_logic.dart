@@ -7,18 +7,24 @@ class PuzzleLogic {
   /// que tenga solución y que no comience ya resuelto.
   static List<int> generarTablero(int size) {
     final random = Random();
-
     List<int> tablero = List.generate(size * size, (i) => i);
-    do {
+
+    while (true) {
       tablero.shuffle(random);
 
-      // Si el tablero no tiene solucion,
-      // corregimos la paridad intercambiando dos fichas.
+      // Si no tiene solución, corregimos la paridad de inmediato.
+      // Al intercambiar dos fichas (no vacías), la paridad se invierte
+      // y el tablero queda matemáticamente resuelto a nivel de solución.
       if (!tieneSolucion(tablero, size)) {
         _corregirParidad(tablero, random);
       }
-      // Garantizado: tiene solución. Solo repetir si quedó resuelto.
-    } while (estaResuelto(tablero));
+
+      // Una vez garantizado que tiene solución, verificamos que no haya
+      // quedado ya resuelto por pura casualidad. Si no está resuelto, rompemos el ciclo.
+      if (!estaResuelto(tablero)) {
+        break;
+      }
+    }
 
     return tablero;
   }
