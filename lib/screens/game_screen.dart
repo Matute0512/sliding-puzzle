@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
 import '../services/sound_service.dart';
@@ -83,9 +82,9 @@ class _GameScreenState extends State<GameScreen> {
       movimientos: _movimientos,
     );
 
+    await SoundService.pausarMusica();
     if (!mounted) return;
 
-    await SoundService.pausarMusica();
     SoundService.reproducirVictoria();
     _confettiController.play();
 
@@ -101,7 +100,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             title: Text(
               esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             content: Column(
@@ -119,12 +118,12 @@ class _GameScreenState extends State<GameScreen> {
                   valor: '$_movimientos',
                 ),
                 if (esPrecord)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
                     child: Text(
                       '¡Superaste tu mejor marca!',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFFF59E0B),
+                      style: TextStyle(fontFamily: 'Poppins',
+                        color: Color(0xFFF59E0B),
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
@@ -147,9 +146,9 @@ class _GameScreenState extends State<GameScreen> {
                     Navigator.pop(context);
                     _reiniciar();
                   },
-                  child: Text(
+                  child: const Text(
                     'Jugar de nuevo',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -190,35 +189,35 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
+        title: const Text(
           '🧩 ¿Cómo jugar?',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _ItemAyuda(
+            _ItemAyuda(
               texto: 'Tocá una ficha adyacente al espacio vacío para moverla.',
             ),
-            const _ItemAyuda(
+            _ItemAyuda(
               texto: 'El objetivo es ordenar los números en orden ascendente.',
             ),
-            const _ItemAyuda(
+            _ItemAyuda(
               texto:
                   'El espacio vacío debe quedar en la esquina inferior derecha.',
             ),
-            const _ItemAyuda(
+            _ItemAyuda(
               texto:
                   '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Center(
               child: Text(
                 '1  2  3\n4  5  6\n7  8  ☐',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: TextStyle(fontFamily: 'Poppins',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.seedColor,
@@ -240,9 +239,9 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
               onPressed: () => Navigator.pop(context),
-              child: Text(
+              child: const Text(
                 '¡Entendido!',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -379,11 +378,11 @@ class _FilaResultado extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: GoogleFonts.poppins(color: colors.textSecondary),
+          style: TextStyle(fontFamily: 'Poppins',color: colors.textSecondary),
         ),
         Text(
           valor,
-          style: GoogleFonts.poppins(
+          style: TextStyle(fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
             color: colors.textPrimary,
           ),
@@ -415,7 +414,7 @@ class _ItemAyuda extends StatelessWidget {
           Expanded(
             child: Text(
               texto,
-              style: GoogleFonts.poppins(
+              style: TextStyle(fontFamily: 'Poppins',
                 fontSize: 14,
                 color: colors.textPrimary,
               ),

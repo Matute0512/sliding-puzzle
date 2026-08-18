@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/app_settings_provider.dart';
@@ -22,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
           '⚙️ Configuración',
-          style: GoogleFonts.poppins(
+          style: TextStyle(fontFamily: 'Poppins',
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -43,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Tema',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(fontFamily: 'Poppins',
                         fontSize: 14,
                         color: colors.textSecondary,
                       ),
@@ -131,7 +130,7 @@ class _SeccionTitulo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       titulo,
-      style: GoogleFonts.poppins(
+      style: TextStyle(fontFamily: 'Poppins',
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: colors.textSecondary,
@@ -197,7 +196,7 @@ class _FilaSwitch extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: TextStyle(fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: colors.textPrimary,
@@ -205,7 +204,7 @@ class _FilaSwitch extends StatelessWidget {
               ),
               Text(
                 descripcion,
-                style: GoogleFonts.poppins(
+                style: TextStyle(fontFamily: 'Poppins',
                   fontSize: 12,
                   color: colors.textSecondary,
                 ),
@@ -216,7 +215,7 @@ class _FilaSwitch extends StatelessWidget {
         Switch(
           value: valor,
           onChanged: onChanged,
-          activeColor: AppTheme.seedColor,
+          activeThumbColor: AppTheme.seedColor,
         ),
       ],
     );
