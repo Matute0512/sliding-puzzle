@@ -2,9 +2,9 @@
 
 Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponible para Android, iOS y Web desde un único código fuente.
 
-![Flutter](https://img.shields.io/badge/Flutter-3.44.1-02569B?style=flat&logo=flutter)
-![Dart](https://img.shields.io/badge/Dart-3.12.1-0175C2?style=flat&logo=dart)
-![Version](https://img.shields.io/badge/versión-1.0.0-success)
+![Flutter](https://img.shields.io/badge/Flutter-3.44.2-02569B?style=flat&logo=flutter)
+![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
+![Version](https://img.shields.io/badge/versión-2.0.0-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
 
 ---
@@ -33,7 +33,10 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 | Flutter | 3.44.1 | Framework de UI |
 | Dart | 3.12.1 | Lenguaje de programación |
 | shared_preferences | 2.5.5 | Almacenamiento local de récords |
-| google_fonts | 8.1.0 | Tipografía Poppins |
+| provider | 6.1.5+1 | Gestión de estado (tema, sonido y música) |
+| confetti | 0.8.0 | Animación de confetti al ganar |
+| flutter_soloud | 4.0.9 | Efectos de sonido y música de fondo (motor SoLoud) |
+| Poppins | — | Tipografía empaquetada como asset (sin descarga en runtime) |
 
 ---
 
@@ -48,13 +51,21 @@ sliding_puzzle/
 ├── web/
 ├── windows/
 ├── test/
+│   └── puzzle_logic_test.dart
 │
 ├── lib/
 │   ├── main.dart
-│   ├── game_screen.dart
-│   ├── puzzle_logic.dart
-│   ├── records_screen.dart
-│   └── records_service.dart
+│   ├── logic/puzzle_logic.dart
+│   ├── models/record_game.dart
+│   ├── providers/app_settings_provider.dart
+│   ├── screens/ (home, game, records, settings)
+│   ├── services/ (records, sound)
+│   ├── theme/app_theme.dart
+│   └── widgets/ (difficulty_button, hud_card, puzzle_tile)
+│
+├── assets/
+│   ├── fonts/ (Poppins Regular, Medium, Bold)
+│   └── sounds/ (click, victory, background music)
 │
 ├── pubspec.yaml
 ├── pubspec.lock
@@ -66,11 +77,14 @@ sliding_puzzle/
 
 | Archivo | Responsabilidad |
 |----------|----------------|
-| `main.dart` | Punto de entrada de la aplicación y menú principal |
-| `game_screen.dart` | Pantalla principal del juego, tablero, HUD y temporizador |
-| `puzzle_logic.dart` | Lógica del rompecabezas: mezcla, movimientos y validación |
-| `records_screen.dart` | Visualización de récords locales |
-| `records_service.dart` | Persistencia de récords mediante `shared_preferences` |
+| `main.dart` | Punto de entrada de la aplicación |
+| `screens/home_screen.dart` | Menú principal con selección de dificultad |
+| `screens/game_screen.dart` | Pantalla del juego: tablero, HUD, temporizador y victoria |
+| `screens/records_screen.dart` | Visualización del historial de récords por dificultad |
+| `screens/settings_screen.dart` | Panel de configuración: tema, sonido y música |
+| `logic/puzzle_logic.dart` | Lógica del rompecabezas: mezcla, paridad, movimientos y validación |
+| `services/records_service.dart` | Persistencia de récords mediante `shared_preferences` |
+| `services/sound_service.dart` | Efectos de sonido y música con `flutter_soloud` |
 
 ## Plataformas soportadas
 
@@ -88,8 +102,8 @@ sliding_puzzle/
 
 ### Requisitos previos
 
-- Flutter 3.44.1 o superior
-- Dart 3.12.1 o superior
+- Flutter 3.44.2 o superior
+- Dart 3.12.2 o superior
 
 ### Instalación
 
@@ -121,12 +135,16 @@ flutter run -d android
 - UI moderna y táctil con paleta personalizada
 - Dialog de ayuda con instrucciones
 
-### v2.0.0 🔜
-- 🎨 Fondos animados por dificultad
+### v2.0.0 ✅
 - 🎉 Animación de confetti al ganar
-- 🌙 Soporte de modo oscuro
-- 🎵 Efectos de sonido
-- 📊 Historial detallado de partidas
+- 🌙 Soporte de modo oscuro (claro/oscuro/sistema, persistente)
+- 🎵 Efectos de sonido y música de fondo (flutter_soloud)
+- 📊 Historial detallado de partidas (top 5 por dificultad)
+- ⚙️ Panel de configuración (tema, sonido, música)
+- 🧩 Tipografía Poppins empaquetada como asset (funciona sin conexión)
+
+### Pendiente
+- 🎨 Fondos animados por dificultad
 
 ---
 

@@ -83,7 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Sliding Puzzle',
-                  style: TextStyle(fontFamily: 'Poppins',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: colors.textPrimary,
@@ -92,28 +93,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Elegí una dificultad',
-                  style: TextStyle(fontFamily: 'Poppins',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 16,
                     color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 48),
                 DifficultyButton(
-                  label: '😊  Fácil',
+                  label: 'Fácil',
                   descripcion: 'Tablero 3x3',
                   color: const Color(0xFF10B981),
                   onTap: () => _navegarAJuego(context, 3),
                 ),
                 const SizedBox(height: 16),
                 DifficultyButton(
-                  label: '😤  Medio',
+                  label: 'Medio',
                   descripcion: 'Tablero 4x4',
                   color: const Color(0xFFF59E0B),
                   onTap: () => _navegarAJuego(context, 4),
                 ),
                 const SizedBox(height: 16),
                 DifficultyButton(
-                  label: '💀  Difícil',
+                  label: 'Difícil',
                   descripcion: 'Tablero 5x5',
                   color: const Color(0xFFEF4444),
                   onTap: () => _navegarAJuego(context, 5),
@@ -132,7 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   label: const Text(
                     'Ver récords',
-                    style: TextStyle(fontFamily: 'Poppins',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       color: AppTheme.seedColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
