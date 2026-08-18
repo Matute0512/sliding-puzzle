@@ -12,6 +12,14 @@ if (keyPropertiesFile.exists()) {
     keyProperties.load(keyPropertiesFile.inputStream())
 }
 
+// Firma del release: se prefiere el entorno (CI) y se cae a android/key.properties.
+// Si no hay ninguna fuente, la config de firma no se crea y el release build usa
+// la firma por defecto (solo para validar el build; NO para producción).
+val releaseKeyAlias = System.getenv("KEY_ALIAS") ?: keyProperties.getProperty("keyAlias")
+val releaseKeyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties.getProperty("keyPassword")
+val releaseStorePassword = System.getenv("KEY_STORE_PASSWORD") ?: keyProperties.getProperty("storePassword")
+val releaseStoreFile = System.getenv("KEY_STORE_FILE") ?: keyProperties.getProperty("storeFile")
+
 android {
     namespace = "dev.matute.slidingpuzzle"
     compileSdk = flutter.compileSdkVersion
@@ -23,11 +31,13 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keyProperties["keyAlias"] as String
-            keyPassword = keyProperties["keyPassword"] as String
-            storeFile = file(keyProperties["storeFile"] as String)
-            storePassword = keyProperties["storePassword"] as String
+        if (releaseKeyAlias != null && releaseKeyPassword != null && releaseStorePassword != null && releaseStoreFile != null) {
+            create("release") {
+                this.keyAlias = releaseKeyAlias
+                this.keyPassword = releaseKeyPassword
+                this.storePassword = releaseStorePassword
+                this.storeFile = file(releaseStoreFile)
+            }
         }
     }
 
@@ -44,9 +54,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("release")
+            // Firma real si hay key.properties/env vars; si no, debug (solo validación).
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 }
