@@ -96,8 +96,8 @@ jobs:
       #   KEY_STORE_PASSWORD       -> storePassword del keystore
       #   KEY_ALIAS_PASSWORD       -> keyPassword del keystore
       #   KEY_ALIAS                -> alias de la clave
-      # Si no están configurados, se genera un keystore temporal para validar el
-      # build (el AAB resultante NO sirve para producción).
+      # Si falta alguno, se genera un keystore temporal para validar el build
+      # (el AAB resultante NO sirve para producción).
       - name: Configurar firma
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -106,25 +106,25 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           set -euo pipefail
-          if [ -n "$KEY_STORE_PASSWORD" ] && [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+          if [ -n "${KEY_STORE_PASSWORD:-}" ] && [ -n "${KEY_ALIAS_PASSWORD:-}" ] && [ -n "${KEY_ALIAS:-}" ] && [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/sliding_puzzle_key.jks
-            cat > android/key.properties <<EOF
-            storePassword=$KEY_STORE_PASSWORD
-            keyPassword=$KEY_ALIAS_PASSWORD
-            keyAlias=$KEY_ALIAS
-            storeFile=sliding_puzzle_key.jks
-            EOF
+            {
+              echo "storePassword=$KEY_STORE_PASSWORD"
+              echo "keyPassword=$KEY_ALIAS_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "storeFile=sliding_puzzle_key.jks"
+            } > android/key.properties
             echo "FIRMA=production" >> "$GITHUB_ENV"
           else
             keytool -genkeypair -v -keystore android/app/sliding_puzzle_key.jks \
               -alias sliding_puzzle -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android -dname "CN=CI" >/dev/null 2>&1
-            cat > android/key.properties <<EOF
-            storePassword=android
-            keyPassword=android
-            keyAlias=sliding_puzzle
-            storeFile=sliding_puzzle_key.jks
-            EOF
+            {
+              echo "storePassword=android"
+              echo "keyPassword=android"
+              echo "keyAlias=sliding_puzzle"
+              echo "storeFile=sliding_puzzle_key.jks"
+            } > android/key.properties
             echo "FIRMA=ci-validation" >> "$GITHUB_ENV"
           fi
 
