@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
@@ -84,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Sliding Puzzle',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(fontFamily: 'Poppins',
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: colors.textPrimary,
@@ -93,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Elegí una dificultad',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(fontFamily: 'Poppins',
                     fontSize: 16,
                     color: colors.textSecondary,
                   ),
@@ -131,9 +130,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icons.emoji_events,
                     color: AppTheme.seedColor,
                   ),
-                  label: Text(
+                  label: const Text(
                     'Ver récords',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(fontFamily: 'Poppins',
                       color: AppTheme.seedColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

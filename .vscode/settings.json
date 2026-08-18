@@ -13,5 +13,6 @@
         "tiene",
         "tocar",
         "toda"
-    ]
+    ],
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
