@@ -1,8 +1,7 @@
-gradle-wrapper.jar
+# El wrapper de Gradle se commitea para que el CI pueda ejecutar ./gradlew
+# sin depender de que Flutter lo inyecte. (Flutter lo regenera si falta.)
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
