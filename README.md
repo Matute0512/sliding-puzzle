@@ -6,6 +6,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
 ![Version](https://img.shields.io/badge/versión-2.0.0-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
+[![CI](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml/badge.svg)](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml)
 
 ---
 
