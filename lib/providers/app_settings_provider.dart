@@ -8,8 +8,7 @@ import '../services/sound_service.dart';
 /// Persiste todas las preferencias via shared_preferences.
 class AppSettingsProvider extends ChangeNotifier {
   static const String _claveTema = 'theme_mode';
-  static const String _claveSonido =
-      'sonido_activado'; // Arreglado el typo 'sondido'
+  static const String _claveSonido = 'sonido_activado';
   static const String _claveMusica = 'musica_activada';
 
   ThemeMode _themeMode = ThemeMode.system;
@@ -58,7 +57,7 @@ class AppSettingsProvider extends ChangeNotifier {
 
     // Si se activa, podemos reproducir opcionalmente un "click" de prueba aquí
     if (_sonidoActivado) {
-      SoundService.reproducirClick(); // Asegúrate de tener este método o similar en tu servicio
+      SoundService.reproducirClick();
     }
 
     final prefs = await SharedPreferences.getInstance();

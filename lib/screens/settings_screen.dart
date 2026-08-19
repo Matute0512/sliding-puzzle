@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/app_settings_provider.dart';
@@ -21,8 +20,9 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
-          '⚙️ Configuración',
-          style: GoogleFonts.poppins(
+          'Configuración',
+          style: TextStyle(
+            fontFamily: 'Poppins',
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -43,41 +43,49 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Tema',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 14,
                         color: colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SegmentedButton<ThemeMode>(
-                      style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: AppTheme.seedColor,
-                        selectedForegroundColor: Colors.white,
-                        foregroundColor: colors.textPrimary,
+                    // width: double.infinity + expandedInsets hacen que el
+                    // control ocupe todo el ancho de la card y reparta los
+                    // 3 segmentos de forma pareja y centrada.
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        expandedInsets: EdgeInsets.zero,
+                        style: SegmentedButton.styleFrom(
+                          selectedBackgroundColor: AppTheme.seedColor,
+                          selectedForegroundColor: Colors.white,
+                          foregroundColor: colors.textPrimary,
+                        ),
+                        segments: const [
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode),
+                            tooltip: 'Claro',
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode),
+                            tooltip: 'Oscuro',
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto),
+                            tooltip: 'Sistema',
+                          ),
+                        ],
+                        selected: {settings.themeMode},
+                        onSelectionChanged: (valor) {
+                          context.read<AppSettingsProvider>().cambiarTema(
+                            valor.first,
+                          );
+                        },
                       ),
-                      segments: const [
-                        ButtonSegment(
-                          value: ThemeMode.light,
-                          icon: Icon(Icons.light_mode),
-                          label: Text('Claro'),
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.dark,
-                          icon: Icon(Icons.dark_mode),
-                          label: Text('Oscuro'),
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.system,
-                          icon: Icon(Icons.brightness_auto),
-                          label: Text('Sistema'),
-                        ),
-                      ],
-                      selected: {settings.themeMode},
-                      onSelectionChanged: (valor) {
-                        context.read<AppSettingsProvider>().cambiarTema(
-                          valor.first,
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -131,7 +139,8 @@ class _SeccionTitulo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       titulo,
-      style: GoogleFonts.poppins(
+      style: TextStyle(
+        fontFamily: 'Poppins',
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: colors.textSecondary,
@@ -197,7 +206,8 @@ class _FilaSwitch extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: colors.textPrimary,
@@ -205,7 +215,8 @@ class _FilaSwitch extends StatelessWidget {
               ),
               Text(
                 descripcion,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 12,
                   color: colors.textSecondary,
                 ),
@@ -216,7 +227,7 @@ class _FilaSwitch extends StatelessWidget {
         Switch(
           value: valor,
           onChanged: onChanged,
-          activeColor: AppTheme.seedColor,
+          activeThumbColor: AppTheme.seedColor,
         ),
       ],
     );

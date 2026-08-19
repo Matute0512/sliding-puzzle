@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 /// Ficha individual del tablero del puzzle
@@ -53,7 +52,7 @@ class PuzzleTile extends StatelessWidget {
               ? null
               : Text(
                   '$numero',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(fontFamily: 'Poppins',
                     color: Colors.white,
                     fontSize: size == 3
                         ? 28
