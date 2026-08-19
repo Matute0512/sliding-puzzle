@@ -21,6 +21,10 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 - 🟢 **Tres niveles de dificultad** — Fácil (3×3), Medio (4×4), Difícil (5×5)
 - ⏱️ **Cronómetro** — arranca en el primer movimiento y se detiene al ganar
 - 🏆 **Récords locales** — mejor tiempo y menor cantidad de movimientos guardados por dificultad
+- 🌙 **Modo oscuro** — claro/oscuro/sistema, con preferencia persistente
+- 🎵 **Sonido y música** — efectos de sonido y música de fondo (flutter_soloud)
+- ⚙️ **Panel de configuración** — tema, sonido y música en un solo lugar
+- 📊 **Historial de partidas** — top 5 de récords por dificultad
 - 🎨 **UI moderna y táctil** — paleta de colores personalizada, fuente Poppins y efecto 3D en las fichas
 - ❓ **Dialog de ayuda** — instrucciones del juego con ejemplo del tablero resuelto
 - 📱 **Layout responsive** — funciona en móvil, web y escritorio
@@ -31,8 +35,9 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 
 | Tecnología | Versión | Uso |
 |---|---|---|
-| Flutter | 3.44.1 | Framework de UI |
-| Dart | 3.12.1 | Lenguaje de programación |
+| Flutter | 3.44.2 | Framework de UI |
+| Dart | 3.12.2 | Lenguaje de programación |
+| Android (SDK) | targetSdk 36 · minSdk 24 | Plataforma objetivo de release |
 | shared_preferences | 2.5.5 | Almacenamiento local de récords |
 | provider | 6.1.5+1 | Gestión de estado (tema, sonido y música) |
 | confetti | 0.8.0 | Animación de confetti al ganar |
@@ -95,7 +100,6 @@ sliding_puzzle/
 - Linux
 - macOS
 - Web
-```
 
 ---
 
@@ -143,6 +147,12 @@ flutter run -d android
 - 📊 Historial detallado de partidas (top 5 por dificultad)
 - ⚙️ Panel de configuración (tema, sonido, música)
 - 🧩 Tipografía Poppins empaquetada como asset (funciona sin conexión)
+
+### v2.1.0 — Internacionalización (i18n)
+- 🌐 Soporte multi-idioma (ES / EN)
+
+### v3.0.0 — Leaderboard global
+- 🏆 Ranking online global entre jugadores
 
 ### Pendiente
 - 🎨 Fondos animados por dificultad
