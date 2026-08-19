@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Colores personalizados que cambian entre tema claro y oscuro,
 /// pero no forman parte del ColorScheme generado por Material 3.
@@ -78,7 +77,7 @@ class AppTheme {
         brightness: Brightness.light,
       ),
       useMaterial3: true,
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
+      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
       extensions: const [AppColors.light],
     );
   }
@@ -90,7 +89,7 @@ class AppTheme {
         brightness: Brightness.dark,
       ),
       useMaterial3: true,
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
       extensions: const [AppColors.dark],
     );
   }

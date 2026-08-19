@@ -58,9 +58,12 @@ class SoundService {
   static Future<void> iniciarMusica() async {
     if (!musicaActivada || !_inicializado || _fuenteMusica == null) return;
     try {
-      // Si ya hay una instancia sonando, no abrimos otra encima.
+      // Si ya hay una instancia válida, la reanudamos en vez de abrir otra
+      // encima. "Iniciar" siempre deja la música sonando (por ejemplo al
+      // entrar al juego, donde la del menú quedó pausada).
       if (_handleMusica != null &&
           _soloud.getIsValidVoiceHandle(_handleMusica!)) {
+        _soloud.setPause(_handleMusica!, false);
         return;
       }
       _handleMusica = _soloud.play(_fuenteMusica!, volume: 0.35, looping: true);

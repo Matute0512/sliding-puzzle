@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Botón reutilizable para cada nivel de dificultad.
 class DifficultyButton extends StatelessWidget {
@@ -35,12 +34,12 @@ class DifficultyButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: const TextStyle(fontFamily: 'Poppins',
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(descripcion, style: GoogleFonts.poppins(fontSize: 12)),
+            Text(descripcion, style: const TextStyle(fontFamily: 'Poppins',fontSize: 12)),
           ],
         ),
       ),

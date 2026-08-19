@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sliding_puzzle/models/record_game.dart';
 import '../services/records_service.dart';
 import '../theme/app_theme.dart';
@@ -19,19 +18,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
   static const _dificultades = [
     {
       'size': 3,
-      'label': '😊  Fácil',
+      'label': 'Fácil',
       'desc': 'Tablero 3×3',
       'color': Color(0xFF10B981),
     },
     {
       'size': 4,
-      'label': '😤  Medio',
+      'label': 'Medio',
       'desc': 'Tablero 4×4',
       'color': Color(0xFFF59E0B),
     },
     {
       'size': 5,
-      'label': '💀  Difícil',
+      'label': 'Difícil',
       'desc': 'Tablero 5×5',
       'color': Color(0xFFEF4444),
     },
@@ -63,7 +62,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
           '🏆 Récords',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Poppins',
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -77,7 +77,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.all(24),
                   itemCount: _dificultades.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
                   itemBuilder: (context, i) {
                     final d = _dificultades[i];
                     final size = d['size'] as int;
@@ -140,7 +140,8 @@ class _SeccionDificultad extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: colors.textPrimary,
@@ -149,7 +150,8 @@ class _SeccionDificultad extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 descripcion,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 13,
                   color: colors.textSecondary,
                 ),
@@ -162,7 +164,8 @@ class _SeccionDificultad extends StatelessWidget {
           if (historial.isEmpty)
             Text(
               'Sin récords todavía — ¡jugá para establecer uno!',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 color: colors.textSecondary,
                 fontSize: 13,
               ),
@@ -179,7 +182,8 @@ class _SeccionDificultad extends StatelessWidget {
                         width: 28,
                         child: Text(
                           '#',
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: colors.textSecondary,
@@ -197,7 +201,8 @@ class _SeccionDificultad extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               'Tiempo',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: colors.textSecondary,
@@ -216,7 +221,8 @@ class _SeccionDificultad extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             'Movimientos',
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: colors.textSecondary,
@@ -241,7 +247,8 @@ class _SeccionDificultad extends StatelessWidget {
                           width: 28,
                           child: Text(
                             esPrimero ? '🥇' : '$puesto',
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: esPrimero ? 16 : 13,
                               fontWeight: FontWeight.bold,
                               color: esPrimero
@@ -253,7 +260,8 @@ class _SeccionDificultad extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${partida.tiempo}s',
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 15,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
@@ -264,7 +272,8 @@ class _SeccionDificultad extends StatelessWidget {
                         ),
                         Text(
                           '${partida.movimientos}',
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 15,
                             fontWeight: esPrimero
                                 ? FontWeight.bold
