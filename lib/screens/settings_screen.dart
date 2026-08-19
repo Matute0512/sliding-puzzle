@@ -55,7 +55,12 @@ class SettingsScreen extends StatelessWidget {
                       width: double.infinity,
                       child: SegmentedButton<ThemeMode>(
                         expandedInsets: EdgeInsets.zero,
+                        // El checkmark de selección roba ancho horizontal y
+                        // hace que 'Sistema' se corte en pantallas angostas.
+                        showSelectedIcon: false,
                         style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           selectedBackgroundColor: AppTheme.seedColor,
                           selectedForegroundColor: Colors.white,
                           foregroundColor: colors.textPrimary,
@@ -64,19 +69,28 @@ class SettingsScreen extends StatelessWidget {
                           ButtonSegment(
                             value: ThemeMode.light,
                             icon: Icon(Icons.light_mode),
-                            label: Text('Claro'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Claro', maxLines: 1),
+                            ),
                             tooltip: 'Claro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.dark,
                             icon: Icon(Icons.dark_mode),
-                            label: Text('Oscuro'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Oscuro', maxLines: 1),
+                            ),
                             tooltip: 'Oscuro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.system,
                             icon: Icon(Icons.brightness_auto),
-                            label: Text('Sistema'),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Sistema', maxLines: 1),
+                            ),
                             tooltip: 'Sistema',
                           ),
                         ],
