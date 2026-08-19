@@ -313,6 +313,11 @@ class _GameScreenState extends State<GameScreen> {
                         aspectRatio: 1,
                         child: GridView.builder(
                           physics: const NeverScrollableScrollPhysics(),
+                          // Clip.none: el grid por defecto recorta (Clip.hardEdge)
+                          // las sombras de la fila inferior, que se dibujan ~12px
+                          // debajo del borde del tablero. El Padding inferior ya
+                          // reserva ese espacio para que queden visibles.
+                          clipBehavior: Clip.none,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: widget.size,
