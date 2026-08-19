@@ -22,7 +22,6 @@ class SettingsScreen extends StatelessWidget {
         title: Text(
           'Configuración',
           style: TextStyle(
-            fontFamily: 'Poppins',
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -44,7 +43,6 @@ class SettingsScreen extends StatelessWidget {
                     Text(
                       'Tema',
                       style: TextStyle(
-                        fontFamily: 'Poppins',
                         fontSize: 14,
                         color: colors.textSecondary,
                       ),
@@ -66,16 +64,19 @@ class SettingsScreen extends StatelessWidget {
                           ButtonSegment(
                             value: ThemeMode.light,
                             icon: Icon(Icons.light_mode),
+                            label: Text('Claro'),
                             tooltip: 'Claro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.dark,
                             icon: Icon(Icons.dark_mode),
+                            label: Text('Oscuro'),
                             tooltip: 'Oscuro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.system,
                             icon: Icon(Icons.brightness_auto),
+                            label: Text('Sistema'),
                             tooltip: 'Sistema',
                           ),
                         ],
@@ -140,7 +141,6 @@ class _SeccionTitulo extends StatelessWidget {
     return Text(
       titulo,
       style: TextStyle(
-        fontFamily: 'Poppins',
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: colors.textSecondary,
@@ -207,7 +207,6 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: colors.textPrimary,
@@ -216,7 +215,6 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 descripcion,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 12,
                   color: colors.textSecondary,
                 ),

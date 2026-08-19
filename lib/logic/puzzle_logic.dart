@@ -66,6 +66,15 @@ class PuzzleLogic {
     return mismaFila || mismaColumna;
   }
 
+  /// Devuelve los índices de las fichas que actualmente pueden moverse
+  /// (adyacentes al hueco). Útil para dar pistas visuales en la UI.
+  static List<int> movibles(List<int> tablero, int size) {
+    return [
+      for (var i = 0; i < tablero.length; i++)
+        if (puedeMover(tablero, i, size)) i,
+    ];
+  }
+
   /// Mueve una ficha si el movimiento es válido.
   ///
   /// Retorna una nueva lista para preservar la inmutabilidad.

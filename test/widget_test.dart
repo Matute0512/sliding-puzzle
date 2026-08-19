@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
+import 'package:sliding_puzzle/screens/home_screen.dart';
 import 'package:sliding_puzzle/theme/app_theme.dart';
+import 'package:sliding_puzzle/widgets/puzzle_board.dart';
 
 void main() {
   testWidgets(
-    'el GridView no recorta las sombras de las fichas (Clip.none) '
+    'el tablero no recorta las sombras de las fichas (Clip.none) '
     'para los 3 tamaños de tablero',
     (tester) async {
       for (final size in [3, 4, 5]) {
@@ -16,12 +18,17 @@ void main() {
         );
         await tester.pump();
 
-        final grid = tester.widget<GridView>(find.byType(GridView));
+        final stack = tester.widget<Stack>(
+          find.descendant(
+            of: find.byType(PuzzleBoard),
+            matching: find.byType(Stack),
+          ),
+        );
         expect(
-          grid.clipBehavior,
+          stack.clipBehavior,
           Clip.none,
           reason:
-              'el grid debe dejar visible la sombra de la fila inferior '
+              'el tablero debe dejar visible la sombra de la fila inferior '
               '(size=$size)',
         );
 
@@ -46,14 +53,19 @@ void main() {
           );
           await tester.pump();
 
-          final grid = tester.widget<GridView>(find.byType(GridView));
-          expect(grid.clipBehavior, Clip.none);
+          final stack = tester.widget<Stack>(
+            find.descendant(
+              of: find.byType(PuzzleBoard),
+              matching: find.byType(Stack),
+            ),
+          );
+          expect(stack.clipBehavior, Clip.none);
 
           // Extensión máxima de sombra hacia abajo entre todas las fichas
           // (offset.dy + blurRadius), tomada de la decoración real.
           final tiles = tester.widgetList<AnimatedContainer>(
             find.descendant(
-              of: find.byType(GridView),
+              of: find.byType(PuzzleBoard),
               matching: find.byType(AnimatedContainer),
             ),
           );
@@ -70,9 +82,11 @@ void main() {
           final scrollViewRect = tester.getRect(
             find.byType(SingleChildScrollView),
           );
-          final gridBottom = tester.getBottomLeft(find.byType(GridView)).dy;
+          final boardBottom = tester.getBottomLeft(
+            find.byType(PuzzleBoard),
+          ).dy;
           expect(
-            gridBottom + maxShadow,
+            boardBottom + maxShadow,
             lessThanOrEqualTo(scrollViewRect.bottom),
             reason:
                 'la sombra inferior debe ser visible sin scroll '
@@ -100,4 +114,26 @@ void main() {
       }
     },
   );
+
+  testWidgets('el Home no desborda en pantallas cortas (es scrolleable)', (tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(380, 500);
+
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+    );
+    await tester.pump();
+
+    // Si hubiera un RenderFlex overflow, pumpWidget habría lanzado excepción.
+    final scrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(SingleChildScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(scrollable.position.maxScrollExtent, greaterThan(0));
+  });
 }
