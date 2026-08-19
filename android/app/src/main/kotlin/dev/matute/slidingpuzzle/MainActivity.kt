@@ -1,4 +1,4 @@
-package com.example.sliding_puzzle
+package dev.matute.slidingpuzzle
 
 import io.flutter.embedding.android.FlutterActivity
 
