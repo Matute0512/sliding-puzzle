@@ -22,7 +22,9 @@ class AppColors extends ThemeExtension<AppColors> {
     background: Color(0xFFF4F6F9),
     cardBackground: Colors.white,
     textPrimary: Color(0xFF1E293B),
-    textSecondary: Color(0xFF64748B),
+    // #5B6B83 ≈ 4.9:1 sobre #F4F6F9 (AA para texto normal).
+    // El anterior #64748B quedaba en ~4.4:1, bajo el mínimo de 4.5:1.
+    textSecondary: Color(0xFF5B6B83),
     emptyTile: Color(0xFFE2E8F0),
   );
 

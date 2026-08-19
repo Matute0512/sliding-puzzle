@@ -22,7 +22,9 @@ class DifficultyButton extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          foregroundColor: Colors.white,
+          // Texto oscuro: el blanco sobre verde/naranja falla WCAG AA
+          // (~2.5:1 y ~2.2:1). #0B1220 da ~7:1 y ~8:1 respectivamente.
+          foregroundColor: const Color(0xFF0B1220),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -34,12 +36,12 @@ class DifficultyButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(fontFamily: 'Poppins',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(descripcion, style: const TextStyle(fontFamily: 'Poppins',fontSize: 12)),
+            Text(descripcion, style: const TextStyle(fontSize: 12)),
           ],
         ),
       ),

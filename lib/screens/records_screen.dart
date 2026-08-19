@@ -43,9 +43,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   Future<void> _cargarHistorial() async {
-    for (final d in _dificultades) {
-      final size = d['size'] as int;
-      _historial[size] = await RecordsService.obtenerHistorial(size);
+    final resultados = await Future.wait(
+      _dificultades.map(
+        (d) => RecordsService.obtenerHistorial(d['size'] as int),
+      ),
+    );
+    for (var i = 0; i < _dificultades.length; i++) {
+      _historial[_dificultades[i]['size'] as int] = resultados[i];
     }
     setState(() => _cargando = false);
   }
@@ -60,13 +64,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: colors.textPrimary),
-        title: Text(
-          '🏆 Récords',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            color: colors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.emoji_events,
+              color: AppTheme.seedColor,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Récords',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
       body: _cargando
@@ -141,7 +155,6 @@ class _SeccionDificultad extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: colors.textPrimary,
@@ -151,7 +164,6 @@ class _SeccionDificultad extends StatelessWidget {
               Text(
                 descripcion,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 13,
                   color: colors.textSecondary,
                 ),
@@ -165,7 +177,6 @@ class _SeccionDificultad extends StatelessWidget {
             Text(
               'Sin récords todavía — ¡jugá para establecer uno!',
               style: TextStyle(
-                fontFamily: 'Poppins',
                 color: colors.textSecondary,
                 fontSize: 13,
               ),
@@ -183,7 +194,6 @@ class _SeccionDificultad extends StatelessWidget {
                         child: Text(
                           '#',
                           style: TextStyle(
-                            fontFamily: 'Poppins',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: colors.textSecondary,
@@ -202,7 +212,6 @@ class _SeccionDificultad extends StatelessWidget {
                             Text(
                               'Tiempo',
                               style: TextStyle(
-                                fontFamily: 'Poppins',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: colors.textSecondary,
@@ -211,24 +220,26 @@ class _SeccionDificultad extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sports_esports,
-                            size: 14,
-                            color: colors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Movimientos',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.sports_esports,
+                              size: 14,
                               color: colors.textSecondary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              'Movimientos',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -246,9 +257,8 @@ class _SeccionDificultad extends StatelessWidget {
                         SizedBox(
                           width: 28,
                           child: Text(
-                            esPrimero ? '🥇' : '$puesto',
+                            esPrimero ? '1' : '$puesto',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontSize: esPrimero ? 16 : 13,
                               fontWeight: FontWeight.bold,
                               color: esPrimero
@@ -261,7 +271,6 @@ class _SeccionDificultad extends StatelessWidget {
                           child: Text(
                             '${partida.tiempo}s',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontSize: 15,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
@@ -270,15 +279,17 @@ class _SeccionDificultad extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Text(
-                          '${partida.movimientos}',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 15,
-                            fontWeight: esPrimero
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: colors.textPrimary,
+                        Expanded(
+                          child: Text(
+                            '${partida.movimientos}',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: esPrimero
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: colors.textPrimary,
+                            ),
                           ),
                         ),
                       ],

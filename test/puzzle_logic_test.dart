@@ -91,6 +91,18 @@ void main() {
     });
   });
 
+  group('movibles', () {
+    test('lista las fichas adyacentes al hueco', () {
+      // Vacío en el centro → 4 fichas movibles.
+      const t = [1, 2, 3, 4, 0, 5, 6, 7, 8];
+      expect(PuzzleLogic.movibles(t, 3).toSet(), {1, 3, 5, 7});
+
+      // Vacío en una esquina → solo 2 fichas movibles.
+      const esquina = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+      expect(PuzzleLogic.movibles(esquina, 3).toSet(), {5, 7});
+    });
+  });
+
   group('estaResuelto', () {
     test('detecta tableros resueltos y no resueltos', () {
       const resuelto3 = [1, 2, 3, 4, 5, 6, 7, 8, 0];
