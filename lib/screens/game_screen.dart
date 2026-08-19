@@ -39,7 +39,10 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _detenerTimer();
     _confettiController.dispose();
-    SoundService.detenerMusica();
+    // No detenemos la música: es un recurso compartido con el HomeScreen
+    // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
+    // volver del juego (el dispose corre al terminar la animación de salida),
+    // dejando el menú en silencio.
     super.dispose();
   }
 

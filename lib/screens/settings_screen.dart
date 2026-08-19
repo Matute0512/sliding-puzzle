@@ -50,35 +50,42 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SegmentedButton<ThemeMode>(
-                      style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: AppTheme.seedColor,
-                        selectedForegroundColor: Colors.white,
-                        foregroundColor: colors.textPrimary,
+                    // width: double.infinity + expandedInsets hacen que el
+                    // control ocupe todo el ancho de la card y reparta los
+                    // 3 segmentos de forma pareja y centrada.
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        expandedInsets: EdgeInsets.zero,
+                        style: SegmentedButton.styleFrom(
+                          selectedBackgroundColor: AppTheme.seedColor,
+                          selectedForegroundColor: Colors.white,
+                          foregroundColor: colors.textPrimary,
+                        ),
+                        segments: const [
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode),
+                            tooltip: 'Claro',
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode),
+                            tooltip: 'Oscuro',
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto),
+                            tooltip: 'Sistema',
+                          ),
+                        ],
+                        selected: {settings.themeMode},
+                        onSelectionChanged: (valor) {
+                          context.read<AppSettingsProvider>().cambiarTema(
+                            valor.first,
+                          );
+                        },
                       ),
-                      segments: const [
-                        ButtonSegment(
-                          value: ThemeMode.light,
-                          icon: Icon(Icons.light_mode),
-                          tooltip: 'Claro',
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.dark,
-                          icon: Icon(Icons.dark_mode),
-                          tooltip: 'Oscuro',
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.system,
-                          icon: Icon(Icons.brightness_auto),
-                          tooltip: 'Sistema',
-                        ),
-                      ],
-                      selected: {settings.themeMode},
-                      onSelectionChanged: (valor) {
-                        context.read<AppSettingsProvider>().cambiarTema(
-                          valor.first,
-                        );
-                      },
                     ),
                   ],
                 ),
