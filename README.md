@@ -4,7 +4,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.44.2-02569B?style=flat&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
-![Version](https://img.shields.io/badge/versión-2.0.0-success)
+![Version](https://img.shields.io/badge/versión-2.0.1-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
 [![CI](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml/badge.svg)](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml)
 
@@ -147,6 +147,15 @@ flutter run -d android
 - 📊 Historial detallado de partidas (top 5 por dificultad)
 - ⚙️ Panel de configuración (tema, sonido, música)
 - 🧩 Tipografía Poppins empaquetada como asset (funciona sin conexión)
+
+### v2.0.1 ✅
+- 🔧 Fix: sombras de fichas inferiores visibles (Clip.none en GridView)
+- ✨ Animación de deslizamiento real (PuzzleBoard con AnimatedPositioned)
+- ⏸️ Pausa del juego + ciclo de vida (AppLifecycleListener)
+- ♿ Contraste WCAG AA en todos los elementos interactivos
+- 🧏 Accesibilidad: Semantics en fichas y sockets
+- 🧪 28 tests unitarios y de widget
+- 🔧 Fix: SegmentedButton del tema no se corta con fuentes grandes
 
 ### v2.1.0 — Internacionalización (i18n)
 - 🌐 Soporte multi-idioma (ES / EN)
