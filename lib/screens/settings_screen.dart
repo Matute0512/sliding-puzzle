@@ -22,7 +22,6 @@ class SettingsScreen extends StatelessWidget {
         title: Text(
           'Configuración',
           style: TextStyle(
-            fontFamily: 'Poppins',
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -44,7 +43,6 @@ class SettingsScreen extends StatelessWidget {
                     Text(
                       'Tema',
                       style: TextStyle(
-                        fontFamily: 'Poppins',
                         fontSize: 14,
                         color: colors.textSecondary,
                       ),
@@ -57,7 +55,12 @@ class SettingsScreen extends StatelessWidget {
                       width: double.infinity,
                       child: SegmentedButton<ThemeMode>(
                         expandedInsets: EdgeInsets.zero,
+                        // El checkmark de selección roba ancho horizontal y
+                        // hace que 'Sistema' se corte en pantallas angostas.
+                        showSelectedIcon: false,
                         style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           selectedBackgroundColor: AppTheme.seedColor,
                           selectedForegroundColor: Colors.white,
                           foregroundColor: colors.textPrimary,
@@ -66,16 +69,28 @@ class SettingsScreen extends StatelessWidget {
                           ButtonSegment(
                             value: ThemeMode.light,
                             icon: Icon(Icons.light_mode),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Claro', maxLines: 1),
+                            ),
                             tooltip: 'Claro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.dark,
                             icon: Icon(Icons.dark_mode),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Oscuro', maxLines: 1),
+                            ),
                             tooltip: 'Oscuro',
                           ),
                           ButtonSegment(
                             value: ThemeMode.system,
                             icon: Icon(Icons.brightness_auto),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Sistema', maxLines: 1),
+                            ),
                             tooltip: 'Sistema',
                           ),
                         ],
@@ -140,7 +155,6 @@ class _SeccionTitulo extends StatelessWidget {
     return Text(
       titulo,
       style: TextStyle(
-        fontFamily: 'Poppins',
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: colors.textSecondary,
@@ -207,7 +221,6 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: colors.textPrimary,
@@ -216,7 +229,6 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 descripcion,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
                   fontSize: 12,
                   color: colors.textSecondary,
                 ),

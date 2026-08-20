@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hud_card.dart';
-import '../widgets/puzzle_tile.dart';
+import '../widgets/puzzle_board.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -20,10 +21,14 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late List<int> _tablero;
   int _movimientos = 0;
-  int _segundos = 0;
-  Timer? _timer;
+  // El temporizador se aísla en un ValueNotifier: cada segundo solo se
+  // re-construye la tarjeta del HUD, no todo el tablero.
+  final ValueNotifier<int> _segundos = ValueNotifier<int>(0);
   bool _juegoIniciado = false;
+  bool _pausado = false;
+  Timer? _timer;
   late ConfettiController _confettiController;
+  late final AppLifecycleListener _lifecycleListener;
 
   @override
   void initState() {
@@ -32,6 +37,11 @@ class _GameScreenState extends State<GameScreen> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 4),
     );
+    _lifecycleListener = AppLifecycleListener(
+      onHide: _pausarSiJugando,
+      onPause: _pausarSiJugando,
+      onResume: _reanudarSiJugando,
+    );
     SoundService.iniciarMusica();
   }
 
@@ -39,6 +49,8 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _detenerTimer();
     _confettiController.dispose();
+    _lifecycleListener.dispose();
+    _segundos.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -46,9 +58,27 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  void _pausarSiJugando() {
+    // La app pasa a background: no contamos ese tiempo como parte de la partida.
+    if (_juegoIniciado && !_pausado) {
+      _detenerTimer();
+      if (mounted) setState(() => _pausado = true);
+    }
+  }
+
+  void _reanudarSiJugando() {
+    if (_juegoIniciado && _pausado && mounted) {
+      setState(() {
+        _pausado = false;
+        _iniciarTimer();
+      });
+    }
+  }
+
   void _iniciarTimer() {
+    if (_timer != null) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() => _segundos++);
+      _segundos.value++;
     });
   }
 
@@ -58,7 +88,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onTapFicha(int indice) {
-    if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) return;
+    if (_pausado) return;
+
+    if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) {
+      // Feedback para un tap inválido (antes era un no-op silencioso).
+      HapticFeedback.selectionClick();
+      return;
+    }
 
     if (!_juegoIniciado) {
       _juegoIniciado = true;
@@ -78,10 +114,19 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _alternarPausa() {
+    setState(() => _pausado = !_pausado);
+    if (_pausado) {
+      _detenerTimer();
+    } else if (_juegoIniciado) {
+      _iniciarTimer();
+    }
+  }
+
   Future<void> _mostrarVictoria() async {
     final esPrecord = await RecordsService.guardarPartida(
       size: widget.size,
-      tiempo: _segundos,
+      tiempo: _segundos.value,
       movimientos: _movimientos,
     );
 
@@ -103,7 +148,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             title: Text(
               esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
-              style: const TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             content: Column(
@@ -112,7 +157,7 @@ class _GameScreenState extends State<GameScreen> {
                 _FilaResultado(
                   icono: Icons.timer,
                   label: 'Tiempo',
-                  valor: '${_segundos}s',
+                  valor: '${_segundos.value}s',
                 ),
                 const SizedBox(height: 8),
                 _FilaResultado(
@@ -125,7 +170,7 @@ class _GameScreenState extends State<GameScreen> {
                     padding: EdgeInsets.only(top: 12),
                     child: Text(
                       '¡Superaste tu mejor marca!',
-                      style: TextStyle(fontFamily: 'Poppins',
+                      style: TextStyle(
                         color: Color(0xFFF59E0B),
                         fontWeight: FontWeight.bold,
                       ),
@@ -151,7 +196,7 @@ class _GameScreenState extends State<GameScreen> {
                   },
                   child: const Text(
                     'Jugar de nuevo',
-                    style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -178,11 +223,12 @@ class _GameScreenState extends State<GameScreen> {
 
   void _reiniciar() {
     _detenerTimer();
+    _segundos.value = 0;
+    _pausado = false;
     SoundService.reanudarMusica();
     setState(() {
       _tablero = PuzzleLogic.generarTablero(widget.size);
       _movimientos = 0;
-      _segundos = 0;
       _juegoIniciado = false;
     });
   }
@@ -194,7 +240,7 @@ class _GameScreenState extends State<GameScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '🧩 ¿Cómo jugar?',
-          style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         content: const Column(
@@ -203,6 +249,9 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             _ItemAyuda(
               texto: 'Tocá una ficha adyacente al espacio vacío para moverla.',
+            ),
+            _ItemAyuda(
+              texto: 'Las fichas con borde blanco son las que podés mover.',
             ),
             _ItemAyuda(
               texto: 'El objetivo es ordenar los números en orden ascendente.',
@@ -220,7 +269,7 @@ class _GameScreenState extends State<GameScreen> {
               child: Text(
                 '1  2  3\n4  5  6\n7  8  ☐',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Poppins',
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.seedColor,
@@ -244,7 +293,7 @@ class _GameScreenState extends State<GameScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 '¡Entendido!',
-                style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -267,6 +316,14 @@ class _GameScreenState extends State<GameScreen> {
           IconButton(
             icon: Icon(Icons.help_outline, color: colors.textPrimary),
             onPressed: _mostrarAyuda,
+          ),
+          IconButton(
+            tooltip: _pausado ? 'Reanudar' : 'Pausar',
+            icon: Icon(
+              _pausado ? Icons.play_arrow : Icons.pause,
+              color: colors.textPrimary,
+            ),
+            onPressed: _alternarPausa,
           ),
           IconButton(
             icon: Icon(Icons.refresh, color: colors.textPrimary),
@@ -292,10 +349,13 @@ class _GameScreenState extends State<GameScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: HudCard(
-                              icono: Icons.timer,
-                              label: 'Tiempo',
-                              valor: '${_segundos}s',
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: _segundos,
+                              builder: (context, segundos, _) => HudCard(
+                                icono: Icons.timer,
+                                label: 'Tiempo',
+                                valor: '${segundos}s',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -311,22 +371,10 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 32),
                       AspectRatio(
                         aspectRatio: 1,
-                        child: GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: widget.size,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
-                          itemCount: widget.size * widget.size,
-                          itemBuilder: (context, indice) {
-                            return PuzzleTile(
-                              numero: _tablero[indice],
-                              size: widget.size,
-                              onTap: () => _onTapFicha(indice),
-                            );
-                          },
+                        child: PuzzleBoard(
+                          tablero: _tablero,
+                          size: widget.size,
+                          onTileTap: _onTapFicha,
                         ),
                       ),
                     ],
@@ -352,6 +400,24 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
+          // Overlay de pausa
+          if (_pausado)
+            Positioned.fill(
+              child: ColoredBox(
+                color: colors.background.withValues(alpha: 0.72),
+                child: Center(
+                  child: IconButton(
+                    iconSize: 72,
+                    icon: Icon(
+                      Icons.play_circle_fill,
+                      color: colors.textPrimary,
+                    ),
+                    tooltip: 'Reanudar',
+                    onPressed: _alternarPausa,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -381,11 +447,11 @@ class _FilaResultado extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(fontFamily: 'Poppins',color: colors.textSecondary),
+          style: TextStyle(color: colors.textSecondary),
         ),
         Text(
           valor,
-          style: TextStyle(fontFamily: 'Poppins',
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             color: colors.textPrimary,
           ),
@@ -417,7 +483,7 @@ class _ItemAyuda extends StatelessWidget {
           Expanded(
             child: Text(
               texto,
-              style: TextStyle(fontFamily: 'Poppins',
+              style: TextStyle(
                 fontSize: 14,
                 color: colors.textPrimary,
               ),

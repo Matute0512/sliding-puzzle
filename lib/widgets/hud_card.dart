@@ -37,7 +37,7 @@ class HudCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: TextStyle(fontFamily: 'Poppins',
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: colors.textPrimary,
@@ -45,7 +45,7 @@ class HudCard extends StatelessWidget {
           ),
           Text(
             label,
-            style: TextStyle(fontFamily: 'Poppins',
+            style: TextStyle(
               fontSize: 12,
               color: colors.textSecondary,
             ),
