@@ -71,81 +71,98 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('🧩', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 16),
-                Text(
-                  'Sliding Puzzle',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Elegí una dificultad',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 16,
-                    color: colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                DifficultyButton(
-                  label: 'Fácil',
-                  descripcion: 'Tablero 3x3',
-                  color: const Color(0xFF10B981),
-                  onTap: () => _navegarAJuego(context, 3),
-                ),
-                const SizedBox(height: 16),
-                DifficultyButton(
-                  label: 'Medio',
-                  descripcion: 'Tablero 4x4',
-                  color: const Color(0xFFF59E0B),
-                  onTap: () => _navegarAJuego(context, 4),
-                ),
-                const SizedBox(height: 16),
-                DifficultyButton(
-                  label: 'Difícil',
-                  descripcion: 'Tablero 5x5',
-                  color: const Color(0xFFEF4444),
-                  onTap: () => _navegarAJuego(context, 5),
-                ),
-                const SizedBox(height: 32),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RecordsScreen()),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.emoji_events,
-                    color: AppTheme.seedColor,
-                  ),
-                  label: const Text(
-                    'Ver récords',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: AppTheme.seedColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+      // Scroll + minHeight: mantiene el contenido centrado cuando entra en
+      // pantalla y permite scrollear en pantallas cortas / landscape.
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 24,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.extension_rounded,
+                          size: 64,
+                          color: AppTheme.seedColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Sliding Puzzle',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Elegí una dificultad',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+                        DifficultyButton(
+                          label: 'Fácil',
+                          descripcion: 'Tablero 3x3',
+                          color: const Color(0xFF10B981),
+                          onTap: () => _navegarAJuego(context, 3),
+                        ),
+                        const SizedBox(height: 16),
+                        DifficultyButton(
+                          label: 'Medio',
+                          descripcion: 'Tablero 4x4',
+                          color: const Color(0xFFF59E0B),
+                          onTap: () => _navegarAJuego(context, 4),
+                        ),
+                        const SizedBox(height: 16),
+                        DifficultyButton(
+                          label: 'Difícil',
+                          descripcion: 'Tablero 5x5',
+                          color: const Color(0xFFEF4444),
+                          onTap: () => _navegarAJuego(context, 5),
+                        ),
+                        const SizedBox(height: 32),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RecordsScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.emoji_events,
+                            color: AppTheme.seedColor,
+                          ),
+                          label: const Text(
+                            'Ver récords',
+                            style: TextStyle(
+                              color: AppTheme.seedColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
