@@ -243,40 +243,30 @@ class _GameScreenState extends State<GameScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ItemAyuda(
-              texto: 'Tocá una ficha adyacente al espacio vacío para moverla.',
+            const _ItemAyuda(
+              texto:
+                  'Tocá o deslizá una ficha adyacente al espacio vacío para moverla.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto: 'Las fichas con borde blanco son las que podés mover.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto: 'El objetivo es ordenar los números en orden ascendente.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto:
                   'El espacio vacío debe quedar en la esquina inferior derecha.',
             ),
-            _ItemAyuda(
+            const _ItemAyuda(
               texto:
                   '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
             ),
-            SizedBox(height: 16),
-            Center(
-              child: Text(
-                '1  2  3\n4  5  6\n7  8  ☐',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.seedColor,
-                  height: 1.8,
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
+            Center(child: _tableroResuelto()),
           ],
         ),
         actions: [
@@ -299,6 +289,47 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Vista previa del tablero resuelto según la dificultad actual:
+  /// números de 1 a size²-1 en orden ascendente y el hueco '□' abajo a la derecha.
+  /// Cada celda tiene ancho fijo para que las columnas queden alineadas
+  /// aunque los números tengan dos dígitos (4x4 y 5x5).
+  Widget _tableroResuelto() {
+    final n = widget.size;
+    final total = n * n;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var fila = 0; fila < n; fila++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var col = 0; col < n; col++)
+                  SizedBox(
+                    width: 30,
+                    child: Text(
+                      // La última celda (fila×n+col == total-1) es el hueco.
+                      fila * n + col == total - 1
+                          ? '□'
+                          : '${fila * n + col + 1}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: n == 3 ? 18 : n == 4 ? 16 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.seedColor,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

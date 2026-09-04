@@ -51,3 +51,6 @@ app.*.map.json
 # Build de AAB
 /aab/
 aab/app-release.aab
+
+# Graphify
+/lib/graphify-out

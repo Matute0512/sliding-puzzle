@@ -1,5 +1,9 @@
 import 'dart:math';
 
+/// Dirección en la que se desliza una ficha. Coincide con el sentido en que
+/// se mueve la ficha: el usuario empuja la ficha hacia el hueco.
+enum Direccion { arriba, abajo, izquierda, derecha }
+
 /// Contiene toda la lógica central del Sliding Puzzle.
 /// Opera de forma independiente a la interfaz gráfica.
 class PuzzleLogic {
@@ -73,6 +77,24 @@ class PuzzleLogic {
       for (var i = 0; i < tablero.length; i++)
         if (puedeMover(tablero, i, size)) i,
     ];
+  }
+
+  /// Si la ficha [indice] está adyacente al hueco, devuelve la dirección en la
+  /// que debe deslizarse para caer en él. `null` si no es adyacente.
+  static Direccion? direccionHaciaVacio(
+      List<int> tablero, int indice, int size) {
+    if (!puedeMover(tablero, indice, size)) return null;
+
+    final posVacio = tablero.indexOf(0);
+    // +1 en dx  => el hueco está a la derecha de la ficha
+    // +1 en dy  => el hueco está debajo de la ficha
+    final dx = (posVacio % size) - (indice % size);
+    final dy = (posVacio ~/ size) - (indice ~/ size);
+
+    if (dx == 1) return Direccion.derecha;
+    if (dx == -1) return Direccion.izquierda;
+    if (dy == 1) return Direccion.abajo;
+    return Direccion.arriba;
   }
 
   /// Mueve una ficha si el movimiento es válido.

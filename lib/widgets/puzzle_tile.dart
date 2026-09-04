@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../logic/puzzle_logic.dart';
 import '../theme/app_theme.dart';
 
 /// Ficha individual del tablero del puzzle.
@@ -6,6 +7,9 @@ class PuzzleTile extends StatelessWidget {
   final int numero;
   final int size;
   final VoidCallback onTap;
+
+  /// Reporta un deslizamiento sobre la ficha; `null` si no maneja swipe.
+  final ValueChanged<Direccion>? onSwipe;
 
   /// Resalta la ficha cuando es movible (adyacente al hueco).
   final bool activa;
@@ -19,6 +23,7 @@ class PuzzleTile extends StatelessWidget {
     required this.numero,
     required this.size,
     required this.onTap,
+    this.onSwipe,
     this.activa = false,
     this.esSocket = false,
   });
@@ -32,7 +37,7 @@ class PuzzleTile extends StatelessWidget {
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
         color: esVacio ? colors.emptyTile : AppTheme.seedColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         // La ficha vacía lleva un contorno sutil: en tema claro #E2E8F0
         // sobre el fondo casi no se distingue (~1.14:1).
         border: esVacio
@@ -41,11 +46,8 @@ class PuzzleTile extends StatelessWidget {
                 width: 1.5,
               )
             : activa
-                ? Border.all(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    width: 2.5,
-                  )
-                : null,
+            ? Border.all(color: Colors.white.withValues(alpha: 0.9), width: 2.5)
+            : null,
         boxShadow: esVacio
             ? [
                 BoxShadow(
@@ -83,8 +85,8 @@ class PuzzleTile extends StatelessWidget {
                       fontSize: size == 3
                           ? 28
                           : size == 4
-                              ? 22
-                              : 16,
+                          ? 22
+                          : 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -100,8 +102,29 @@ class PuzzleTile extends StatelessWidget {
     return Semantics(
       button: true,
       label: esVacio ? 'Hueco vacío' : 'Ficha $numero',
-      hint: 'Toca para mover',
-      child: GestureDetector(onTap: onTap, child: contenido),
+      hint: 'Toca o desliza hacia el hueco para mover',
+      child: GestureDetector(
+        onTap: onTap,
+        onHorizontalDragEnd: onSwipe == null
+            ? null
+            : (details) {
+                final v = details.primaryVelocity ?? 0;
+                if (v.abs() < _velocidadMinima) return;
+                onSwipe!(v > 0 ? Direccion.derecha : Direccion.izquierda);
+              },
+        onVerticalDragEnd: onSwipe == null
+            ? null
+            : (details) {
+                final v = details.primaryVelocity ?? 0;
+                if (v.abs() < _velocidadMinima) return;
+                onSwipe!(v > 0 ? Direccion.abajo : Direccion.arriba);
+              },
+        child: contenido,
+      ),
     );
   }
 }
+
+/// Velocidad mínima (px/s) para considerar un deslizamiento un swipe real.
+/// Un simple toque nunca alcanza el umbral ni genera un drag-end.
+const _velocidadMinima = 50.0;
