@@ -4,7 +4,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.44.2-02569B?style=flat&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
-![Version](https://img.shields.io/badge/versión-2.0.1-success)
+![Version](https://img.shields.io/badge/versión-2.0.2-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
 [![CI](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml/badge.svg)](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml)
 
@@ -12,7 +12,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 
 ## 🎮 Sobre el juego
 
-Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las fichas numeradas deslizándolas hacia el espacio vacío. El objetivo es acomodar los números en orden ascendente con el espacio vacío en la esquina inferior derecha.
+Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las fichas numeradas, ya sea tocándolas o deslizándolas en dirección al espacio vacío. El objetivo es acomodar los números en orden ascendente con el espacio vacío en la esquina inferior derecha.
 
 ---
 
@@ -25,8 +25,10 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 - 🎵 **Sonido y música** — efectos de sonido y música de fondo (flutter_soloud)
 - ⚙️ **Panel de configuración** — tema, sonido y música en un solo lugar
 - 📊 **Historial de partidas** — top 5 de récords por dificultad
+- 👆 **Tocar o deslizar** — mové las fichas tocándolas o deslizándolas en dirección al espacio vacío
+- 📐 **Tablero compacto** — fichas más unidas (gap de 4 px) con radio de esquina ajustado
 - 🎨 **UI moderna y táctil** — paleta de colores personalizada, fuente Poppins y efecto 3D en las fichas
-- ❓ **Dialog de ayuda** — instrucciones del juego con ejemplo del tablero resuelto
+- ❓ **Dialog de ayuda** — instrucciones del juego con ejemplo del tablero resuelto según la dificultad
 - 📱 **Layout responsive** — funciona en móvil, web y escritorio
 
 ---
@@ -67,7 +69,7 @@ sliding_puzzle/
 │   ├── screens/ (home, game, records, settings)
 │   ├── services/ (records, sound)
 │   ├── theme/app_theme.dart
-│   └── widgets/ (difficulty_button, hud_card, puzzle_tile)
+│   └── widgets/ (difficulty_button, hud_card, puzzle_board, puzzle_tile)
 │
 ├── assets/
 │   ├── fonts/ (Poppins Regular, Medium, Bold)
@@ -88,7 +90,9 @@ sliding_puzzle/
 | `screens/game_screen.dart` | Pantalla del juego: tablero, HUD, temporizador y victoria |
 | `screens/records_screen.dart` | Visualización del historial de récords por dificultad |
 | `screens/settings_screen.dart` | Panel de configuración: tema, sonido y música |
-| `logic/puzzle_logic.dart` | Lógica del rompecabezas: mezcla, paridad, movimientos y validación |
+| `widgets/puzzle_board.dart` | Tablero animado que posiciona las fichas y valida los gestos de deslizamiento |
+| `widgets/puzzle_tile.dart` | Ficha individual con soporte de toque y swipe |
+| `logic/puzzle_logic.dart` | Lógica del rompecabezas: mezcla, paridad, movimientos, validación y dirección del deslizamiento |
 | `services/records_service.dart` | Persistencia de récords mediante `shared_preferences` |
 | `services/sound_service.dart` | Efectos de sonido y música con `flutter_soloud` |
 
@@ -156,6 +160,11 @@ flutter run -d android
 - 🧏 Accesibilidad: Semantics en fichas y sockets
 - 🧪 28 tests unitarios y de widget
 - 🔧 Fix: SegmentedButton del tema no se corta con fuentes grandes
+
+### v2.0.2 ✅
+- 👆 Gestos de deslizamiento: mové las fichas deslizándolas en dirección al hueco, además del toque
+- 📐 Fichas más compactas: gap reducido a 4 px con radio de esquina ajustado
+- 🧩 Modal de ayuda con la matriz resuelta dinámica según la dificultad (3×3, 4×4 y 5×5), con columnas alineadas incluso con números de dos dígitos
 
 ### v2.1.0 — Internacionalización (i18n)
 - 🌐 Soporte multi-idioma (ES / EN)
