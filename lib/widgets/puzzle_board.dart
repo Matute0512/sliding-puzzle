@@ -20,9 +20,18 @@ class PuzzleBoard extends StatelessWidget {
     required this.onTileTap,
   });
 
+  /// Mueve la ficha [indice] únicamente si el deslizamiento va en dirección
+  /// al espacio vacío. Los swipes en cualquier otra dirección se ignoran.
+  void _deslizarFicha(int indice, Direccion direccion) {
+    if (PuzzleLogic.direccionHaciaVacio(tablero, indice, size) != direccion) {
+      return;
+    }
+    onTileTap(indice);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const espaciado = 8.0;
+    const espaciado = 4.0;
     final n = size;
     final movibles = PuzzleLogic.movibles(tablero, size).toSet();
 
@@ -68,6 +77,7 @@ class PuzzleBoard extends StatelessWidget {
                     size: n,
                     activa: movibles.contains(i),
                     onTap: () => onTileTap(i),
+                    onSwipe: (direccion) => _deslizarFicha(i, direccion),
                   ),
                 ),
           ],
