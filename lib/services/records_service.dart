@@ -16,6 +16,9 @@ class RecordsService {
   static const String _claveNivelMaximo = 'desafio_nivel_maximo';
   static const String _claveEstrellas = 'desafio_estrellas';
 
+  // Clave del aviso de calificación en Google Play.
+  static const String _claveAppCalificada = 'app_has_rated';
+
   // Claves del formato viejo — se limpian al migrar.
   static const List<String> _clavesViejas = [
     'record_tiempo_3',
@@ -134,5 +137,18 @@ class RecordsService {
     }
 
     return estrellas;
+  }
+
+  /// Retorna si el usuario ya calificó la app en Google Play.
+  /// `false` por defecto: todavía no se lo preguntamos.
+  static Future<bool> yaCalificoApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_claveAppCalificada) ?? false;
+  }
+
+  /// Marca que el usuario ya calificó la app, para no volver a mostrar el aviso.
+  static Future<void> marcarAppCalificada() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_claveAppCalificada, true);
   }
 }

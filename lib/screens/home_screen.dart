@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
+import '../services/records_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/difficulty_button.dart';
+
+/// URL de la ficha de la app en Google Play.
+const String _urlPlayStore =
+    'https://play.google.com/store/apps/details?id=dev.matute.slidingpuzzle';
 
 /// Pantalla de inicio con selección de dificultad.
 class HomeScreen extends StatefulWidget {
@@ -29,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
       onHide: SoundService.pausarMusica,
       onPause: SoundService.pausarMusica,
     );
+
+    // Esperamos la primera frame para no mostrar el modal durante el arranque.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verificarCalificacion();
+    });
   }
 
   @override
@@ -36,6 +47,119 @@ class _HomeScreenState extends State<HomeScreen> {
     _lifecycleListener.dispose();
     SoundService.detenerMusica();
     super.dispose();
+  }
+
+  /// Si el usuario todavía no calificó la app, muestra el modal de calificación.
+  Future<void> _verificarCalificacion() async {
+    final yaCalifico = await RecordsService.yaCalificoApp();
+    if (!mounted || yaCalifico) return;
+    _mostrarCalificacion();
+  }
+
+  /// Modal que invita a calificar la app en Google Play.
+  void _mostrarCalificacion() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            '¿Te gusta Sliding Puzzle?',
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.star_rounded,
+                size: 56,
+                color: Color(0xFFF59E0B),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Tu opinión nos ayuda a seguir mejorando el juego. '
+                '¿Nos dejarías una calificación en Google Play?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      _marcarYAbirTienda();
+                    },
+                    child: const Text(
+                      'Calificar en Play Store',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Ahora no',
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Marca que el usuario ya calificó (aunque el launch falle, no volvemos a
+  /// preguntar) y abre la tienda fuera de la app.
+  Future<void> _marcarYAbirTienda() async {
+    await RecordsService.marcarAppCalificada();
+
+    final uri = Uri.parse(_urlPlayStore);
+    try {
+      final abierto = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!abierto && mounted) {
+        _avisarFalloTienda();
+      }
+    } catch (_) {
+      if (mounted) _avisarFalloTienda();
+    }
+  }
+
+  void _avisarFalloTienda() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo abrir Google Play'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   void _navegarAJuego(BuildContext context, int size) async {
