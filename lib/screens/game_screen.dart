@@ -12,7 +12,12 @@ import '../widgets/puzzle_board.dart';
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
   final int size;
-  const GameScreen({super.key, required this.size});
+
+  /// Nivel del Modo Desafío en curso. Si es `null`, es una partida clásica
+  /// (tablero aleatorio + récord de tiempo/movimientos).
+  final int? nivelDesafio;
+
+  const GameScreen({super.key, required this.size, this.nivelDesafio});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -20,6 +25,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late List<int> _tablero;
+  late final int _objetivo;
   int _movimientos = 0;
   // El temporizador se aísla en un ValueNotifier: cada segundo solo se
   // re-construye la tarjeta del HUD, no todo el tablero.
@@ -30,10 +36,25 @@ class _GameScreenState extends State<GameScreen> {
   late ConfettiController _confettiController;
   late final AppLifecycleListener _lifecycleListener;
 
+  /// `true` cuando esta partida pertenece al Modo Desafío.
+  bool get _esDesafio => widget.nivelDesafio != null;
+
+  /// Tablero inicial según el modo: scramble clásico aleatorio o scramble
+  /// determinista del nivel de desafío (misma semilla por nivel).
+  List<int> _nuevoTablero() {
+    final nivel = widget.nivelDesafio;
+    return nivel != null
+        ? PuzzleLogic.generarTableroDesafio(nivel)
+        : PuzzleLogic.generarTablero(widget.size);
+  }
+
   @override
   void initState() {
     super.initState();
-    _tablero = PuzzleLogic.generarTablero(widget.size);
+    _objetivo = _esDesafio
+        ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
+        : 0;
+    _tablero = _nuevoTablero();
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 4),
     );
@@ -124,6 +145,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _mostrarVictoria() async {
+    if (_esDesafio) {
+      await _mostrarVictoriaDesafio();
+      return;
+    }
     final esPrecord = await RecordsService.guardarPartida(
       size: widget.size,
       tiempo: _segundos.value,
@@ -221,13 +246,143 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Diálogo de victoria del Modo Desafío. Registra el progreso (estrellas y
+  /// desbloqueo del siguiente nivel), muestra las estrellas obtenidas y ofrece
+  /// "Siguiente Nivel" (devuelve `true` a la grilla para encadenar), "Reintentar"
+  /// (misma semilla) y "Volver a niveles".
+  Future<void> _mostrarVictoriaDesafio() async {
+    final nivel = widget.nivelDesafio!;
+    final estrellas = await RecordsService.registrarVictoriaDesafio(
+      nivel: nivel,
+      movimientos: _movimientos,
+      objetivo: _objetivo,
+    );
+
+    await SoundService.pausarMusica();
+    if (!mounted) return;
+
+    SoundService.reproducirVictoria();
+    _confettiController.play();
+
+    final haySiguiente = nivel < 20;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                '⭐ ¡Nivel $nivel superado!',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FilaEstrellas(estrellas: estrellas),
+                  const SizedBox(height: 12),
+                  _FilaResultado(
+                    icono: Icons.sports_esports,
+                    label: 'Movimientos',
+                    valor: '$_movimientos',
+                  ),
+                  const SizedBox(height: 8),
+                  _FilaResultado(
+                    icono: Icons.flag_rounded,
+                    label: 'Objetivo',
+                    valor: '$_objetivo movs',
+                  ),
+                ],
+              ),
+              actions: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (haySiguiente) ...[
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.seedColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context); // cierra el diálogo
+                          Navigator.pop(context, true); // encadena el siguiente
+                        },
+                        child: const Text(
+                          'Siguiente Nivel',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.seedColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context); // cierra el diálogo
+                        _reiniciar();
+                      },
+                      child: const Text(
+                        'Reintentar',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context); // cierra el diálogo
+                        Navigator.pop(context, false); // vuelve a la grilla
+                      },
+                      child: Text(
+                        'Volver a niveles',
+                        style: TextStyle(color: colors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 30,
+              gravity: 0.3,
+              colors: const [
+                Color(0xFF4361EE),
+                Color(0xFF10B981),
+                Color(0xFFF59E0B),
+                Color(0xFFEF4444),
+                Colors.white,
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _reiniciar() {
     _detenerTimer();
     _segundos.value = 0;
     _pausado = false;
     SoundService.reanudarMusica();
     setState(() {
-      _tablero = PuzzleLogic.generarTablero(widget.size);
+      _tablero = _nuevoTablero();
       _movimientos = 0;
       _juegoIniciado = false;
     });
@@ -377,28 +532,49 @@ class _GameScreenState extends State<GameScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ValueListenableBuilder<int>(
-                              valueListenable: _segundos,
-                              builder: (context, segundos, _) => HudCard(
-                                icono: Icons.timer,
-                                label: 'Tiempo',
-                                valor: '${segundos}s',
+                      if (_esDesafio)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: HudCard(
+                                icono: Icons.sports_esports,
+                                label: 'Movimientos',
+                                valor: '$_movimientos',
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: HudCard(
-                              icono: Icons.sports_esports,
-                              label: 'Movimientos',
-                              valor: '$_movimientos',
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: HudCard(
+                                icono: Icons.flag_rounded,
+                                label: 'Objetivo',
+                                valor: '$_objetivo movs',
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _segundos,
+                                builder: (context, segundos, _) => HudCard(
+                                  icono: Icons.timer,
+                                  label: 'Tiempo',
+                                  valor: '${segundos}s',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: HudCard(
+                                icono: Icons.sports_esports,
+                                label: 'Movimientos',
+                                valor: '$_movimientos',
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 32),
                       AspectRatio(
                         aspectRatio: 1,
@@ -487,6 +663,32 @@ class _FilaResultado extends StatelessWidget {
             color: colors.textPrimary,
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Estrellas obtenidas en el diálogo de victoria del Modo Desafío.
+class _FilaEstrellas extends StatelessWidget {
+  final int estrellas;
+
+  const _FilaEstrellas({required this.estrellas});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < 3; i++)
+          Icon(
+            i < estrellas ? Icons.star_rounded : Icons.star_outline_rounded,
+            color: i < estrellas
+                ? const Color(0xFFF59E0B)
+                : colors.textSecondary,
+            size: 36,
+          ),
       ],
     );
   }

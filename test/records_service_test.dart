@@ -116,4 +116,60 @@ void main() {
       }
     });
   });
+
+  group('desafío', () {
+    test('el nivel máximo desbloqueado inicia en 1 y sin estrellas', () async {
+      expect(await RecordsService.obtenerNivelMaximo(), 1);
+      expect(await RecordsService.obtenerEstrellas(), isEmpty);
+    });
+
+    test('registrarVictoriaDesafio guarda estrellas y desbloquea el siguiente',
+        () async {
+      final estrellas = await RecordsService.registrarVictoriaDesafio(
+        nivel: 1,
+        movimientos: 3, // objetivo del nivel 1 = 3 → 3 estrellas
+        objetivo: 3,
+      );
+      expect(estrellas, 3);
+      expect(await RecordsService.obtenerNivelMaximo(), 2);
+      expect(await RecordsService.obtenerEstrellas(), {1: 3});
+    });
+
+    test('conserva la mejor marca: un peor resultado no degrada', () async {
+      await RecordsService.registrarVictoriaDesafio(
+        nivel: 2,
+        movimientos: 4, // objetivo del nivel 2 = 4 → 3 estrellas
+        objetivo: 4,
+      );
+      await RecordsService.registrarVictoriaDesafio(
+        nivel: 2,
+        movimientos: 10, // supera el +50% → 1 estrella
+        objetivo: 4,
+      );
+      expect(await RecordsService.obtenerEstrellas(), {2: 3});
+    });
+
+    test('nunca desbloquea más allá del nivel 20', () async {
+      await RecordsService.registrarVictoriaDesafio(
+        nivel: 19,
+        movimientos: 10,
+        objetivo: 10,
+      );
+      expect(await RecordsService.obtenerNivelMaximo(), 20);
+
+      await RecordsService.registrarVictoriaDesafio(
+        nivel: 20,
+        movimientos: 20,
+        objetivo: 20,
+      );
+      expect(await RecordsService.obtenerNivelMaximo(), 20);
+    });
+
+    test('obtenerEstrellas ignora datos corruptos', () async {
+      SharedPreferences.setMockInitialValues(
+        const {'desafio_estrellas': 'no-json'},
+      );
+      expect(await RecordsService.obtenerEstrellas(), isEmpty);
+    });
+  });
 }

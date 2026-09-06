@@ -148,4 +148,113 @@ class PuzzleLogic {
     }
     return inversiones.isEven;
   }
+
+  /// Configuración de un nivel del Modo Desafío.
+  ///
+  /// Devuelve el tamaño de tablero y el objetivo de movimientos (el "par" del
+  /// nivel) con el que se genera y se evalúa cada nivel:
+  /// - Niveles 1 a 10: tablero 3x3 con objetivo de 3 a 12 movimientos.
+  /// - Niveles 11 a 20: tablero 4x4 con objetivo de 10 a 20 movimientos.
+  static ({int size, int objetivo}) configuracionNivel(int nivel) {
+    RangeError.checkValueInInterval(nivel, 1, 20, 'nivel');
+    if (nivel <= 10) {
+      // 1 -> 3, 2 -> 4, ... 10 -> 12 (progresión lineal exacta).
+      return (size: 3, objetivo: 3 + (nivel - 1));
+    }
+    // 11 -> 10, ... 20 -> 20.
+    final indice = nivel - 11; // 0..9
+    return (size: 4, objetivo: (10 + indice * 10 / 9).round());
+  }
+
+  /// Cantidad de estrellas (1 a 3) logradas según los movimientos usados.
+  ///
+  /// 3 estrellas si se resuelve dentro del objetivo del nivel; 2 estrellas si
+  /// se excede hasta en un 50% (redondeando hacia arriba); 1 estrella por
+  /// resolver el tablero.
+  static int estrellasPara(int movimientos, int objetivo) {
+    if (movimientos <= objetivo) return 3;
+    if (movimientos <= (objetivo * 1.5).ceil()) return 2;
+    return 1;
+  }
+
+  /// Genera el tablero del [nivel] del Modo Desafío.
+  ///
+  /// Parte del tablero resuelto y aplica exactamente `objetivo` movimientos
+  /// aleatorios controlados ("scramble inverso"), desplazando el hueco con una
+  /// semilla determinista `Random(nivel)`: el mismo nivel siempre genera el
+  /// mismo tablero, en cualquier dispositivo.
+  ///
+  /// Incluye un mecanismo anti-rebote: nunca se mueve el hueco en la dirección
+  /// opuesta a la del movimiento anterior (si el hueco fue a la derecha, no
+  /// vuelve de inmediato a la izquierda), evitando scrambles triviales.
+  static List<int> generarTableroDesafio(int nivel) {
+    final config = configuracionNivel(nivel);
+    final size = config.size;
+    final objetivo = config.objetivo;
+    final total = size * size;
+
+    // Semilla estable por nivel. Si el scramble terminara resuelto (caminata
+    // cerrada, muy poco probable) se reintenta con la siguiente semilla; como
+    // la semilla es fija, el resultado sigue siendo determinista.
+    var semilla = nivel;
+    while (true) {
+      final random = Random(semilla);
+      List<int> tablero = List.generate(total, (i) => (i + 1) % total);
+      var posHueco = total - 1;
+      Direccion? ultimoMovimiento;
+
+      for (var i = 0; i < objetivo; i++) {
+        final candidatos = _movimientosPosiblesHueco(posHueco, size);
+        final prohibida = _opuesta(ultimoMovimiento);
+        if (prohibida != null) candidatos.remove(prohibida);
+        final dir = candidatos[random.nextInt(candidatos.length)];
+        tablero = _moverHueco(tablero, posHueco, dir, size);
+        posHueco += _desplazamiento(dir, size);
+        ultimoMovimiento = dir;
+      }
+
+      if (!estaResuelto(tablero)) return tablero;
+      semilla++;
+    }
+  }
+
+  /// Direcciones en las que el hueco puede desplazarse desde [posHueco]
+  /// sin salirse del tablero.
+  static List<Direccion> _movimientosPosiblesHueco(int posHueco, int size) {
+    final fila = posHueco ~/ size;
+    final col = posHueco % size;
+    return [
+      if (fila > 0) Direccion.arriba,
+      if (fila < size - 1) Direccion.abajo,
+      if (col > 0) Direccion.izquierda,
+      if (col < size - 1) Direccion.derecha,
+    ];
+  }
+
+  /// Intercambia el hueco en [posHueco] con la ficha vecina en [dir].
+  static List<int> _moverHueco(
+      List<int> tablero, int posHueco, Direccion dir, int size) {
+    final destino = posHueco + _desplazamiento(dir, size);
+    final nuevo = List<int>.from(tablero);
+    nuevo[posHueco] = nuevo[destino];
+    nuevo[destino] = 0;
+    return nuevo;
+  }
+
+  /// Desplazamiento (en índices) que produce cada dirección sobre el hueco.
+  static int _desplazamiento(Direccion dir, int size) => switch (dir) {
+        Direccion.arriba => -size,
+        Direccion.abajo => size,
+        Direccion.izquierda => -1,
+        Direccion.derecha => 1,
+      };
+
+  /// Dirección opuesta a [dir]; `null` si no hay una dirección previa.
+  static Direccion? _opuesta(Direccion? dir) => switch (dir) {
+        null => null,
+        Direccion.arriba => Direccion.abajo,
+        Direccion.abajo => Direccion.arriba,
+        Direccion.izquierda => Direccion.derecha,
+        Direccion.derecha => Direccion.izquierda,
+      };
 }

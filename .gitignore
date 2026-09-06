@@ -54,3 +54,8 @@ aab/app-release.aab
 
 # Graphify
 /lib/graphify-out
+
+# Graphify en la raíz: solo se versiona el reporte markdown (graphify-out/GRAPH_REPORT.md),
+# el resto (graph.json/html, labels, caché regenerable) no se commitea.
+/graphify-out/*
+!/graphify-out/GRAPH_REPORT.md

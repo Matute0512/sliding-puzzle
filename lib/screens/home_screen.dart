@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
@@ -47,6 +48,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Al volver del juego, reanudamos la música del menú.
     SoundService.reanudarMusica();
+  }
+
+  void _navegarADesafio(BuildContext context) async {
+    // No pausamos la música: HomeScreen sigue montada y la grilla comparte la
+    // música del menú. La pausa ocurre recién al entrar a una partida, dentro
+    // de ChallengeLevelsScreen (mismo patrón que _navegarAJuego).
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ChallengeLevelsScreen()),
+    );
   }
 
   @override
@@ -111,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: colors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 16),
                         DifficultyButton(
                           label: 'Fácil',
                           descripcion: 'Tablero 3x3',
@@ -131,6 +142,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           descripcion: 'Tablero 5x5',
                           color: const Color(0xFFEF4444),
                           onTap: () => _navegarAJuego(context, 5),
+                        ),
+                        const SizedBox(height: 48),
+                        DifficultyButton(
+                          label: 'Modo Desafío',
+                          descripcion: '20 niveles · ganá 3 estrellas',
+                          color: AppTheme.seedColor,
+                          foregroundColor: Colors.white,
+                          onTap: () => _navegarADesafio(context),
                         ),
                         const SizedBox(height: 32),
                         TextButton.icon(

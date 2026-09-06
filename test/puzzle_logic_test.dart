@@ -118,4 +118,70 @@ void main() {
       expect(PuzzleLogic.estaResuelto(invertido), isFalse);
     });
   });
+
+  group('configuracionNivel', () {
+    test('niveles 1-10 son 3x3 con objetivo de 3 a 12', () {
+      expect(PuzzleLogic.configuracionNivel(1).size, 3);
+      expect(PuzzleLogic.configuracionNivel(1).objetivo, 3);
+      expect(PuzzleLogic.configuracionNivel(10).size, 3);
+      expect(PuzzleLogic.configuracionNivel(10).objetivo, 12);
+
+      for (var nivel = 1; nivel <= 10; nivel++) {
+        final config = PuzzleLogic.configuracionNivel(nivel);
+        expect(config.size, 3);
+        expect(config.objetivo, inInclusiveRange(3, 12));
+      }
+    });
+
+    test('niveles 11-20 son 4x4 con objetivo de 10 a 20', () {
+      expect(PuzzleLogic.configuracionNivel(11).size, 4);
+      expect(PuzzleLogic.configuracionNivel(11).objetivo, 10);
+      expect(PuzzleLogic.configuracionNivel(20).size, 4);
+      expect(PuzzleLogic.configuracionNivel(20).objetivo, 20);
+
+      for (var nivel = 11; nivel <= 20; nivel++) {
+        final config = PuzzleLogic.configuracionNivel(nivel);
+        expect(config.size, 4);
+        expect(config.objetivo, inInclusiveRange(10, 20));
+      }
+    });
+
+    test('rechaza niveles fuera del rango 1..20', () {
+      expect(() => PuzzleLogic.configuracionNivel(0), throwsRangeError);
+      expect(() => PuzzleLogic.configuracionNivel(21), throwsRangeError);
+    });
+  });
+
+  group('generarTableroDesafio', () {
+    test('es determinista: el mismo nivel siempre genera el mismo tablero', () {
+      for (final nivel in [1, 5, 10, 11, 20]) {
+        final a = PuzzleLogic.generarTableroDesafio(nivel);
+        final b = PuzzleLogic.generarTableroDesafio(nivel);
+        expect(a, b, reason: 'el nivel $nivel debe ser reproducible');
+      }
+    });
+
+    test('produce tableros válidos en todos los niveles', () {
+      for (var nivel = 1; nivel <= 20; nivel++) {
+        final config = PuzzleLogic.configuracionNivel(nivel);
+        final t = PuzzleLogic.generarTableroDesafio(nivel);
+        expect(t.length, config.size * config.size, reason: 'nivel $nivel');
+        expect(PuzzleLogic.tieneSolucion(t, config.size), isTrue);
+        expect(PuzzleLogic.estaResuelto(t), isFalse);
+        expect(t.toSet().length, config.size * config.size,
+            reason: 'sin duplicados ni faltantes (nivel $nivel)');
+      }
+    });
+  });
+
+  group('estrellasPara', () {
+    test('3★ dentro del objetivo, 2★ hasta +50% y 1★ al resolver', () {
+      const objetivo = 10;
+      // (objetivo * 1.5).ceil() = 15 → hasta 15 movimientos dan 2 estrellas.
+      expect(PuzzleLogic.estrellasPara(9, objetivo), 3);
+      expect(PuzzleLogic.estrellasPara(10, objetivo), 3);
+      expect(PuzzleLogic.estrellasPara(15, objetivo), 2);
+      expect(PuzzleLogic.estrellasPara(16, objetivo), 1);
+    });
+  });
 }
