@@ -172,4 +172,18 @@ void main() {
       expect(await RecordsService.obtenerEstrellas(), isEmpty);
     });
   });
+
+  group('calificación', () {
+    test('por defecto el usuario todavía no calificó la app', () async {
+      expect(await RecordsService.yaCalificoApp(), isFalse);
+    });
+
+    test('marcarAppCalificada persiste y yaCalificoApp lo refleja', () async {
+      expect(await RecordsService.yaCalificoApp(), isFalse);
+
+      await RecordsService.marcarAppCalificada();
+
+      expect(await RecordsService.yaCalificoApp(), isTrue);
+    });
+  });
 }

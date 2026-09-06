@@ -2,12 +2,19 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/screens/home_screen.dart';
 import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/puzzle_board.dart';
 
 void main() {
+  setUp(() {
+    // El Home lee preferencias al arrancar (aviso de calificación); sin el
+    // mock, SharedPreferences lanzaría MissingPluginException en los tests.
+    SharedPreferences.setMockInitialValues(const {});
+  });
+
   testWidgets(
     'el tablero no recorta las sombras de las fichas (Clip.none) '
     'para los 3 tamaños de tablero',
