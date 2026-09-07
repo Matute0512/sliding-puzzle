@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "538351334306",
+    "project_id": "sliding-puzzle-2243e",
+    "storage_bucket": "sliding-puzzle-2243e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:538351334306:android:542f38a19077345dc538fb",
+        "android_client_info": {
+          "package_name": "dev.matute.slidingpuzzle"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY6lC2dgJyzPlbM1lTXSrB5wnrooHjRs0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

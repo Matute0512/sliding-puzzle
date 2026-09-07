@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necesario para el Top 5 Global (Firestore/Auth). El juego sigue siendo
+         jugable offline; solo la tabla de récords mostrará error sin red. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
