@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:sliding_puzzle/models/record_game.dart';
-import '../services/records_service.dart';
+
+import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
 
-/// Pantalla que muestra el historial de récords por dificultad.
+/// Pantalla del Top 5 Global por tamaño de tablero (3x3, 4x4 y 5x5).
+///
+/// Lee de Firestore (`FirebaseService.obtenerTop`) en lugar de la persistencia
+/// local. Muestra estados de carga y error con reintento.
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
 
@@ -12,8 +15,9 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
-  final Map<int, List<RecordGame>> _historial = {};
+  final Map<int, List<PuntajeGlobal>> _tops = {};
   bool _cargando = true;
+  bool _huboError = false;
 
   static const _dificultades = [
     {
@@ -39,19 +43,36 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarHistorial();
+    _cargarTops();
   }
 
-  Future<void> _cargarHistorial() async {
-    final resultados = await Future.wait(
-      _dificultades.map(
-        (d) => RecordsService.obtenerHistorial(d['size'] as int),
-      ),
-    );
-    for (var i = 0; i < _dificultades.length; i++) {
-      _historial[_dificultades[i]['size'] as int] = resultados[i];
+  Future<void> _cargarTops() async {
+    setState(() {
+      _cargando = true;
+      _huboError = false;
+    });
+
+    try {
+      final resultados = await Future.wait(
+        _dificultades.map(
+          (d) => FirebaseService.obtenerTop(d['size'] as int),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        for (var i = 0; i < _dificultades.length; i++) {
+          _tops[_dificultades[i]['size'] as int] = resultados[i];
+        }
+        _cargando = false;
+      });
+    } catch (_) {
+      // Sin conexión o Firestore no disponible: mostramos el estado de error.
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _huboError = true;
+      });
     }
-    setState(() => _cargando = false);
   }
 
   @override
@@ -74,7 +95,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Récords',
+              'Top 5 Global',
               style: TextStyle(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -83,50 +104,102 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ],
         ),
       ),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: _dificultades.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
-                  itemBuilder: (context, i) {
-                    final d = _dificultades[i];
-                    final size = d['size'] as int;
-                    return _SeccionDificultad(
-                      label: d['label'] as String,
-                      descripcion: d['desc'] as String,
-                      color: d['color'] as Color,
-                      historial: _historial[size] ?? [],
-                      colors: colors,
-                    );
-                  },
+      body: _cuerpo(colors),
+    );
+  }
+
+  Widget _cuerpo(AppColors colors) {
+    if (_cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_huboError) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 48,
+                  color: colors.textSecondary,
                 ),
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'No se pudo cargar el Top 5 Global.\n'
+                  'Revisá tu conexión e intentá de nuevo.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _cargarTops,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.seedColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text(
+                    'Reintentar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: ListView.separated(
+          padding: const EdgeInsets.all(24),
+          itemCount: _dificultades.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 16),
+          itemBuilder: (context, i) {
+            final d = _dificultades[i];
+            final size = d['size'] as int;
+            return _SeccionTop(
+              label: d['label'] as String,
+              descripcion: d['desc'] as String,
+              color: d['color'] as Color,
+              top: _tops[size] ?? const [],
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
-class _SeccionDificultad extends StatelessWidget {
+class _SeccionTop extends StatelessWidget {
   final String label;
   final String descripcion;
   final Color color;
-  final List<RecordGame> historial;
-  final AppColors colors;
+  final List<PuntajeGlobal> top;
 
-  const _SeccionDificultad({
+  const _SeccionTop({
     required this.label,
     required this.descripcion,
     required this.color,
-    required this.historial,
-    required this.colors,
+    required this.top,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -172,10 +245,9 @@ class _SeccionDificultad extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Lista de partidas o mensaje vacío
-          if (historial.isEmpty)
+          if (top.isEmpty)
             Text(
-              'Sin récords todavía — ¡jugá para establecer uno!',
+              'Todavía no hay puntajes globales — ¡jugá para entrar al Top 5!',
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: 13,
@@ -201,7 +273,39 @@ class _SeccionDificultad extends StatelessWidget {
                         ),
                       ),
                       Expanded(
+                        child: Text(
+                          'Alias',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.sports_esports,
+                              size: 14,
+                              color: colors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Movs',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Icon(
                               Icons.timer,
@@ -220,34 +324,13 @@ class _SeccionDificultad extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Icon(
-                              Icons.sports_esports,
-                              size: 14,
-                              color: colors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Movimientos',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: colors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
-                // Filas de partidas
-                ...historial.asMap().entries.map((entry) {
+                // Filas del Top 5
+                ...top.asMap().entries.map((entry) {
                   final puesto = entry.key + 1;
-                  final partida = entry.value;
+                  final puntaje = entry.value;
                   final esPrimero = puesto == 1;
 
                   return Padding(
@@ -257,19 +340,21 @@ class _SeccionDificultad extends StatelessWidget {
                         SizedBox(
                           width: 28,
                           child: Text(
-                            esPrimero ? '1' : '$puesto',
+                            '$puesto',
                             style: TextStyle(
                               fontSize: esPrimero ? 16 : 13,
                               fontWeight: FontWeight.bold,
                               color: esPrimero
-                                  ? AppTheme.seedColor
+                                  ? const Color(0xFFF59E0B)
                                   : colors.textSecondary,
                             ),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            '${partida.tiempo}s',
+                            puntaje.alias,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: esPrimero
@@ -281,7 +366,20 @@ class _SeccionDificultad extends StatelessWidget {
                         ),
                         Expanded(
                           child: Text(
-                            '${partida.movimientos}',
+                            '${puntaje.movimientos}',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: esPrimero
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${puntaje.tiempoSegundos}s',
                             textAlign: TextAlign.right,
                             style: TextStyle(
                               fontSize: 15,

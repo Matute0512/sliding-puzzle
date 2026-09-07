@@ -2,24 +2,16 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/logic/puzzle_logic.dart';
-import 'package:sliding_puzzle/models/record_game.dart';
 
-/// Servicio para guardar y leer el historial de récords locales.
+/// Servicio de persistencia local (SharedPreferences) para:
+/// - Progreso del Modo Desafío (nivel desbloqueado + mejores estrellas).
+/// - Alias del jugador (Top 5 Global).
+/// - Aviso de calificación de la app.
 ///
-/// Almacena hasta [_maxRecords] partidas por dificultad,
-/// ordenadas por tiempo ascendente.
+/// El historial de récords de las partidas libres ya no se guarda en local:
+/// pasó a un Top 5 Global en Firestore (ver `FirebaseService`).
 class RecordsService {
-  static const int _maxRecords = 5;
-  static const String _prefijo = 'historial_records_';
-
-  // Claves del progreso del Modo Desafío.
-  static const String _claveNivelMaximo = 'desafio_nivel_maximo';
-  static const String _claveEstrellas = 'desafio_estrellas';
-
-  // Clave del aviso de calificación en Google Play.
-  static const String _claveAppCalificada = 'app_has_rated';
-
-  // Claves del formato viejo — se limpian al migrar.
+  // Claves del formato viejo de récords — se limpian al migrar.
   static const List<String> _clavesViejas = [
     'record_tiempo_3',
     'record_tiempo_4',
@@ -29,49 +21,30 @@ class RecordsService {
     'record_movimientos_5',
   ];
 
-  /// Elimina datos del formato anterior si existen.
+  // Historial local de partidas libres (pre-Top 5 global) que ya no se usa.
+  static const List<String> _clavesHistorialLibre = [
+    'historial_records_3',
+    'historial_records_4',
+    'historial_records_5',
+  ];
+
+  // Claves del progreso del Modo Desafío.
+  static const String _claveNivelMaximo = 'desafio_nivel_maximo';
+  static const String _claveEstrellas = 'desafio_estrellas';
+
+  // Clave del aviso de calificación en Google Play.
+  static const String _claveAppCalificada = 'app_has_rated';
+
+  // Clave del alias del jugador para el Top 5 Global.
+  static const String _claveAlias = 'alias_usuario';
+
+  /// Elimina datos de formatos anteriores que ya no se usan, incluidas las
+  /// claves del historial local de partidas libres (sustituido por Firestore).
   static Future<void> limpiarDatosViejos() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final clave in _clavesViejas) {
+    for (final clave in [..._clavesViejas, ..._clavesHistorialLibre]) {
       await prefs.remove(clave);
     }
-  }
-
-  /// Devuelve el historial de partidas para una dificultad (puede ser vacío).
-  static Future<List<RecordGame>> obtenerHistorial(int size) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_prefijo$size');
-    if (raw == null) return [];
-    try {
-      return RecordGame.decodeList(raw);
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// Guarda la partida en el historial y retorna si es el nuevo #1.
-  static Future<bool> guardarPartida({
-    required int size,
-    required int tiempo,
-    required int movimientos,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final historial = await obtenerHistorial(size);
-
-    final nueva = RecordGame(tiempo: tiempo, movimientos: movimientos);
-
-    // Verificamos si es récord #1 antes de insertar
-    final esPrimerPuesto = historial.isEmpty || tiempo < historial.first.tiempo;
-
-    historial.add(nueva);
-
-    // Ordenamos por tiempo ascendente y recortamos al límite
-    historial.sort((a, b) => a.tiempo.compareTo(b.tiempo));
-    final top = historial.take(_maxRecords).toList();
-
-    await prefs.setString('$_prefijo$size', RecordGame.encodeList(top));
-
-    return esPrimerPuesto;
   }
 
   /// Devuelve el nivel más alto desbloqueado del Modo Desafío.
@@ -100,7 +73,7 @@ class RecordsService {
       }
       return estrellas;
     } catch (_) {
-      // Datos corruptos: se ignoran y se vuelve a empezar, como en obtenerHistorial.
+      // Datos corruptos: se ignoran y se vuelve a empezar.
       return {};
     }
   }
@@ -150,5 +123,26 @@ class RecordsService {
   static Future<void> marcarAppCalificada() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_claveAppCalificada, true);
+  }
+
+  /// Devuelve el alias guardado del jugador (ya normalizado, máx. 5 letras)
+  /// o `null` si todavía no eligió uno.
+  static Future<String?> obtenerAlias() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_claveAlias);
+  }
+
+  /// Guarda (o reemplaza) el alias del jugador.
+  ///
+  /// Normaliza el valor: recorta espacios y pasa a mayúsculas, limitando a
+  /// 5 letras por seguridad (la UI ya restringe el largo del campo).
+  static Future<void> guardarAlias(String alias) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_claveAlias, _normalizarAlias(alias));
+  }
+
+  static String _normalizarAlias(String alias) {
+    final limpio = alias.trim().toUpperCase();
+    return limpio.length <= 5 ? limpio : limpio.substring(0, 5);
   }
 }

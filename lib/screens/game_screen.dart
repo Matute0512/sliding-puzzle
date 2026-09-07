@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/firebase_service.dart';
 import '../services/records_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
@@ -149,11 +150,8 @@ class _GameScreenState extends State<GameScreen> {
       await _mostrarVictoriaDesafio();
       return;
     }
-    final esPrecord = await RecordsService.guardarPartida(
-      size: widget.size,
-      tiempo: _segundos.value,
-      movimientos: _movimientos,
-    );
+    final puestoTop = await _registrarPuntajeLibre();
+    final entroAlTop = puestoTop != null;
 
     await SoundService.pausarMusica();
     if (!mounted) return;
@@ -172,7 +170,7 @@ class _GameScreenState extends State<GameScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             title: Text(
-              esPrecord ? '🏆 ¡Nuevo récord!' : '🎉 ¡Ganaste!',
+              entroAlTop ? '🏆 ¡Top 5 global!' : '🎉 ¡Ganaste!',
               style: const TextStyle(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -190,12 +188,12 @@ class _GameScreenState extends State<GameScreen> {
                   label: 'Movimientos',
                   valor: '$_movimientos',
                 ),
-                if (esPrecord)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
+                if (entroAlTop)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
                     child: Text(
-                      '¡Superaste tu mejor marca!',
-                      style: TextStyle(
+                      '¡Entraste al Top 5 global! Puesto #$puestoTop',
+                      style: const TextStyle(
                         color: Color(0xFFF59E0B),
                         fontWeight: FontWeight.bold,
                       ),
@@ -244,6 +242,135 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     );
+  }
+
+  /// Registra la partida libre en el Top 5 Global si clasifica.
+  ///
+  /// Si el puntaje entra al Top 5 y el usuario todavía no eligió alias, se lo
+  /// pide primero. Devuelve el puesto (1..5) o `null` si no clasificó, si el
+  /// usuario canceló el alias o si la red no está disponible.
+  Future<int?> _registrarPuntajeLibre() async {
+    final puestoPosible = await FirebaseService.posicionActualPuntaje(
+      size: widget.size,
+      movimientos: _movimientos,
+      tiempoSegundos: _segundos.value,
+    );
+    if (puestoPosible == null) return null;
+
+    var alias = await RecordsService.obtenerAlias();
+    alias ??= await _pedirAlias();
+    if (alias == null || alias.isEmpty) return null;
+    await RecordsService.guardarAlias(alias);
+
+    return FirebaseService.registrarSiClasifica(
+      size: widget.size,
+      alias: alias,
+      movimientos: _movimientos,
+      tiempoSegundos: _segundos.value,
+    );
+  }
+
+  /// Diálogo para elegir el alias del Top 5 Global (máx. 5 letras mayúsculas).
+  /// Devuelve el alias normalizado o `null` si el usuario canceló.
+  Future<String?> _pedirAlias() async {
+    final controller = TextEditingController();
+
+    final alias = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            '🏆 ¡Entraste al Top 5!',
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Elegí un alias (hasta 5 letras) para publicar tu puntaje '
+                'en el ranking global.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.characters,
+                textAlign: TextAlign.center,
+                maxLength: 5,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(5),
+                ],
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'MATE',
+                  counterText: '',
+                  filled: true,
+                  fillColor: colors.cardBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (valor) => Navigator.pop(dialogContext, valor),
+              ),
+            ],
+          ),
+          actions: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () =>
+                        Navigator.pop(dialogContext, controller.text),
+                    child: const Text(
+                      'Publicar',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Ahora no',
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+
+    final normalizado = alias?.trim().toUpperCase() ?? '';
+    if (normalizado.isEmpty) return null;
+    return normalizado.length <= 5 ? normalizado : normalizado.substring(0, 5);
   }
 
   /// Diálogo de victoria del Modo Desafío. Registra el progreso (estrellas y

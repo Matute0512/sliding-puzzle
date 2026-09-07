@@ -162,6 +162,61 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
 
+  /// Muestra el aviso simplificado de privacidad del Top 5 Global.
+  void _mostrarPrivacidad() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          icon: const Icon(
+            Icons.privacy_tip_rounded,
+            size: 48,
+            color: AppTheme.seedColor,
+          ),
+          title: const Text(
+            'Privacidad y Datos',
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            'Para el Top 5 Global, el juego guarda únicamente tu Alias y tu '
+            'mejor puntuación de forma anónima.\n\n'
+            'No solicitamos correos, contraseñas ni datos de tu dispositivo. '
+            'Podés participar con total tranquilidad.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: colors.textSecondary,
+            ),
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.seedColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _navegarAJuego(BuildContext context, int size) async {
     // Pausamos la música del menú antes de entrar al juego.
     await SoundService.pausarMusica();
@@ -194,6 +249,11 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            tooltip: 'Privacidad y datos',
+            icon: Icon(Icons.privacy_tip_outlined, color: colors.textPrimary),
+            onPressed: _mostrarPrivacidad,
+          ),
           IconButton(
             tooltip: 'Configuración',
             icon: Icon(Icons.settings_outlined, color: colors.textPrimary),
