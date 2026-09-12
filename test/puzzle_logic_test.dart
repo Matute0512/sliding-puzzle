@@ -133,16 +133,48 @@ void main() {
       }
     });
 
-    test('niveles 11-20 son 4x4 con objetivo de 10 a 20', () {
+    test('niveles 11-20 son 4x4 con profundidad de 18 a 40 y margen fijo', () {
       expect(PuzzleLogic.configuracionNivel(11).size, 4);
-      expect(PuzzleLogic.configuracionNivel(11).objetivo, 10);
+      expect(PuzzleLogic.configuracionNivel(11).profundidad, 18);
+      expect(PuzzleLogic.configuracionNivel(11).objetivo, 24);
       expect(PuzzleLogic.configuracionNivel(20).size, 4);
-      expect(PuzzleLogic.configuracionNivel(20).objetivo, 20);
+      expect(PuzzleLogic.configuracionNivel(20).profundidad, 40);
+      expect(PuzzleLogic.configuracionNivel(20).objetivo, 46);
 
       for (var nivel = 11; nivel <= 20; nivel++) {
         final config = PuzzleLogic.configuracionNivel(nivel);
         expect(config.size, 4);
-        expect(config.objetivo, inInclusiveRange(10, 20));
+        expect(config.profundidad,
+            inInclusiveRange(PuzzleLogic.desafioProfundidadMin4x4,
+                PuzzleLogic.desafioProfundidadMax4x4));
+        expect(config.objetivo,
+            config.profundidad + PuzzleLogic.desafioMargenObjetivo4x4,
+            reason: 'nivel $nivel: el objetivo debe llevar el margen de error');
+      }
+    });
+
+    test('el objetivo no puede retroceder al subir de nivel', () {
+      // Regresión: la fórmula anterior pedía 12 movimientos en el nivel 10
+      // (3x3) y solo 10 en el 11 (4x4) — el tablero crecía y el objetivo
+      // bajaba, justo en la puerta de entrada a los niveles 12-20.
+      for (var nivel = 2; nivel <= 20; nivel++) {
+        final anterior = PuzzleLogic.configuracionNivel(nivel - 1).objetivo;
+        final actual = PuzzleLogic.configuracionNivel(nivel).objetivo;
+        expect(actual, greaterThan(anterior),
+            reason: 'el nivel $nivel pide $actual y el ${nivel - 1} pedía '
+                '$anterior: la progresión no puede aflojar');
+      }
+    });
+
+    test('el objetivo siempre supera la profundidad de desarme', () {
+      // El scramble inverso siempre da una solución de exactamente
+      // `profundidad` movimientos, así que objetivo >= profundidad garantiza
+      // que las 3 estrellas sean alcanzables. Si alguien invierte la relación,
+      // los niveles se vuelven imposibles.
+      for (var nivel = 1; nivel <= 20; nivel++) {
+        final config = PuzzleLogic.configuracionNivel(nivel);
+        expect(config.objetivo, greaterThanOrEqualTo(config.profundidad),
+            reason: 'nivel $nivel');
       }
     });
 

@@ -149,21 +149,57 @@ class PuzzleLogic {
     return inversiones.isEven;
   }
 
-  /// Configuración de un nivel del Modo Desafío.
+  /// --- Calibración del Modo Desafío (4x4, niveles 11 a 20) ---
   ///
-  /// Devuelve el tamaño de tablero y el objetivo de movimientos (el "par" del
-  /// nivel) con el que se genera y se evalúa cada nivel:
-  /// - Niveles 1 a 10: tablero 3x3 con objetivo de 3 a 12 movimientos.
-  /// - Niveles 11 a 20: tablero 4x4 con objetivo de 10 a 20 movimientos.
-  static ({int size, int objetivo}) configuracionNivel(int nivel) {
+  /// `profundidad` es cuántos movimientos aleatorios se aplican al tablero
+  /// resuelto para desarmarlo; `objetivo` es lo que debe lograr el jugador para
+  /// las 3 estrellas. Son valores DISTINTOS a propósito.
+  ///
+  /// Por qué el objetivo debe ser mayor que la profundidad: el scramble sin
+  /// retroceso inmediato es prácticamente una caminata óptima, así que el
+  /// óptimo real del tablero generado queda pegado a la profundidad. Medido con
+  /// IDA* (2026-09-11, óptimo real por profundidad):
+  ///
+  ///   D=10 -> 10 (holgura 0)   D=18 -> ~16   D=24 -> ~20   D=40 -> ~30
+  ///
+  /// Con `objetivo == profundidad` la holgura era 0: las 3 estrellas exigían la
+  /// solución óptima exacta (imposible en 4x4 para un humano). Como el scramble
+  /// inverso siempre da una solución de exactamente `profundidad` movimientos,
+  /// pedir `objetivo > profundidad` garantiza que las 3 estrellas sean
+  /// alcanzables por construcción, y el margen le da al jugador su cuota de
+  /// error humano. La calibración la vigilan `test/challenge_calibration_test.dart`
+  /// (mide el óptimo real de cada nivel) y `test/puzzle_logic_test.dart`
+  /// (progresión y relación profundidad/objetivo).
+  static const int desafioProfundidadMin4x4 = 18;
+  static const int desafioProfundidadMax4x4 = 40;
+  static const int desafioMargenObjetivo4x4 = 6;
+
+  /// Configuración de un nivel del Modo Desafío:
+  /// tamaño del tablero, profundidad de desarme y objetivo de movimientos.
+  ///
+  /// - Niveles 1 a 10: tablero 3x3, objetivo de 3 a 12 movimientos.
+  /// - Niveles 11 a 20: tablero 4x4, profundidad de 18 a 40 y objetivo de
+  ///   24 a 46 movimientos.
+  static ({int size, int profundidad, int objetivo}) configuracionNivel(
+      int nivel) {
     RangeError.checkValueInInterval(nivel, 1, 20, 'nivel');
     if (nivel <= 10) {
-      // 1 -> 3, 2 -> 4, ... 10 -> 12 (progresión lineal exacta).
-      return (size: 3, objetivo: 3 + (nivel - 1));
+      // 1 -> 3, 2 -> 4, ... 10 -> 12 (progresión lineal exacta). Sin margen:
+      // en 3x3 el óptimo sí es alcanzable para un humano, y el objetivo no
+      // debe cambiar para no invalidar las estrellas ya ganadas.
+      final objetivo = 3 + (nivel - 1);
+      return (size: 3, profundidad: objetivo, objetivo: objetivo);
     }
-    // 11 -> 10, ... 20 -> 20.
+    // 11 -> 18 ... 20 -> 40 de profundidad, con progresión lineal.
     final indice = nivel - 11; // 0..9
-    return (size: 4, objetivo: (10 + indice * 10 / 9).round());
+    final profundidad = desafioProfundidadMin4x4 +
+        ((desafioProfundidadMax4x4 - desafioProfundidadMin4x4) * indice / 9)
+            .round();
+    return (
+      size: 4,
+      profundidad: profundidad,
+      objetivo: profundidad + desafioMargenObjetivo4x4,
+    );
   }
 
   /// Cantidad de estrellas (1 a 3) logradas según los movimientos usados.
@@ -179,18 +215,20 @@ class PuzzleLogic {
 
   /// Genera el tablero del [nivel] del Modo Desafío.
   ///
-  /// Parte del tablero resuelto y aplica exactamente `objetivo` movimientos
+  /// Parte del tablero resuelto y aplica exactamente `profundidad` movimientos
   /// aleatorios controlados ("scramble inverso"), desplazando el hueco con una
   /// semilla determinista `Random(nivel)`: el mismo nivel siempre genera el
   /// mismo tablero, en cualquier dispositivo.
   ///
   /// Incluye un mecanismo anti-rebote: nunca se mueve el hueco en la dirección
   /// opuesta a la del movimiento anterior (si el hueco fue a la derecha, no
-  /// vuelve de inmediato a la izquierda), evitando scrambles triviales.
+  /// vuelve de inmediato a la izquierda), evitando scrambles triviales. Eso
+  /// también hace que el óptimo del tablero quede cerca de `profundidad`, por
+  /// eso el `objetivo` del nivel es mayor (ver [configuracionNivel]).
   static List<int> generarTableroDesafio(int nivel) {
     final config = configuracionNivel(nivel);
     final size = config.size;
-    final objetivo = config.objetivo;
+    final profundidad = config.profundidad;
     final total = size * size;
 
     // Semilla estable por nivel. Si el scramble terminara resuelto (caminata
@@ -203,7 +241,7 @@ class PuzzleLogic {
       var posHueco = total - 1;
       Direccion? ultimoMovimiento;
 
-      for (var i = 0; i < objetivo; i++) {
+      for (var i = 0; i < profundidad; i++) {
         final candidatos = _movimientosPosiblesHueco(posHueco, size);
         final prohibida = _opuesta(ultimoMovimiento);
         if (prohibida != null) candidatos.remove(prohibida);
