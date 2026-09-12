@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <!-- Se usa ?android:colorBackground (y no @android:color/white) para que el
+         splash respete el modo oscuro. Este contenido viene de la antigua carpeta
+         drawable-v21, que se eliminó por ser redundante con minSdk 24: al ganar
+         siempre el qualifier -v21 en API >= 24, esta era la versión que realmente
+         se renderizaba en todos los dispositivos. -->
+    <item android:drawable="?android:colorBackground" />
 
     <!-- You can insert your own image assets here -->
     <!-- <item>
