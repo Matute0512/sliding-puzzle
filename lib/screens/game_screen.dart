@@ -28,9 +28,29 @@ class _GameScreenState extends State<GameScreen> {
   late List<int> _tablero;
   late final int _objetivo;
   int _movimientos = 0;
-  // El temporizador se aísla en un ValueNotifier: cada segundo solo se
-  // re-construye la tarjeta del HUD, no todo el tablero.
+  // El tiempo se aísla en un ValueNotifier: cada segundo solo se re-construye
+  // la tarjeta del HUD, no todo el tablero.
   final ValueNotifier<int> _segundos = ValueNotifier<int>(0);
+
+  /// Cronómetro real de la partida: es la fuente de verdad del tiempo. Se
+  /// arranca en el primer movimiento y se detiene en el mismo instante en que
+  /// el tablero queda resuelto, así que el tiempo registrado es el transcurrido
+  /// exacto (sin el redondeo del tick de 1 Hz que usa el HUD).
+  final Stopwatch _cronometro = Stopwatch();
+
+  /// `true` desde que el tablero queda resuelto. Bloquea todo reinicio del
+  /// reloj una vez ganada la partida: sin esto, mandar la app a background y
+  /// volver reactivaba el cronómetro detrás del modal de victoria.
+  bool _juegoTerminado = false;
+
+  /// Aviso del Top 5 Global mostrado dentro del modal de victoria. Lo llena la
+  /// consulta de red cuando termina, para no retrasar la celebración.
+  final ValueNotifier<String?> _avisoTop = ValueNotifier<String?>(null);
+
+  /// Identifica la partida en curso, para descartar la respuesta de red de una
+  /// partida que ya se reinició.
+  int _partidaId = 0;
+
   bool _juegoIniciado = false;
   bool _pausado = false;
   Timer? _timer;
@@ -73,6 +93,7 @@ class _GameScreenState extends State<GameScreen> {
     _confettiController.dispose();
     _lifecycleListener.dispose();
     _segundos.dispose();
+    _avisoTop.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -82,14 +103,16 @@ class _GameScreenState extends State<GameScreen> {
 
   void _pausarSiJugando() {
     // La app pasa a background: no contamos ese tiempo como parte de la partida.
-    if (_juegoIniciado && !_pausado) {
+    // Si la partida ya está ganada no hay nada que pausar (y reanudarla después
+    // rearrancaría el reloj por detrás del modal).
+    if (_juegoIniciado && !_pausado && !_juegoTerminado) {
       _detenerTimer();
       if (mounted) setState(() => _pausado = true);
     }
   }
 
   void _reanudarSiJugando() {
-    if (_juegoIniciado && _pausado && mounted) {
+    if (_juegoIniciado && _pausado && !_juegoTerminado && mounted) {
       setState(() {
         _pausado = false;
         _iniciarTimer();
@@ -97,20 +120,26 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// Arranca el cronómetro y el refresco del HUD. La cuenta la lleva el
+  /// [Stopwatch]; el `Timer` solo vuelca el valor a la UI cada segundo.
   void _iniciarTimer() {
     if (_timer != null) return;
+    _cronometro.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _segundos.value++;
+      _segundos.value = _cronometro.elapsed.inSeconds;
     });
   }
 
+  /// Detiene el cronómetro y sincroniza el HUD con el tiempo real acumulado.
   void _detenerTimer() {
     _timer?.cancel();
     _timer = null;
+    _cronometro.stop();
+    _segundos.value = _cronometro.elapsed.inSeconds;
   }
 
   void _onTapFicha(int indice) {
-    if (_pausado) return;
+    if (_pausado || _juegoTerminado) return;
 
     if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) {
       // Feedback para un tap inválido (antes era un no-op silencioso).
@@ -131,12 +160,16 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     if (PuzzleLogic.estaResuelto(_tablero)) {
+      // Se marca terminada ANTES de detener el reloj: a partir de acá ninguna
+      // otra ruta (pausa, reanudar, ciclo de vida) puede volver a arrancarlo.
+      _juegoTerminado = true;
       _detenerTimer();
       _mostrarVictoria();
     }
   }
 
   void _alternarPausa() {
+    if (_juegoTerminado) return;
     setState(() => _pausado = !_pausado);
     if (_pausado) {
       _detenerTimer();
@@ -145,20 +178,28 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// Festejo inmediato: sonido, confeti y pausa de la música. Se llama en el
+  /// mismo instante en que el tablero queda resuelto, sin ningún `await` que
+  /// pueda retrasarlo. (`pausarMusica` no tiene `await` interno, así que se
+  /// ejecuta ya; no se espera para no ceder el turno antes de mostrar el modal.)
+  void _celebrar() {
+    SoundService.reproducirVictoria();
+    _confettiController.play();
+    SoundService.pausarMusica();
+  }
+
   Future<void> _mostrarVictoria() async {
     if (_esDesafio) {
       await _mostrarVictoriaDesafio();
       return;
     }
-    final puestoTop = await _registrarPuntajeLibre();
-    final entroAlTop = puestoTop != null;
 
-    await SoundService.pausarMusica();
+    // El modal sale al instante y el ranking global se resuelve por detrás:
+    // esperar la red acá retrasaba toda la celebración un round-trip.
+    _celebrar();
+    _resolverPuestoGlobal(_partidaId);
+
     if (!mounted) return;
-
-    SoundService.reproducirVictoria();
-    _confettiController.play();
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -169,10 +210,15 @@ class _GameScreenState extends State<GameScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(
-              entroAlTop ? '🏆 ¡Top 5 global!' : '🎉 ¡Ganaste!',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            // El título y el aviso reaccionan al resultado del ranking, que
+            // puede llegar después de que el modal ya esté en pantalla.
+            title: ValueListenableBuilder<String?>(
+              valueListenable: _avisoTop,
+              builder: (_, aviso, _) => Text(
+                aviso != null ? '🏆 ¡Top 5 global!' : '🎉 ¡Ganaste!',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -188,18 +234,23 @@ class _GameScreenState extends State<GameScreen> {
                   label: 'Movimientos',
                   valor: '$_movimientos',
                 ),
-                if (entroAlTop)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      '¡Entraste al Top 5 global! Puesto #$puestoTop',
-                      style: const TextStyle(
-                        color: Color(0xFFF59E0B),
-                        fontWeight: FontWeight.bold,
+                ValueListenableBuilder<String?>(
+                  valueListenable: _avisoTop,
+                  builder: (_, aviso, _) {
+                    if (aviso == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        aviso,
+                        style: const TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                    );
+                  },
+                ),
               ],
             ),
             actions: [
@@ -244,29 +295,52 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Resuelve el puesto en el Top 5 Global por detrás del modal de victoria y,
+  /// si el jugador clasificó, completa el aviso del modal cuando la respuesta
+  /// llega. [idPartida] descarta respuestas tardías de una partida ya reiniciada
+  /// (si no, el aviso de la partida anterior aparecería en el modal siguiente).
+  Future<void> _resolverPuestoGlobal(int idPartida) async {
+    final puesto = await _registrarPuntajeLibre();
+    if (puesto == null || !mounted || idPartida != _partidaId) return;
+    _avisoTop.value = '¡Entraste al Top 5 global! Puesto #$puesto';
+  }
+
   /// Registra la partida libre en el Top 5 Global si clasifica.
   ///
   /// Si el puntaje entra al Top 5 y el usuario todavía no eligió alias, se lo
   /// pide primero. Devuelve el puesto (1..5) o `null` si no clasificó, si el
   /// usuario canceló el alias o si la red no está disponible.
   Future<int?> _registrarPuntajeLibre() async {
+    // Los valores de la partida se congelan acá. Como esto corre en segundo
+    // plano, el jugador puede tocar "Jugar de nuevo" mientras la red responde,
+    // y _reiniciar() pone _movimientos y _segundos en cero: releerlos después
+    // de un await publicaría un puntaje falso (0 movimientos) en el ranking
+    // global, imposible de superar.
+    final movimientos = _movimientos;
+    final tiempoSegundos = _segundos.value;
+
     final puestoPosible = await FirebaseService.posicionActualPuntaje(
       size: widget.size,
-      movimientos: _movimientos,
-      tiempoSegundos: _segundos.value,
+      movimientos: movimientos,
+      tiempoSegundos: tiempoSegundos,
     );
     if (puestoPosible == null) return null;
 
     var alias = await RecordsService.obtenerAlias();
-    alias ??= await _pedirAlias();
+    if (alias == null) {
+      // La lectura anterior es asíncrona: si la pantalla se fue mientras tanto,
+      // abrir el diálogo del alias usaría un contexto muerto.
+      if (!mounted) return null;
+      alias = await _pedirAlias();
+    }
     if (alias == null || alias.isEmpty) return null;
     await RecordsService.guardarAlias(alias);
 
     return FirebaseService.registrarSiClasifica(
       size: widget.size,
       alias: alias,
-      movimientos: _movimientos,
-      tiempoSegundos: _segundos.value,
+      movimientos: movimientos,
+      tiempoSegundos: tiempoSegundos,
     );
   }
 
@@ -379,17 +453,20 @@ class _GameScreenState extends State<GameScreen> {
   /// (misma semilla) y "Volver a niveles".
   Future<void> _mostrarVictoriaDesafio() async {
     final nivel = widget.nivelDesafio!;
-    final estrellas = await RecordsService.registrarVictoriaDesafio(
+    // Festejo inmediato, igual que en partida libre.
+    _celebrar();
+
+    // Las estrellas son una función pura del resultado, así que el modal ya las
+    // conoce sin esperar a la persistencia. Se guarda el progreso (local, sin
+    // red) antes de mostrar el modal para que el desbloqueo del siguiente nivel
+    // esté escrito cuando el jugador toque "Siguiente Nivel".
+    final estrellas = PuzzleLogic.estrellasPara(_movimientos, _objetivo);
+    await RecordsService.registrarVictoriaDesafio(
       nivel: nivel,
       movimientos: _movimientos,
       objetivo: _objetivo,
     );
-
-    await SoundService.pausarMusica();
     if (!mounted) return;
-
-    SoundService.reproducirVictoria();
-    _confettiController.play();
 
     final haySiguiente = nivel < 20;
 
@@ -505,8 +582,14 @@ class _GameScreenState extends State<GameScreen> {
 
   void _reiniciar() {
     _detenerTimer();
+    _cronometro.reset();
     _segundos.value = 0;
     _pausado = false;
+    // Partida nueva: se limpia el estado de "terminada" y se invalida cualquier
+    // respuesta de red que siga pendiente de la partida anterior.
+    _juegoTerminado = false;
+    _avisoTop.value = null;
+    _partidaId++;
     SoundService.reanudarMusica();
     setState(() {
       _tablero = _nuevoTablero();
