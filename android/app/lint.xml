@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PropertyEscape se dispara únicamente con `local.properties`, un archivo GENERADO
+  por el tool de Flutter en cada build: escribe las rutas escapando los backslashes
+  pero no los dos puntos (`flutter.sdk=C:\\Users\\...\\flutter`). En un .properties
+  de Java los `:` de un valor no necesitan escape, así que el archivo se parsea
+  correctamente y el aviso es un falso positivo sobre un archivo que no controlamos
+  (además está en .gitignore, y en CI/Linux ni siquiera aparece porque allí no hay
+  backslashes). Corregirlo a mano no sirve: el siguiente `flutter build` lo reescribe.
+
+  Se ignora solo esta regla, y solo para ese archivo; el resto de comprobaciones de
+  lint siguen activas.
+-->
+<lint>
+    <issue id="PropertyEscape">
+        <ignore path="**/local.properties" />
+    </issue>
+</lint>
