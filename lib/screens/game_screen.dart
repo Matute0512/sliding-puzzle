@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/firebase_service.dart';
 import '../services/records_service.dart';
+import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hud_card.dart';
@@ -18,7 +19,15 @@ class GameScreen extends StatefulWidget {
   /// (tablero aleatorio + récord de tiempo/movimientos).
   final int? nivelDesafio;
 
-  const GameScreen({super.key, required this.size, this.nivelDesafio});
+  /// Partida guardada que se debe retomar. Si es `null`, arranca una nueva.
+  final PartidaGuardada? partidaInicial;
+
+  const GameScreen({
+    super.key,
+    required this.size,
+    this.nivelDesafio,
+    this.partidaInicial,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -31,6 +40,13 @@ class _GameScreenState extends State<GameScreen> {
   // El tiempo se aísla en un ValueNotifier: cada segundo solo se re-construye
   // la tarjeta del HUD, no todo el tablero.
   final ValueNotifier<int> _segundos = ValueNotifier<int>(0);
+
+  /// Segundos ya jugados que traía una partida retomada. Un `Stopwatch` no
+  /// puede arrancar en un valor distinto de cero, así que el tiempo total de la
+  /// partida es siempre `_segundosAcumulados + _cronometro.elapsed`. Sin este
+  /// desplazamiento, retomar una partida reiniciaría el reloj a 0 y publicaría
+  /// en el Top 5 un tiempo imposible de batir.
+  int _segundosAcumulados = 0;
 
   /// Cronómetro real de la partida: es la fuente de verdad del tiempo. Se
   /// arranca en el primer movimiento y se detiene en el mismo instante en que
@@ -75,7 +91,19 @@ class _GameScreenState extends State<GameScreen> {
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
         : 0;
-    _tablero = _nuevoTablero();
+    final guardada = widget.partidaInicial;
+    if (guardada != null) {
+      // Partida retomada: tablero, movimientos y tiempo vienen del disco. El
+      // cronómetro sigue detenido hasta el próximo movimiento, así que el
+      // jugador no pierde tiempo mientras mira el tablero.
+      _tablero = List<int>.from(guardada.tablero);
+      _movimientos = guardada.movimientos;
+      _segundosAcumulados = guardada.segundos;
+      _segundos.value = guardada.segundos;
+      _juegoIniciado = true;
+    } else {
+      _tablero = _nuevoTablero();
+    }
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 4),
     );
@@ -107,8 +135,37 @@ class _GameScreenState extends State<GameScreen> {
     // rearrancaría el reloj por detrás del modal).
     if (_juegoIniciado && !_pausado && !_juegoTerminado) {
       _detenerTimer();
+      // Guardamos al ir a background: si el sistema termina el proceso, la
+      // partida todavía se puede retomar desde el menú.
+      unawaited(_guardarPartida());
       if (mounted) setState(() => _pausado = true);
     }
+  }
+
+  /// Guarda la partida en curso para poder retomarla desde el menú.
+  ///
+  /// Solo se guarda una partida ya empezada y sin terminar: un tablero intacto
+  /// no es "una partida en curso" y no debe ofrecer "Continuar Partida".
+  Future<void> _guardarPartida() async {
+    if (!_juegoIniciado || _juegoTerminado) return;
+    await SavedGameService.guardar(
+      PartidaGuardada(
+        esDesafio: _esDesafio,
+        size: widget.size,
+        nivel: widget.nivelDesafio,
+        tablero: _tablero,
+        movimientos: _movimientos,
+        segundos: _segundosTotales,
+      ),
+    );
+  }
+
+  /// Sale al menú principal limpiando la pila de navegación.
+  ///
+  /// Se usa `popUntil` en vez de `pop` porque en el Modo Desafío hay una
+  /// pantalla intermedia (la grilla de niveles) entre el juego y el menú.
+  void _volverAlMenu() {
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
   }
 
   void _reanudarSiJugando() {
@@ -126,7 +183,7 @@ class _GameScreenState extends State<GameScreen> {
     if (_timer != null) return;
     _cronometro.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _segundos.value = _cronometro.elapsed.inSeconds;
+      _segundos.value = _segundosAcumulados + _cronometro.elapsed.inSeconds;
     });
   }
 
@@ -135,8 +192,12 @@ class _GameScreenState extends State<GameScreen> {
     _timer?.cancel();
     _timer = null;
     _cronometro.stop();
-    _segundos.value = _cronometro.elapsed.inSeconds;
+    _segundos.value = _segundosAcumulados + _cronometro.elapsed.inSeconds;
   }
+
+  /// Tiempo total de la partida: lo ya jugado (si se retomó) más lo que lleva
+  /// el cronómetro en esta sesión.
+  int get _segundosTotales => _segundosAcumulados + _cronometro.elapsed.inSeconds;
 
   void _onTapFicha(int indice) {
     if (_pausado || _juegoTerminado) return;
@@ -147,10 +208,11 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    if (!_juegoIniciado) {
-      _juegoIniciado = true;
-      _iniciarTimer();
-    }
+    // El reloj arranca con el primer movimiento y se reanuda si venía detenido
+    // (partida retomada). `_iniciarTimer` continúa el Stopwatch en vez de
+    // reiniciarlo, así que el tiempo ya acumulado se conserva.
+    _juegoIniciado = true;
+    if (_timer == null) _iniciarTimer();
 
     SoundService.reproducirClick();
 
@@ -164,6 +226,8 @@ class _GameScreenState extends State<GameScreen> {
       // otra ruta (pausa, reanudar, ciclo de vida) puede volver a arrancarlo.
       _juegoTerminado = true;
       _detenerTimer();
+      // La partida terminó: ya no hay nada que retomar.
+      SavedGameService.borrar();
       _mostrarVictoria();
     }
   }
@@ -173,6 +237,7 @@ class _GameScreenState extends State<GameScreen> {
     setState(() => _pausado = !_pausado);
     if (_pausado) {
       _detenerTimer();
+      unawaited(_guardarPartida());
     } else if (_juegoIniciado) {
       _iniciarTimer();
     }
@@ -254,25 +319,43 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
             actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.seedColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _reiniciar();
+                    },
+                    child: const Text(
+                      'Jugar de nuevo',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _reiniciar();
-                  },
-                  child: const Text(
-                    'Jugar de nuevo',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.seedColor,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context); // cierra el diálogo
+                      _volverAlMenu(); // limpia la pila hasta el menú
+                    },
+                    icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                    label: const Text(
+                      'Volver al Menú',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -557,6 +640,21 @@ class _GameScreenState extends State<GameScreen> {
                         style: TextStyle(color: colors.textSecondary),
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.seedColor,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context); // cierra el diálogo
+                        _volverAlMenu(); // salta la grilla y va al menú
+                      },
+                      icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                      label: const Text(
+                        'Volver al Menú',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -583,6 +681,9 @@ class _GameScreenState extends State<GameScreen> {
   void _reiniciar() {
     _detenerTimer();
     _cronometro.reset();
+    // El tiempo acumulado se descarta junto con el tablero: la partida que se
+    // retomó ya no existe.
+    _segundosAcumulados = 0;
     _segundos.value = 0;
     _pausado = false;
     // Partida nueva: se limpia el estado de "terminada" y se invalida cualquier
@@ -590,6 +691,8 @@ class _GameScreenState extends State<GameScreen> {
     _juegoTerminado = false;
     _avisoTop.value = null;
     _partidaId++;
+    // Reiniciar abandona la partida en curso: no queda nada que continuar.
+    unawaited(SavedGameService.borrar());
     SoundService.reanudarMusica();
     setState(() {
       _tablero = _nuevoTablero();
@@ -702,7 +805,23 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return Scaffold(
+    // `PopScope` envuelve el Scaffold para interceptar el botón Atrás del
+    // sistema (y el gesto de retroceso) y guardar la partida antes de salir.
+    // No afecta a las salidas explícitas ("Volver al Menú"), que navegan por su
+    // cuenta con `popUntil` sin pasar por este callback.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        // El navigator se captura antes del await: usar `context` después de
+        // una pausa asíncrona es lo que marca el lint
+        // use_build_context_synchronously.
+        final navigator = Navigator.of(context);
+        await _guardarPartida();
+        if (!mounted) return;
+        navigator.pop();
+      },
+      child: Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -836,6 +955,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
         ],
+      ),
       ),
     );
   }

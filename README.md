@@ -4,7 +4,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.44.2-02569B?style=flat&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
-![Version](https://img.shields.io/badge/versión-2.0.2-success)
+![Version](https://img.shields.io/badge/versión-2.2.1-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
 [![CI](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml/badge.svg)](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml)
 
@@ -172,13 +172,23 @@ flutter run -d android
 - 📐 Fichas más compactas: gap reducido a 4 px con radio de esquina ajustado
 - 🧩 Modal de ayuda con la matriz resuelta dinámica según la dificultad (3×3, 4×4 y 5×5), con columnas alineadas incluso con números de dos dígitos
 
-### v2.1.0 — Internacionalización (i18n)
-- 🌐 Soporte multi-idioma (ES / EN)
+### v2.1.0 ✅
+- 🏁 Modo Desafío: campaña de 20 niveles con tableros deterministas (misma semilla por nivel), objetivo de movimientos y hasta 3 estrellas por nivel
+- 💾 Persistencia del progreso: nivel desbloqueado y mejores estrellas por nivel
+- ⭐ Modal de calificación con redirección a Google Play
 
-### v3.0.0 — Leaderboard global
-- 🏆 Ranking online global entre jugadores
+### v2.2.0 ✅
+- 🏆 Top 5 Global con Firebase (Authentication anónimo + Cloud Firestore)
+- 👤 Alias público de hasta 5 caracteres para publicar el puntaje
+- 🔒 Modal de privacidad en la app y política de privacidad publicada
+
+### v2.2.1 ✅
+- ⏱️ Fix: el cronómetro de una partida ya ganada no se reanuda al volver de background
+- 🎯 Calibración del Modo Desafío 4x4 (niveles 11 a 20): el objetivo supera la profundidad del scramble para que las 3 estrellas sean alcanzables
+- 🧹 Limpieza de recursos obsoletos y falsos positivos del lint de Android
 
 ### Pendiente
+- 🌐 Soporte multi-idioma (ES / EN)
 - 🎨 Fondos animados por dificultad
 
 ---
