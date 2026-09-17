@@ -1,0 +1,27 @@
+# Rutas que graphify debe ignorar al construir el grafo.
+#
+# Sintaxis: idéntica a .gitignore. graphify lee primero el .gitignore y este
+# archivo después, así que solo puede excluir MÁS, nunca volver a incluir algo.
+#
+# Los íconos de launcher son rasterizaciones que genera `flutter_launcher_icons`
+# a partir de assets/icon/ficha_icono.png (ver la sección flutter_launcher_icons
+# de pubspec.yaml): la misma obra repetida en 39 tamaños. Sin esta exclusión,
+# cada `graphify --update` los vuelve a listar como pendientes de extraer, y no
+# aportan nada a la estructura del proyecto.
+#
+# OJO: la fuente de diseño NO se excluye. assets/icon/ficha_icono.png es la
+# única imagen con contenido propio (aporta la comunidad "App Icon Visual
+# Identity"), así que se sigue extrayendo.
+
+# Android: íconos generados por densidad. El guion final distingue drawable-hdpi,
+# drawable-mdpi, etc. de android/.../res/drawable/, que sí tiene XML relevante.
+/android/app/src/main/res/mipmap-*/
+/android/app/src/main/res/drawable-*/
+
+# iOS: catálogo de íconos y assets de la pantalla de lanzamiento.
+/ios/Runner/Assets.xcassets/AppIcon.appiconset/
+/ios/Runner/Assets.xcassets/LaunchImage.imageset/
+
+# Web: favicon e íconos PWA.
+/web/favicon.png
+/web/icons/
