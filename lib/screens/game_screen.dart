@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/firebase_service.dart';
 import '../services/records_service.dart';
@@ -280,6 +281,7 @@ class _GameScreenState extends State<GameScreen> {
     _resolverPuestoGlobal(_partidaId);
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -295,7 +297,7 @@ class _GameScreenState extends State<GameScreen> {
             title: ValueListenableBuilder<String?>(
               valueListenable: _avisoTop,
               builder: (_, aviso, _) => Text(
-                aviso != null ? '🏆 ¡Top 5 global!' : '🎉 ¡Ganaste!',
+                aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -305,13 +307,13 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 _FilaResultado(
                   icono: Icons.timer,
-                  label: 'Tiempo',
-                  valor: '${_segundos.value}s',
+                  label: l10n.time,
+                  valor: l10n.secondsShort(_segundos.value),
                 ),
                 const SizedBox(height: 8),
                 _FilaResultado(
                   icono: Icons.sports_esports,
-                  label: 'Movimientos',
+                  label: l10n.moves,
                   valor: '$_movimientos',
                 ),
                 ValueListenableBuilder<String?>(
@@ -350,9 +352,9 @@ class _GameScreenState extends State<GameScreen> {
                       Navigator.pop(context);
                       _reiniciar();
                     },
-                    child: const Text(
-                      'Jugar de nuevo',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.playAgain,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -365,9 +367,9 @@ class _GameScreenState extends State<GameScreen> {
                     // frame (dos animaciones de salida superpuestas).
                     onPressed: () => unawaited(_volverAlMenu()),
                     icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                    label: const Text(
-                      'Volver al Menú',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    label: Text(
+                      l10n.backToMenu,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -400,7 +402,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _resolverPuestoGlobal(int idPartida) async {
     final puesto = await _registrarPuntajeLibre();
     if (puesto == null || !mounted || idPartida != _partidaId) return;
-    _avisoTop.value = '¡Entraste al Top 5 global! Puesto #$puesto';
+    _avisoTop.value = AppLocalizations.of(context)!.top5Entered(puesto);
   }
 
   /// Registra la partida libre en el Top 5 Global si clasifica.
@@ -477,6 +479,7 @@ class _GameScreenState extends State<GameScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        final l10n = AppLocalizations.of(dialogContext)!;
         return Stack(
           alignment: Alignment.topCenter,
           children: [
@@ -485,7 +488,7 @@ class _GameScreenState extends State<GameScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(
-                '⭐ ¡Nivel $nivel superado!',
+                l10n.levelPassed(nivel),
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -496,14 +499,14 @@ class _GameScreenState extends State<GameScreen> {
                   const SizedBox(height: 12),
                   _FilaResultado(
                     icono: Icons.sports_esports,
-                    label: 'Movimientos',
+                    label: l10n.moves,
                     valor: '$_movimientos',
                   ),
                   const SizedBox(height: 8),
                   _FilaResultado(
                     icono: Icons.flag_rounded,
-                    label: 'Objetivo',
-                    valor: '$_objetivo movs',
+                    label: l10n.goal,
+                    valor: l10n.goalMoves(_objetivo),
                   ),
                 ],
               ),
@@ -525,9 +528,9 @@ class _GameScreenState extends State<GameScreen> {
                           Navigator.pop(context); // cierra el diálogo
                           Navigator.pop(context, true); // encadena el siguiente
                         },
-                        child: const Text(
-                          'Siguiente Nivel',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        child: Text(
+                          l10n.nextLevel,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -543,9 +546,9 @@ class _GameScreenState extends State<GameScreen> {
                         Navigator.pop(context); // cierra el diálogo
                         _reiniciar();
                       },
-                      child: const Text(
-                        'Reintentar',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Text(
+                        l10n.retry,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -555,7 +558,7 @@ class _GameScreenState extends State<GameScreen> {
                         Navigator.pop(context, false); // vuelve a la grilla
                       },
                       child: Text(
-                        'Volver a niveles',
+                        l10n.backToLevels,
                         style: TextStyle(color: colors.textSecondary),
                       ),
                     ),
@@ -567,9 +570,9 @@ class _GameScreenState extends State<GameScreen> {
                       // Salta la grilla de niveles y el juego de una pasada.
                       onPressed: () => unawaited(_volverAlMenu()),
                       icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                      label: const Text(
-                        'Volver al Menú',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      label: Text(
+                        l10n.backToMenu,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -621,59 +624,51 @@ class _GameScreenState extends State<GameScreen> {
   void _mostrarAyuda() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '🧩 ¿Cómo jugar?',
-          style: TextStyle(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _ItemAyuda(
-              texto:
-                  'Tocá o deslizá una ficha adyacente al espacio vacío para moverla.',
-            ),
-            const _ItemAyuda(
-              texto: 'Las fichas con borde blanco son las que podés mover.',
-            ),
-            const _ItemAyuda(
-              texto: 'El objetivo es ordenar los números en orden ascendente.',
-            ),
-            const _ItemAyuda(
-              texto:
-                  'El espacio vacío debe quedar en la esquina inferior derecha.',
-            ),
-            const _ItemAyuda(
-              texto:
-                  '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
-            ),
-            const SizedBox(height: 16),
-            Center(child: _tableroResuelto()),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.seedColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            l10n.howToPlayTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ItemAyuda(texto: l10n.howToPlay1),
+              _ItemAyuda(texto: l10n.howToPlay2),
+              _ItemAyuda(texto: l10n.howToPlay3),
+              _ItemAyuda(texto: l10n.howToPlay4),
+              _ItemAyuda(texto: l10n.howToPlay5),
+              const SizedBox(height: 16),
+              Center(child: _tableroResuelto()),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.seedColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  l10n.gotIt,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                '¡Entendido!',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -721,6 +716,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     // `PopScope` envuelve el Scaffold para interceptar el botón Atrás del
     // sistema (y el gesto de retroceso) y guardar la partida antes de salir.
@@ -750,7 +746,7 @@ class _GameScreenState extends State<GameScreen> {
             onPressed: _mostrarAyuda,
           ),
           IconButton(
-            tooltip: _pausado ? 'Reanudar' : 'Pausar',
+            tooltip: _pausado ? l10n.resume : l10n.pause,
             icon: Icon(
               _pausado ? Icons.play_arrow : Icons.pause,
               color: colors.textPrimary,
@@ -784,7 +780,7 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.sports_esports,
-                                label: 'Movimientos',
+                                label: l10n.moves,
                                 valor: '$_movimientos',
                               ),
                             ),
@@ -792,8 +788,8 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.flag_rounded,
-                                label: 'Objetivo',
-                                valor: '$_objetivo movs',
+                                label: l10n.goal,
+                                valor: l10n.goalMoves(_objetivo),
                               ),
                             ),
                           ],
@@ -806,8 +802,8 @@ class _GameScreenState extends State<GameScreen> {
                                 valueListenable: _segundos,
                                 builder: (context, segundos, _) => HudCard(
                                   icono: Icons.timer,
-                                  label: 'Tiempo',
-                                  valor: '${segundos}s',
+                                  label: l10n.time,
+                                  valor: l10n.secondsShort(segundos),
                                 ),
                               ),
                             ),
@@ -815,7 +811,7 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.sports_esports,
-                                label: 'Movimientos',
+                                label: l10n.moves,
                                 valor: '$_movimientos',
                               ),
                             ),
@@ -865,7 +861,7 @@ class _GameScreenState extends State<GameScreen> {
                       Icons.play_circle_fill,
                       color: colors.textPrimary,
                     ),
-                    tooltip: 'Reanudar',
+                    tooltip: l10n.resume,
                     onPressed: _alternarPausa,
                   ),
                 ),

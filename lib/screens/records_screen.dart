@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
 
@@ -19,26 +20,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
   bool _cargando = true;
   bool _huboError = false;
 
-  static const _dificultades = [
-    {
-      'size': 3,
-      'label': 'Fácil',
-      'desc': 'Tablero 3×3',
-      'color': Color(0xFF10B981),
-    },
-    {
-      'size': 4,
-      'label': 'Medio',
-      'desc': 'Tablero 4×4',
-      'color': Color(0xFFF59E0B),
-    },
-    {
-      'size': 5,
-      'label': 'Difícil',
-      'desc': 'Tablero 5×5',
-      'color': Color(0xFFEF4444),
-    },
-  ];
+  /// Tamaños de tablero con ranking global. Solo los números: los textos de
+  /// cada sección se arman en [build] porque son traducibles y ya no pueden
+  /// vivir en una lista `const`.
+  static const List<int> _tamanos = [3, 4, 5];
 
   @override
   void initState() {
@@ -54,14 +39,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     try {
       final resultados = await Future.wait(
-        _dificultades.map(
-          (d) => FirebaseService.obtenerTop(d['size'] as int),
-        ),
+        _tamanos.map((size) => FirebaseService.obtenerTop(size)),
       );
       if (!mounted) return;
       setState(() {
-        for (var i = 0; i < _dificultades.length; i++) {
-          _tops[_dificultades[i]['size'] as int] = resultados[i];
+        for (var i = 0; i < _tamanos.length; i++) {
+          _tops[_tamanos[i]] = resultados[i];
         }
         _cargando = false;
       });
@@ -75,9 +58,34 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
+  /// Secciones del Top 5, con las etiquetas ya traducidas.
+  List<({int size, String label, String desc, Color color})> _dificultades(
+    AppLocalizations l10n,
+  ) => [
+    (
+      size: 3,
+      label: l10n.difficultyEasy,
+      desc: l10n.boardSize(3),
+      color: const Color(0xFF10B981),
+    ),
+    (
+      size: 4,
+      label: l10n.difficultyMedium,
+      desc: l10n.boardSize(4),
+      color: const Color(0xFFF59E0B),
+    ),
+    (
+      size: 5,
+      label: l10n.difficultyHard,
+      desc: l10n.boardSize(5),
+      color: const Color(0xFFEF4444),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -95,7 +103,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Top 5 Global',
+              l10n.top5Title,
               style: TextStyle(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -104,11 +112,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ],
         ),
       ),
-      body: _cuerpo(colors),
+      body: _cuerpo(colors, l10n),
     );
   }
 
-  Widget _cuerpo(AppColors colors) {
+  Widget _cuerpo(AppColors colors, AppLocalizations l10n) {
     if (_cargando) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -129,8 +137,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No se pudo cargar el Top 5 Global.\n'
-                  'Revisá tu conexión e intentá de nuevo.',
+                  l10n.top5Error,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -148,9 +155,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ),
                   ),
                   icon: const Icon(Icons.refresh),
-                  label: const Text(
-                    'Reintentar',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  label: Text(
+                    l10n.retry,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -160,21 +167,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
       );
     }
 
+    final dificultades = _dificultades(l10n);
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
         child: ListView.separated(
           padding: const EdgeInsets.all(24),
-          itemCount: _dificultades.length,
+          itemCount: dificultades.length,
           separatorBuilder: (_, _) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
-            final d = _dificultades[i];
-            final size = d['size'] as int;
+            final d = dificultades[i];
             return _SeccionTop(
-              label: d['label'] as String,
-              descripcion: d['desc'] as String,
-              color: d['color'] as Color,
-              top: _tops[size] ?? const [],
+              label: d.label,
+              descripcion: d.desc,
+              color: d.color,
+              top: _tops[d.size] ?? const [],
+              l10n: l10n,
             );
           },
         ),
@@ -188,12 +197,14 @@ class _SeccionTop extends StatelessWidget {
   final String descripcion;
   final Color color;
   final List<PuntajeGlobal> top;
+  final AppLocalizations l10n;
 
   const _SeccionTop({
     required this.label,
     required this.descripcion,
     required this.color,
     required this.top,
+    required this.l10n,
   });
 
   @override
@@ -247,7 +258,7 @@ class _SeccionTop extends StatelessWidget {
 
           if (top.isEmpty)
             Text(
-              'Todavía no hay puntajes globales — ¡jugá para entrar al Top 5!',
+              l10n.top5Empty,
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: 13,
@@ -274,7 +285,7 @@ class _SeccionTop extends StatelessWidget {
                       ),
                       Expanded(
                         child: Text(
-                          'Alias',
+                          l10n.aliasColumn,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -293,7 +304,7 @@ class _SeccionTop extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Movs',
+                              l10n.movesColumn,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -314,7 +325,7 @@ class _SeccionTop extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Tiempo',
+                              l10n.timeColumn,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -379,7 +390,7 @@ class _SeccionTop extends StatelessWidget {
                         ),
                         Expanded(
                           child: Text(
-                            '${puntaje.tiempoSegundos}s',
+                            l10n.secondsShort(puntaje.tiempoSegundos),
                             textAlign: TextAlign.right,
                             style: TextStyle(
                               fontSize: 15,

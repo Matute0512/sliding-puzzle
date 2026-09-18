@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
 import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
@@ -76,13 +77,14 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) {
         final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        final l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
-            '¿Te gusta Sliding Puzzle?',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            l10n.rateTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           content: Column(
@@ -95,8 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Tu opinión nos ayuda a seguir mejorando el juego. '
-                '¿Nos dejarías una calificación en Google Play?',
+                l10n.rateBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -124,9 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pop(dialogContext);
                       _marcarYAbirTienda();
                     },
-                    child: const Text(
-                      'Calificar en Play Store',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.rateButton,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -134,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(
-                    'Ahora no',
+                    l10n.notNow,
                     style: TextStyle(color: colors.textSecondary),
                   ),
                 ),
@@ -166,11 +167,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _avisarFalloTienda() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo abrir Google Play'),
+        SnackBar(
+          content: Text(l10n.playStoreError),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -182,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) {
         final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        final l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -191,16 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 48,
             color: AppTheme.seedColor,
           ),
-          title: const Text(
-            'Privacidad y Datos',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            l10n.privacyTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           content: Text(
-            'Para el Top 5 Global, el juego guarda únicamente tu Alias y tu '
-            'mejor puntuación de forma anónima.\n\n'
-            'No solicitamos correos, contraseñas ni datos de tu dispositivo. '
-            'Podés participar con total tranquilidad.',
+            l10n.privacyBody,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -219,9 +219,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  l10n.understood,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -290,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -298,12 +299,12 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Privacidad y datos',
+            tooltip: l10n.privacyTooltip,
             icon: Icon(Icons.privacy_tip_outlined, color: colors.textPrimary),
             onPressed: _mostrarPrivacidad,
           ),
           IconButton(
-            tooltip: 'Configuración',
+            tooltip: l10n.settingsTitle,
             icon: Icon(Icons.settings_outlined, color: colors.textPrimary),
             onPressed: () {
               Navigator.push(
@@ -359,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 24),
                         ],
                         Text(
-                          'Elegí una dificultad',
+                          l10n.chooseDifficulty,
                           style: TextStyle(
                             fontSize: 16,
                             color: colors.textSecondary,
@@ -367,29 +368,29 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
                         DifficultyButton(
-                          label: 'Fácil',
-                          descripcion: 'Tablero 3x3',
+                          label: l10n.difficultyEasy,
+                          descripcion: l10n.boardSize(3),
                           color: const Color(0xFF10B981),
                           onTap: () => _navegarAJuego(context, 3),
                         ),
                         const SizedBox(height: 16),
                         DifficultyButton(
-                          label: 'Medio',
-                          descripcion: 'Tablero 4x4',
+                          label: l10n.difficultyMedium,
+                          descripcion: l10n.boardSize(4),
                           color: const Color(0xFFF59E0B),
                           onTap: () => _navegarAJuego(context, 4),
                         ),
                         const SizedBox(height: 16),
                         DifficultyButton(
-                          label: 'Difícil',
-                          descripcion: 'Tablero 5x5',
+                          label: l10n.difficultyHard,
+                          descripcion: l10n.boardSize(5),
                           color: const Color(0xFFEF4444),
                           onTap: () => _navegarAJuego(context, 5),
                         ),
                         const SizedBox(height: 48),
                         DifficultyButton(
-                          label: 'Modo Desafío',
-                          descripcion: '20 niveles · ganá 3 estrellas',
+                          label: l10n.challengeMode,
+                          descripcion: l10n.challengeModeSubtitle,
                           color: AppTheme.seedColor,
                           foregroundColor: Colors.white,
                           onTap: () => _navegarADesafio(context),
@@ -408,9 +409,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icons.emoji_events,
                             color: AppTheme.seedColor,
                           ),
-                          label: const Text(
-                            'Ver récords',
-                            style: TextStyle(
+                          label: Text(
+                            l10n.viewRecords,
+                            style: const TextStyle(
                               color: AppTheme.seedColor,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -448,15 +449,20 @@ class _BotonContinuar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     // En el Modo Desafío no hay cronómetro, así que el tiempo no se muestra.
     final detalle = partida.esDesafio
-        ? 'Desafío · Nivel ${partida.nivel} · ${partida.movimientos} movs'
-        : 'Tablero ${partida.size}x${partida.size} · '
-            '${partida.movimientos} movs · ${partida.segundos}s';
+        ? l10n.continueChallengeDetail(partida.nivel!, partida.movimientos)
+        : l10n.continueFreeDetail(
+            partida.size,
+            partida.movimientos,
+            partida.segundos,
+          );
 
     return Semantics(
       button: true,
-      label: 'Continuar partida. $detalle',
+      label: l10n.continueGameSemantics(detalle),
       child: Material(
         color: AppTheme.seedColor,
         borderRadius: BorderRadius.circular(18),
@@ -477,9 +483,9 @@ class _BotonContinuar extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Continuar Partida',
-                        style: TextStyle(
+                      Text(
+                        l10n.continueGame,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -498,7 +504,7 @@ class _BotonContinuar extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: onDescartar,
-                  tooltip: 'Descartar partida',
+                  tooltip: l10n.discardGameTooltip,
                   icon: Icon(
                     Icons.close_rounded,
                     color: Colors.white.withValues(alpha: 0.9),

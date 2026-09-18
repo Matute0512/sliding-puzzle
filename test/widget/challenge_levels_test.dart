@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/challenge_levels_screen.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/screens/home_screen.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
+
+import '../helpers/localized_app.dart';
 
 void main() {
   setUp(() {
@@ -13,7 +13,7 @@ void main() {
 
   testWidgets('Home ofrece un botón para entrar al Modo Desafío', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+      appLocalizada(home: const HomeScreen()),
     );
     await tester.pump();
 
@@ -23,7 +23,7 @@ void main() {
   testWidgets('ChallengeLevelsScreen muestra el resumen y niveles bloqueados',
       (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const ChallengeLevelsScreen()),
+      appLocalizada(home: const ChallengeLevelsScreen()),
     );
     await tester.pumpAndSettle();
 
@@ -39,10 +39,7 @@ void main() {
   testWidgets('GameScreen en desafío muestra el HUD Objetivo y no el Tiempo',
       (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: const GameScreen(size: 3, nivelDesafio: 1),
-      ),
+      appLocalizada(home: const GameScreen(size: 3, nivelDesafio: 1)),
     );
     await tester.pump();
 

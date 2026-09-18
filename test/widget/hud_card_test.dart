@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/hud_card.dart';
+
+import '../helpers/localized_app.dart';
 
 void main() {
   Widget construir({
@@ -9,8 +10,7 @@ void main() {
     required String label,
     required String valor,
   }) {
-    return MaterialApp(
-      theme: AppTheme.light,
+    return appLocalizada(
       home: Scaffold(
         body: Center(
           child: HudCard(icono: icono, label: label, valor: valor),
