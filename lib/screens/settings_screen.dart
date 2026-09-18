@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/app_settings_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -12,6 +13,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final settings = context.watch<AppSettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -20,7 +22,7 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
-          'Configuración',
+          l10n.settingsTitle,
           style: TextStyle(
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -33,7 +35,7 @@ class SettingsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              _SeccionTitulo(titulo: 'Apariencia', colors: colors),
+              _SeccionTitulo(titulo: l10n.appearance, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
                 colors: colors,
@@ -41,7 +43,7 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tema',
+                      l10n.theme,
                       style: TextStyle(
                         fontSize: 14,
                         color: colors.textSecondary,
@@ -65,33 +67,33 @@ class SettingsScreen extends StatelessWidget {
                           selectedForegroundColor: Colors.white,
                           foregroundColor: colors.textPrimary,
                         ),
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: ThemeMode.light,
-                            icon: Icon(Icons.light_mode),
+                            icon: const Icon(Icons.light_mode),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Claro', maxLines: 1),
+                              child: Text(l10n.themeLight, maxLines: 1),
                             ),
-                            tooltip: 'Claro',
+                            tooltip: l10n.themeLight,
                           ),
                           ButtonSegment(
                             value: ThemeMode.dark,
-                            icon: Icon(Icons.dark_mode),
+                            icon: const Icon(Icons.dark_mode),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Oscuro', maxLines: 1),
+                              child: Text(l10n.themeDark, maxLines: 1),
                             ),
-                            tooltip: 'Oscuro',
+                            tooltip: l10n.themeDark,
                           ),
                           ButtonSegment(
                             value: ThemeMode.system,
-                            icon: Icon(Icons.brightness_auto),
+                            icon: const Icon(Icons.brightness_auto),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Sistema', maxLines: 1),
+                              child: Text(l10n.themeSystem, maxLines: 1),
                             ),
-                            tooltip: 'Sistema',
+                            tooltip: l10n.themeSystem,
                           ),
                         ],
                         selected: {settings.themeMode},
@@ -106,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              _SeccionTitulo(titulo: 'Sonido', colors: colors),
+              _SeccionTitulo(titulo: l10n.sound, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
                 colors: colors,
@@ -114,8 +116,8 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     _FilaSwitch(
                       icono: Icons.touch_app_outlined,
-                      label: 'Efectos de sonido',
-                      descripcion: 'Click al mover fichas y victoria',
+                      label: l10n.soundEffects,
+                      descripcion: l10n.soundEffectsDesc,
                       valor: settings.sonidoActivado,
                       colors: colors,
                       onChanged: (_) {
@@ -125,8 +127,8 @@ class SettingsScreen extends StatelessWidget {
                     Divider(color: colors.emptyTile, height: 24),
                     _FilaSwitch(
                       icono: Icons.music_note_outlined,
-                      label: 'Música de fondo',
-                      descripcion: 'Música durante el menú y el juego',
+                      label: l10n.backgroundMusic,
+                      descripcion: l10n.backgroundMusicDesc,
                       valor: settings.musicaActivada,
                       colors: colors,
                       onChanged: (_) {

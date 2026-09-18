@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/hud_card.dart';
 import 'package:sliding_puzzle/widgets/puzzle_board.dart';
+
+import '../helpers/localized_app.dart';
 
 /// Lee el tablero real desde el árbol de widgets: cada ficha es un
 /// `AnimatedPositioned` con `key: ValueKey(numero)`, y su left/top dan el índice.
@@ -95,7 +96,7 @@ void main() {
   testWidgets('el cronómetro se congela al ganar y no lo revive el ciclo de vida',
       (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const GameScreen(size: 3)),
+      appLocalizada(home: const GameScreen(size: 3)),
     );
     await tester.pump();
 

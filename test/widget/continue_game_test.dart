@@ -4,8 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/screens/home_screen.dart';
 import 'package:sliding_puzzle/services/saved_game_service.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/hud_card.dart';
+
+import '../helpers/localized_app.dart';
 
 /// Tablero 3x3 casi resuelto: sólo falta mover la ficha 8 al hueco (índice 7)
 /// para ganar. Permite comprobar la victoria sin resolver un puzzle entero.
@@ -52,8 +53,7 @@ Future<void> _montarJuegoSobreMenu(
   PartidaGuardada partida,
 ) async {
   await tester.pumpWidget(
-    MaterialApp(
-      theme: AppTheme.light,
+    appLocalizada(
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -110,7 +110,7 @@ void main() {
   group('botón "Continuar Partida" en el menú', () {
     testWidgets('no aparece si no hay partida guardada', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -121,14 +121,14 @@ void main() {
       await SavedGameService.guardar(_partidaLibre);
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Continuar Partida'), findsOneWidget);
       // El detalle muestra modo, movimientos y tiempo de la partida pendiente.
       expect(
-        find.textContaining('Tablero 3x3 · 5 movs · 30s'),
+        find.textContaining('Tablero 3×3 · 5 movs · 30s'),
         findsOneWidget,
       );
     });
@@ -138,7 +138,7 @@ void main() {
       await SavedGameService.guardar(_partidaDesafio);
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -153,7 +153,7 @@ void main() {
       });
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -164,7 +164,7 @@ void main() {
       await SavedGameService.guardar(_partidaLibre);
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
       expect(find.text('Continuar Partida'), findsOneWidget);
@@ -182,7 +182,7 @@ void main() {
       await SavedGameService.guardar(_partidaLibre);
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -200,7 +200,7 @@ void main() {
       await SavedGameService.guardar(_partidaDesafio);
 
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -213,7 +213,7 @@ void main() {
       // hubiera sido un setState, la tarjeta reaparecería al releer prefs.
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -225,9 +225,8 @@ void main() {
     testWidgets('el tablero, los movimientos y el tiempo vuelven del guardado',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const GameScreen(size: 3, partidaInicial: _partidaLibre),
+        appLocalizada(
+          home:const GameScreen(size: 3, partidaInicial: _partidaLibre),
         ),
       );
       await tester.pump();
@@ -251,9 +250,8 @@ void main() {
 
     testWidgets('una partida nueva arranca en cero', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const GameScreen(size: 3),
+        appLocalizada(
+          home:const GameScreen(size: 3),
         ),
       );
       await tester.pump();
@@ -286,9 +284,8 @@ void main() {
 
     testWidgets('pausar guarda la partida', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const GameScreen(size: 3, partidaInicial: _partidaLibre),
+        appLocalizada(
+          home:const GameScreen(size: 3, partidaInicial: _partidaLibre),
         ),
       );
       await tester.pump();
@@ -306,9 +303,8 @@ void main() {
       expect(await SavedGameService.obtener(), isNotNull);
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const GameScreen(size: 3, partidaInicial: _partidaLibre),
+        appLocalizada(
+          home:const GameScreen(size: 3, partidaInicial: _partidaLibre),
         ),
       );
       await tester.pump();
@@ -325,9 +321,8 @@ void main() {
       await SavedGameService.guardar(_partidaLibre);
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const GameScreen(size: 3, partidaInicial: _partidaLibre),
+        appLocalizada(
+          home:const GameScreen(size: 3, partidaInicial: _partidaLibre),
         ),
       );
       await tester.pump();
@@ -340,9 +335,8 @@ void main() {
 
     testWidgets('una partida sin empezar no se guarda al salir', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: Builder(
+        appLocalizada(
+          home:Builder(
             builder: (context) => Scaffold(
               body: Center(
                 child: ElevatedButton(

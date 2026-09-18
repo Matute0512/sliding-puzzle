@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../theme/app_theme.dart';
 
@@ -32,6 +33,7 @@ class PuzzleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final esVacio = numero == 0;
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     final contenido = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -101,8 +103,8 @@ class PuzzleTile extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: esVacio ? 'Hueco vacío' : 'Ficha $numero',
-      hint: 'Toca o desliza hacia el hueco para mover',
+      label: esVacio ? l10n.emptySlot : l10n.tileLabel(numero),
+      hint: l10n.tileHint,
       child: GestureDetector(
         onTap: onTap,
         onHorizontalDragEnd: onSwipe == null
