@@ -9,6 +9,7 @@ import 'l10n/app_localizations.dart';
 import 'l10n/supported_locales.dart';
 import 'providers/app_settings_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/levelplay_ads_service.dart';
 import 'services/sound_service.dart';
 import 'theme/app_theme.dart';
 
@@ -31,6 +32,10 @@ Future<void> _inicializarFirebase() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _inicializarFirebase();
+  // Justo después de Firebase: LevelPlay necesita la red que Firebase ya dejó
+  // lista. No lanza ni bloquea — si falla o faltan los IDs, la app sigue
+  // andando sin anuncios.
+  await LevelPlayAdsService.init();
   await RecordsService.limpiarDatosViejos();
   final settings = AppSettingsProvider();
   await settings.inicializar();

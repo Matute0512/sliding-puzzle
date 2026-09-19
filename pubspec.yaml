@@ -45,6 +45,10 @@ dependencies:
   firebase_core: ^4.14.0
   firebase_auth: ^6.6.1
   cloud_firestore: ^6.9.0
+  # Monetización. Plugin oficial de Unity/ironSource (repo ironsource-mobile).
+  # LevelPlay es el camino soportado: la integración directa del SDK de Unity
+  # Ads se discontinuó el 31/01/2026. Ver lib/services/levelplay_ads_service.dart.
+  unity_levelplay_mediation: ^9.2.0
 
 dev_dependencies:
   flutter_test:
