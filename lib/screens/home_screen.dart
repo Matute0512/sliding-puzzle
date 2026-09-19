@@ -6,6 +6,7 @@ import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
+import '../services/daily_challenge_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
@@ -30,23 +31,41 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Partida en curso pendiente de retomar, o `null` si no hay ninguna.
   PartidaGuardada? _partidaGuardada;
 
+  /// Si el jugador ya completó el Desafío Diario de hoy (según la fecha UTC).
+  /// Arranca en `false` y se corrige apenas se lee el disco.
+  bool _jugoDiarioHoy = false;
+
   @override
   void initState() {
     super.initState();
     SoundService.iniciarMusica();
 
     _lifecycleListener = AppLifecycleListener(
-      onResume: SoundService.reanudarMusica,
+      // Al volver del segundo plano se relee el candado del diario: si la app
+      // quedó abierta toda la noche, el día UTC pudo cambiar mientras tanto y
+      // el botón tiene que reflejarlo sin reiniciar la app.
+      onResume: () {
+        SoundService.reanudarMusica();
+        _cargarEstadoDiario();
+      },
       onHide: SoundService.pausarMusica,
       onPause: SoundService.pausarMusica,
     );
 
     _cargarPartidaGuardada();
+    _cargarEstadoDiario();
 
     // Esperamos la primera frame para no mostrar el modal durante el arranque.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verificarCalificacion();
     });
+  }
+
+  /// Relee si el Desafío Diario de hoy ya fue completado.
+  Future<void> _cargarEstadoDiario() async {
+    final jugo = await DailyChallengeService.yaJugoHoy();
+    if (!mounted) return;
+    setState(() => _jugoDiarioHoy = jugo);
   }
 
   /// Relee la partida guardada. Se llama al arrancar y cada vez que se vuelve
@@ -287,6 +306,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Acción del botón del Desafío Diario.
+  ///
+  /// Por ahora las dos ramas son marcadores de posición. Conectar "jugar" al
+  /// tablero real todavía no se puede: `GameScreen` en modo libre escribe en el
+  /// Top 5 global de Firestore al ganar, así que resolver el diario inyectaría
+  /// un récord 3×3 falso en el ranking. Hace falta primero el flujo de victoria
+  /// propio del diario (que marque el día y no toque el ranking), y eso se
+  /// diseña junto con la pantalla de resultados.
+  void _onTapDiario() {
+    final semilla = DailyChallengeService.semillaHoy;
+    if (_jugoDiarioHoy) {
+      debugPrint('Desafío Diario: ya jugado hoy (semilla $semilla).');
+    } else {
+      final tablero = DailyChallengeService.tableroHoy();
+      debugPrint(
+        'Desafío Diario: pendiente el de hoy (semilla $semilla) — '
+        'tablero $tablero',
+      );
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.dailySoon),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -394,6 +444,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppTheme.seedColor,
                           foregroundColor: Colors.white,
                           onTap: () => _navegarADesafio(context),
+                        ),
+                        const SizedBox(height: 16),
+                        // Violeta para diferenciarlo del seedColor del Modo
+                        // Desafío y de los tres colores de dificultad.
+                        DifficultyButton(
+                          label: _jugoDiarioHoy
+                              ? l10n.dailyChallengePlayed
+                              : l10n.dailyChallenge,
+                          descripcion: _jugoDiarioHoy
+                              ? l10n.dailyChallengePlayedSubtitle
+                              : l10n.dailyChallengeSubtitle,
+                          color: const Color(0xFF8B5CF6),
+                          foregroundColor: Colors.white,
+                          onTap: _onTapDiario,
                         ),
                         const SizedBox(height: 32),
                         TextButton.icon(

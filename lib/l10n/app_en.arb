@@ -29,6 +29,12 @@
   "challengeModeSubtitle": "20 levels · earn 3 stars",
   "viewRecords": "View records",
 
+  "dailyChallenge": "Daily Challenge",
+  "dailyChallengeSubtitle": "One board a day · everyone plays the same",
+  "dailyChallengePlayed": "View Today's Results",
+  "dailyChallengePlayedSubtitle": "You already played today · come back tomorrow",
+  "dailySoon": "Coming soon",
+
   "continueGame": "Continue Game",
   "continueGameSemantics": "Continue game. {detalle}",
   "continueFreeDetail": "Board {size}×{size} · {movs} moves · {segundos}s",

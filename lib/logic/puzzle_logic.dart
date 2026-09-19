@@ -227,16 +227,66 @@ class PuzzleLogic {
   /// eso el `objetivo` del nivel es mayor (ver [configuracionNivel]).
   static List<int> generarTableroDesafio(int nivel) {
     final config = configuracionNivel(nivel);
-    final size = config.size;
-    final profundidad = config.profundidad;
-    final total = size * size;
+    return _scrambleInverso(
+      semilla: nivel,
+      size: config.size,
+      profundidad: config.profundidad,
+    );
+  }
 
-    // Semilla estable por nivel. Si el scramble terminara resuelto (caminata
-    // cerrada, muy poco probable) se reintenta con la siguiente semilla; como
-    // la semilla es fija, el resultado sigue siendo determinista.
-    var semilla = nivel;
+  /// --- Desafío Diario ---
+
+  /// Lado del tablero del Desafío Diario.
+  ///
+  /// 3x3 a propósito: el diario es un ritual corto, no una sesión larga. Además
+  /// el tamaño tiene que ser **fijo**, porque es parte de lo que se comparte:
+  /// si variara, dos jugadores del mismo día no jugarían el mismo tablero.
+  static const int diarioSize = 3;
+
+  /// Movimientos de desarme del Desafío Diario.
+  ///
+  /// Es el parámetro de dificultad: el óptimo del tablero generado queda
+  /// pegado a este número (ver la nota del scramble inverso). Vale 20, bastante
+  /// más que los 12 del nivel 10 del Modo Desafío —el diario tiene que
+  /// sentirse un evento, no un nivel más—. Si resulta largo, este es el único
+  /// número a tocar.
+  static const int diarioProfundidad = 20;
+
+  /// Genera el tablero del Desafío Diario a partir de [semilla] (YYYYMMDD).
+  ///
+  /// Determinista por construcción: todos los dispositivos que jueguen ese día
+  /// reciben exactamente el mismo tablero, sin necesidad de guardarlo en ningún
+  /// lado. Misma [semilla] -> mismo tablero, siempre.
+  ///
+  /// Usa el mismo scramble inverso que el Modo Desafío, así que el tablero
+  /// tiene solución garantizada y la dificultad es consistente entre días (un
+  /// shuffle aleatorio, en cambio, dejaría días triviales y días imposibles).
+  static List<int> generarTableroDiario(int semilla) => _scrambleInverso(
+        semilla: semilla,
+        size: diarioSize,
+        profundidad: diarioProfundidad,
+      );
+
+  /// Desarma el tablero resuelto aplicando [profundidad] movimientos aleatorios
+  /// del hueco, con semilla determinista y anti-rebote.
+  ///
+  /// Compartido por el Modo Desafío y el Desafío Diario: los dos necesitan
+  /// exactamente la misma garantía (mismo número -> mismo tablero, siempre
+  /// resoluble, nunca ya resuelto).
+  ///
+  /// Si la caminata cerrara sobre sí misma y dejara el tablero resuelto —muy
+  /// poco probable—, se reintenta con la semilla siguiente. Como el punto de
+  /// partida es determinista, el resultado sigue siéndolo.
+  static List<int> _scrambleInverso({
+    required int semilla,
+    required int size,
+    required int profundidad,
+  }) {
+    final total = size * size;
+    var intento = semilla;
+
     while (true) {
-      final random = Random(semilla);
+      final random = Random(intento);
       List<int> tablero = List.generate(total, (i) => (i + 1) % total);
       var posHueco = total - 1;
       Direccion? ultimoMovimiento;
@@ -252,7 +302,7 @@ class PuzzleLogic {
       }
 
       if (!estaResuelto(tablero)) return tablero;
-      semilla++;
+      intento++;
     }
   }
 

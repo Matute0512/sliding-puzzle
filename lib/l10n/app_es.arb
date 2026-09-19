@@ -47,6 +47,12 @@
   "challengeModeSubtitle": "20 niveles · ganá 3 estrellas",
   "viewRecords": "Ver récords",
 
+  "dailyChallenge": "Desafío Diario",
+  "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",
+  "dailyChallengePlayed": "Ver Resultados del Día",
+  "dailyChallengePlayedSubtitle": "Ya jugaste el de hoy · volvé mañana",
+  "dailySoon": "Próximamente",
+
   "continueGame": "Continuar Partida",
   "continueGameSemantics": "Continuar partida. {detalle}",
   "@continueGameSemantics": {
