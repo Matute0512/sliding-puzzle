@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/daily_challenge_service.dart';
 import '../services/firebase_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/alias_dialog.dart';
+import '../widgets/daily_victory_dialog.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_board.dart';
 
@@ -24,12 +26,40 @@ class GameScreen extends StatefulWidget {
   /// Partida guardada que se debe retomar. Si es `null`, arranca una nueva.
   final PartidaGuardada? partidaInicial;
 
+  /// `true` si la partida es el Desafío Diario.
+  ///
+  /// El diario está **aislado** del resto del juego en tres cosas:
+  ///
+  /// * El tablero no se sortea: sale de la fecha UTC, igual para todos
+  ///   (`DailyChallengeService`).
+  /// * No toca el Top 5 global de Firestore, ni para leer ni para escribir.
+  ///   El diario tiene su propio candado y su propio ranking (todavía sin
+  ///   construir); mezclarlos ensuciaría la tabla de las partidas clásicas.
+  /// * No se guarda como partida en curso. No hace falta: como el tablero
+  ///   deriva de la fecha, volver a entrar al diario devuelve exactamente el
+  ///   mismo, así que no hay progreso que rescatar de disco. Y guardarlo sería
+  ///   peligroso: "Continuar Partida" lo retomaría como partida libre y
+  ///   escribiría en el ranking global al ganar.
+  final bool esDiario;
+
   const GameScreen({
     super.key,
     required this.size,
     this.nivelDesafio,
     this.partidaInicial,
-  });
+    this.esDiario = false,
+  }) : assert(
+         !esDiario || size == PuzzleLogic.diarioSize,
+         'El Desafío Diario siempre es de 3x3 (PuzzleLogic.diarioSize)',
+       ),
+       assert(
+         !esDiario || nivelDesafio == null,
+         'El Desafío Diario no es un nivel del Modo Desafío',
+       ),
+       assert(
+         !esDiario || partidaInicial == null,
+         'El Desafío Diario no se retoma desde disco: el tablero sale de la fecha',
+       );
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -78,9 +108,11 @@ class _GameScreenState extends State<GameScreen> {
   /// `true` cuando esta partida pertenece al Modo Desafío.
   bool get _esDesafio => widget.nivelDesafio != null;
 
-  /// Tablero inicial según el modo: scramble clásico aleatorio o scramble
-  /// determinista del nivel de desafío (misma semilla por nivel).
+  /// Tablero inicial según el modo: scramble clásico aleatorio, scramble
+  /// determinista del nivel de desafío, o el del día (misma semilla para todo
+  /// el mundo).
   List<int> _nuevoTablero() {
+    if (widget.esDiario) return DailyChallengeService.tableroHoy();
     final nivel = widget.nivelDesafio;
     return nivel != null
         ? PuzzleLogic.generarTableroDesafio(nivel)
@@ -149,6 +181,11 @@ class _GameScreenState extends State<GameScreen> {
   /// Solo se guarda una partida ya empezada y sin terminar: un tablero intacto
   /// no es "una partida en curso" y no debe ofrecer "Continuar Partida".
   Future<void> _guardarPartida() async {
+    // El Desafío Diario no se guarda: el tablero sale de la fecha, así que
+    // volver a entrar devuelve el mismo y no hay nada que rescatar. Guardarlo
+    // además sería una fuga — "Continuar Partida" lo retomaría como partida
+    // libre, sin `esDiario`, y al ganar escribiría en el Top 5 global.
+    if (widget.esDiario) return;
     if (!_juegoIniciado || _juegoTerminado) return;
     await SavedGameService.guardar(
       PartidaGuardada(
@@ -270,6 +307,12 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _mostrarVictoria() async {
+    // El diario va primero: no comparte nada con los otros dos modos.
+    if (widget.esDiario) {
+      await _mostrarVictoriaDiario();
+      return;
+    }
+
     if (_esDesafio) {
       await _mostrarVictoriaDesafio();
       return;
@@ -393,6 +436,41 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     );
+  }
+
+  /// Cierra el Desafío Diario: consume el intento del día y muestra el
+  /// resultado.
+  ///
+  /// **No toca Firestore.** El ranking del día todavía no existe; cuando se
+  /// construya, su escritura va acá, y no en `_registrarPuntajeLibre` —que es
+  /// la del Top 5 global de las partidas clásicas— para que las dos tablas no
+  /// se mezclen nunca.
+  Future<void> _mostrarVictoriaDiario() async {
+    // Se congelan los valores antes de cualquier `await`, por el mismo motivo
+    // que en `_registrarPuntajeLibre`: no releerlos después de ceder el turno.
+    final movimientos = _movimientos;
+    final segundos = _segundos.value;
+
+    // El candado se cierra ANTES de mostrar el diálogo: si el sistema mata la
+    // app con el modal abierto, el intento del día ya quedó consumado. Al
+    // revés, cerrar la app a tiempo dejaría el desafío repetible.
+    await DailyChallengeService.marcarJugadoHoy();
+    if (!mounted) return;
+
+    _celebrar();
+
+    await DailyVictoryDialog.mostrar(
+      context,
+      movimientos: movimientos,
+      segundos: segundos,
+      confetti: _confettiController,
+    );
+
+    if (!mounted) return;
+    // El desafío es de un solo intento, así que no hay "Jugar de nuevo": al
+    // cerrar el diálogo se vuelve al menú, que ahora muestra el botón en su
+    // estado de "ya jugaste".
+    await _volverAlMenu();
   }
 
   /// Resuelve el puesto en el Top 5 Global por detrás del modal de victoria y,
@@ -824,6 +902,11 @@ class _GameScreenState extends State<GameScreen> {
                           tablero: _tablero,
                           size: widget.size,
                           onTileTap: _onTapFicha,
+                          // Solo el diario se arma como imagen; los otros dos
+                          // modos siguen con fichas numéricas.
+                          imagen: widget.esDiario
+                              ? DailyChallengeService.imagenDiaria
+                              : null,
                         ),
                       ),
                     ],

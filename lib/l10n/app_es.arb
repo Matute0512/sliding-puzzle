@@ -52,6 +52,8 @@
   "dailyChallengePlayed": "Ver Resultados del Día",
   "dailyChallengePlayedSubtitle": "Ya jugaste el de hoy · volvé mañana",
   "dailySoon": "Próximamente",
+  "dailyVictoryTitle": "¡Desafío de hoy completado!",
+  "dailyVictoryBody": "Volvé mañana para el siguiente. El ranking del día llega pronto.",
 
   "continueGame": "Continuar Partida",
   "continueGameSemantics": "Continuar partida. {detalle}",
