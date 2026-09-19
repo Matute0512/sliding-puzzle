@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/puzzle_logic.dart';
@@ -62,6 +63,15 @@ class DailyChallengeService {
 
   /// Tablero del Desafío Diario de hoy.
   static List<int> tableroHoy() => tableroDe(DateTime.now());
+
+  /// Imagen que se arma en el tablero del día.
+  ///
+  /// Una sola por ahora. Cuando haya varias, lo natural es elegirla con la
+  /// misma semilla que el tablero: misma fecha -> misma foto, así el desafío
+  /// sigue siendo idéntico en todos los dispositivos sin sincronizar nada.
+  static const AssetImage imagenDiaria = AssetImage(
+    'assets/images/pexels-toni-clavel-62572784-38947608.jpg',
+  );
 
   /// `true` si el jugador ya completó el desafío del día de [ahora].
   static Future<bool> yaJugoHoy({DateTime? ahora}) async {

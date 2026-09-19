@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../logic/puzzle_logic.dart';
 import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
@@ -308,33 +309,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Acción del botón del Desafío Diario.
   ///
-  /// Por ahora las dos ramas son marcadores de posición. Conectar "jugar" al
-  /// tablero real todavía no se puede: `GameScreen` en modo libre escribe en el
-  /// Top 5 global de Firestore al ganar, así que resolver el diario inyectaría
-  /// un récord 3×3 falso en el ranking. Hace falta primero el flujo de victoria
-  /// propio del diario (que marque el día y no toque el ranking), y eso se
-  /// diseña junto con la pantalla de resultados.
-  void _onTapDiario() {
-    final semilla = DailyChallengeService.semillaHoy;
+  /// Si el jugador todavía no jugó hoy, entra al tablero del día. El modo
+  /// diario de `GameScreen` está aislado del Top 5 global de Firestore, así que
+  /// resolverlo no ensucia el ranking de las partidas clásicas.
+  Future<void> _onTapDiario() async {
     if (_jugoDiarioHoy) {
-      debugPrint('Desafío Diario: ya jugado hoy (semilla $semilla).');
-    } else {
-      final tablero = DailyChallengeService.tableroHoy();
+      // La pantalla de resultados del día todavía no existe.
       debugPrint(
-        'Desafío Diario: pendiente el de hoy (semilla $semilla) — '
-        'tablero $tablero',
+        'Desafío Diario: ya jugado hoy '
+        '(semilla ${DailyChallengeService.semillaHoy}).',
       );
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(l10n.dailySoon),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
     }
 
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.dailySoon),
-          behavior: SnackBarBehavior.floating,
+    // Pausamos la música del menú antes de entrar, igual que en los otros
+    // modos; GameScreen la reanuda al arrancar su propia partida.
+    await SoundService.pausarMusica();
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const GameScreen(
+          size: PuzzleLogic.diarioSize,
+          esDiario: true,
         ),
-      );
+      ),
+    );
+
+    // Al volver se reanuda la música y se relee el candado: si el jugador
+    // completó el desafío, el botón tiene que decir ya mismo "Ver Resultados
+    // del Día" y no esperar a que se reinicie la app.
+    SoundService.reanudarMusica();
+    await _cargarEstadoDiario();
   }
 
   @override

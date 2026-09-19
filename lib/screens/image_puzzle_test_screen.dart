@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../logic/puzzle_logic.dart';
+import '../services/daily_challenge_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/puzzle_board.dart';
 
@@ -29,10 +30,6 @@ class ImagePuzzleTestScreen extends StatefulWidget {
 }
 
 class _ImagePuzzleTestScreenState extends State<ImagePuzzleTestScreen> {
-  /// Imagen de prueba. Para probar otra, cambiar solo esta línea.
-  static const _assetPrueba =
-      'assets/images/pexels-toni-clavel-62572784-38947608.jpg';
-
   late List<int> _tablero;
   int _movimientos = 0;
 
@@ -103,7 +100,7 @@ class _ImagePuzzleTestScreenState extends State<ImagePuzzleTestScreen> {
                     tablero: _tablero,
                     size: widget.size,
                     onTileTap: _onTapFicha,
-                    imagen: const AssetImage(_assetPrueba),
+                    imagen: DailyChallengeService.imagenDiaria,
                   ),
                 ),
                 const SizedBox(height: 24),
