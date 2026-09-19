@@ -13,11 +13,17 @@ class PuzzleBoard extends StatelessWidget {
   final int size;
   final void Function(int indice) onTileTap;
 
+  /// Si no es `null`, las fichas muestran porciones de esta imagen en vez de
+  /// números. No afecta en nada la mecánica: el deslizamiento, los huecos y las
+  /// pistas de "movible" dependen del [tablero], no de cómo se dibuje la ficha.
+  final ImageProvider? imagen;
+
   const PuzzleBoard({
     super.key,
     required this.tablero,
     required this.size,
     required this.onTileTap,
+    this.imagen,
   });
 
   /// Mueve la ficha [indice] únicamente si el deslizamiento va en dirección
@@ -75,6 +81,7 @@ class PuzzleBoard extends StatelessWidget {
                   child: PuzzleTile(
                     numero: tablero[i],
                     size: n,
+                    imagen: imagen,
                     activa: movibles.contains(i),
                     onTap: () => onTileTap(i),
                     onSwipe: (direccion) => _deslizarFicha(i, direccion),
