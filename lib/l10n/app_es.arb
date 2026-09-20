@@ -1,0 +1,206 @@
+{
+  "@@locale": "es",
+
+  "notNow": "Ahora no",
+  "understood": "Entendido",
+  "retry": "Reintentar",
+  "time": "Tiempo",
+  "moves": "Movimientos",
+  "goal": "Objetivo",
+  "secondsShort": "{segundos}s",
+  "@secondsShort": {
+    "description": "Duración abreviada, ej. '45s'. El sufijo de unidad puede cambiar entre idiomas.",
+    "placeholders": {
+      "segundos": { "type": "int" }
+    }
+  },
+  "goalMoves": "{objetivo} movs",
+  "@goalMoves": {
+    "description": "Objetivo de movimientos de un nivel del Desafío.",
+    "placeholders": {
+      "objetivo": { "type": "int" }
+    }
+  },
+
+  "settingsTitle": "Configuración",
+  "privacyTitle": "Privacidad y Datos",
+  "privacyTooltip": "Privacidad y datos",
+  "privacyBody": "Para el Top 5 Global, el juego guarda únicamente tu Alias y tu mejor puntuación de forma anónima.\n\nNo solicitamos correos, contraseñas ni datos de tu dispositivo. Podés participar con total tranquilidad.",
+
+  "rateTitle": "¿Te gusta Sliding Puzzle?",
+  "rateBody": "Tu opinión nos ayuda a seguir mejorando el juego. ¿Nos dejarías una calificación en Google Play?",
+  "rateButton": "Calificar en Play Store",
+  "playStoreError": "No se pudo abrir Google Play",
+
+  "chooseDifficulty": "Elegí una dificultad",
+  "difficultyEasy": "Fácil",
+  "difficultyMedium": "Medio",
+  "difficultyHard": "Difícil",
+  "boardSize": "Tablero {size}×{size}",
+  "@boardSize": {
+    "description": "Descripción de la dificultad clásica, ej. 'Tablero 4×4'.",
+    "placeholders": {
+      "size": { "type": "int" }
+    }
+  },
+  "challengeMode": "Modo Desafío",
+  "challengeModeSubtitle": "20 niveles · ganá 3 estrellas",
+  "viewRecords": "Ver récords",
+
+  "dailyChallenge": "Desafío Diario",
+  "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",
+  "dailyChallengePlayed": "Ver Resultados del Día",
+  "dailyChallengePlayedSubtitle": "Ya jugaste el de hoy · volvé mañana",
+  "dailyVictoryTitle": "¡Desafío de hoy completado!",
+  "dailyVictoryBody": "Volvé mañana para el siguiente. El ranking del día llega pronto.",
+
+  "dailyResultsTitle": "Resultados del Día",
+  "dailyResultsDay": "Desafío #{semilla}",
+  "@dailyResultsDay": {
+    "description": "Subtítulo con la fecha UTC del desafío. La semilla es YYYYMMDD; va como texto para que no se le agregue separador de miles.",
+    "placeholders": {
+      "semilla": { "type": "String" }
+    }
+  },
+  "dailyResultsEmpty": "Todavía no jugó nadie hoy. ¡Podés ser el primero!",
+  "dailyResultsError": "No se pudieron cargar los resultados.",
+  "dailyResultsRetry": "Reintentar",
+  "dailyResultsYou": "Tu resultado",
+  "dailyShare": "Compartir",
+  "dailyShareCopied": "Resultado copiado al portapapeles",
+  "dailyShareText": "🧩 Sliding Puzzle Diario #{semilla}\n⏱️ {tiempo} | 🔄 {movimientos}\n¡Jugá en {link}!",
+  "@dailyShareText": {
+    "description": "Texto que se copia al portapapeles para compartir el resultado del día.",
+    "placeholders": {
+      "semilla": { "type": "String" },
+      "tiempo": { "type": "String" },
+      "movimientos": { "type": "int" },
+      "link": { "type": "String" }
+    }
+  },
+
+  "continueGame": "Continuar Partida",
+  "continueGameSemantics": "Continuar partida. {detalle}",
+  "@continueGameSemantics": {
+    "description": "Etiqueta de accesibilidad del botón Continuar Partida.",
+    "placeholders": {
+      "detalle": { "type": "String" }
+    }
+  },
+  "continueFreeDetail": "Tablero {size}×{size} · {movs} movs · {segundos}s",
+  "@continueFreeDetail": {
+    "description": "Detalle de una partida clásica guardada.",
+    "placeholders": {
+      "size": { "type": "int" },
+      "movs": { "type": "int" },
+      "segundos": { "type": "int" }
+    }
+  },
+  "continueChallengeDetail": "Desafío · Nivel {nivel} · {movs} movs",
+  "@continueChallengeDetail": {
+    "description": "Detalle de una partida del Desafío guardada (no tiene cronómetro).",
+    "placeholders": {
+      "nivel": { "type": "int" },
+      "movs": { "type": "int" }
+    }
+  },
+  "discardGameTooltip": "Descartar partida",
+
+  "aliasDialogTitle": "🏆 ¡Entraste al Top 5!",
+  "aliasDialogBody": "Elegí un alias (hasta 5 letras) para publicar tu puntaje en el ranking global.",
+  "aliasHint": "MATE",
+  "publish": "Publicar",
+
+  "top5Title": "Top 5 Global",
+  "top5Error": "No se pudo cargar el Top 5 Global.\nRevisá tu conexión e intentá de nuevo.",
+  "top5Empty": "Todavía no hay puntajes globales — ¡jugá para entrar al Top 5!",
+  "aliasColumn": "Alias",
+  "movesColumn": "Movs",
+  "timeColumn": "Tiempo",
+
+  "appearance": "Apariencia",
+  "theme": "Tema",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "themeSystem": "Sistema",
+  "sound": "Sonido",
+  "soundEffects": "Efectos de sonido",
+  "soundEffectsDesc": "Click al mover fichas y victoria",
+  "backgroundMusic": "Música de fondo",
+  "backgroundMusicDesc": "Música durante el menú y el juego",
+
+  "levelLocked": "Completá el nivel anterior para desbloquear",
+  "levelReached": "Nivel alcanzado",
+  "levelProgress": "{nivel} / 20",
+  "@levelProgress": {
+    "description": "Progreso sobre el total de niveles del Desafío.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+  "stars": "Estrellas",
+  "starsProgress": "{total} / 60",
+  "@starsProgress": {
+    "description": "Estrellas ganadas sobre el total posible (20 niveles x 3).",
+    "placeholders": {
+      "total": { "type": "int" }
+    }
+  },
+  "locked": "Bloqueado",
+  "levelLockedSemantics": "Nivel {nivel} bloqueado",
+  "@levelLockedSemantics": {
+    "description": "Etiqueta de accesibilidad de un nivel bloqueado.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+  "levelStarsSemantics": "Nivel {nivel}, {estrellas} de 3 estrellas",
+  "@levelStarsSemantics": {
+    "description": "Etiqueta de accesibilidad de un nivel desbloqueado.",
+    "placeholders": {
+      "nivel": { "type": "int" },
+      "estrellas": { "type": "int" }
+    }
+  },
+
+  "victoryWon": "🎉 ¡Ganaste!",
+  "victoryTop5": "🏆 ¡Top 5 global!",
+  "top5Entered": "¡Entraste al Top 5 global! Puesto #{puesto}",
+  "@top5Entered": {
+    "description": "Aviso dentro del modal de victoria cuando el puntaje clasifica.",
+    "placeholders": {
+      "puesto": { "type": "int" }
+    }
+  },
+  "playAgain": "Jugar de nuevo",
+  "backToMenu": "Volver al Menú",
+  "levelPassed": "⭐ ¡Nivel {nivel} superado!",
+  "@levelPassed": {
+    "description": "Título del modal de victoria del Modo Desafío.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+  "nextLevel": "Siguiente Nivel",
+  "backToLevels": "Volver a niveles",
+
+  "howToPlayTitle": "🧩 ¿Cómo jugar?",
+  "howToPlay1": "Tocá o deslizá una ficha adyacente al espacio vacío para moverla.",
+  "howToPlay2": "Las fichas con borde blanco son las que podés mover.",
+  "howToPlay3": "El objetivo es ordenar los números en orden ascendente.",
+  "howToPlay4": "El espacio vacío debe quedar en la esquina inferior derecha.",
+  "howToPlay5": "¡Intentá resolverlo en el menor tiempo y movimientos posibles!",
+  "gotIt": "¡Entendido!",
+  "pause": "Pausar",
+  "resume": "Reanudar",
+
+  "emptySlot": "Hueco vacío",
+  "tileLabel": "Ficha {numero}",
+  "@tileLabel": {
+    "description": "Etiqueta de accesibilidad de una ficha numerada.",
+    "placeholders": {
+      "numero": { "type": "int" }
+    }
+  },
+  "tileHint": "Toca o desliza hacia el hueco para mover"
+}

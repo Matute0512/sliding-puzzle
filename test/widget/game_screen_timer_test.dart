@@ -2,63 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/hud_card.dart';
-import 'package:sliding_puzzle/widgets/puzzle_board.dart';
 
-/// Lee el tablero real desde el árbol de widgets: cada ficha es un
-/// `AnimatedPositioned` con `key: ValueKey(numero)`, y su left/top dan el índice.
-List<int> _leerTablero(WidgetTester tester, int n) {
-  final ancho = tester.getSize(find.byType(PuzzleBoard)).width;
-  final paso = (ancho - (n - 1) * 4) / n + 4;
-  final tablero = List<int>.filled(n * n, 0);
-
-  final fichas = tester.widgetList<AnimatedPositioned>(
-    find.byType(AnimatedPositioned),
-  );
-  for (final ficha in fichas) {
-    final clave = ficha.key;
-    if (clave is! ValueKey<int>) continue;
-    final fila = ((ficha.top ?? 0) / paso).round();
-    final columna = ((ficha.left ?? 0) / paso).round();
-    tablero[fila * n + columna] = clave.value;
-  }
-  return tablero;
-}
-
-/// Números de ficha a tocar, en orden, para resolver el tablero (BFS).
-List<int> _resolver(List<int> inicio, int n) {
-  final meta = <int>[...List.generate(n * n - 1, (i) => i + 1), 0].join(',');
-  final cola = <List<int>>[List<int>.from(inicio)];
-  final caminos = <String, List<int>>{inicio.join(','): const []};
-  final visitados = <String>{inicio.join(',')};
-  var cabeza = 0;
-
-  while (cabeza < cola.length) {
-    final b = cola[cabeza++];
-    final clave = b.join(',');
-    final camino = caminos[clave]!;
-    if (clave == meta) return camino;
-
-    final hueco = b.indexOf(0);
-    for (final delta in [-n, n, -1, 1]) {
-      final destino = hueco + delta;
-      if (destino < 0 || destino >= n * n) continue;
-      if (delta.abs() == 1 && (hueco ~/ n) != (destino ~/ n)) continue;
-
-      final siguiente = List<int>.from(b);
-      siguiente[hueco] = siguiente[destino];
-      siguiente[destino] = 0;
-
-      final claveSiguiente = siguiente.join(',');
-      if (visitados.add(claveSiguiente)) {
-        caminos[claveSiguiente] = [...camino, b[destino]];
-        cola.add(siguiente);
-      }
-    }
-  }
-  return const [];
-}
+import '../helpers/localized_app.dart';
+import '../helpers/puzzle_solver.dart';
 
 /// Segundos que muestra el HUD del tiempo (el modal muestra una foto fija, así
 /// que solo el HUD sirve para observar si el reloj sigue vivo).
@@ -95,11 +42,11 @@ void main() {
   testWidgets('el cronómetro se congela al ganar y no lo revive el ciclo de vida',
       (tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const GameScreen(size: 3)),
+      appLocalizada(home: const GameScreen(size: 3)),
     );
     await tester.pump();
 
-    final jugadas = _resolver(_leerTablero(tester, 3), 3);
+    final jugadas = resolverTablero(leerTablero(tester, 3), 3);
     expect(jugadas, isNotEmpty, reason: 'no se pudo resolver el tablero inicial');
 
     // Primera jugada: arranca el reloj.

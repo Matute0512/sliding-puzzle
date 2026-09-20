@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sliding_puzzle/providers/app_settings_provider.dart';
 import 'package:sliding_puzzle/screens/settings_screen.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
+
+import '../helpers/localized_app.dart';
 
 void main() {
   testWidgets(
@@ -20,10 +21,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => AppSettingsProvider(),
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const SettingsScreen(),
-          ),
+          child: appLocalizada(home: const SettingsScreen()),
         ),
       );
       await tester.pump();

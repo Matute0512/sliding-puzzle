@@ -30,6 +30,53 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 - 🎨 **UI moderna y táctil** — paleta de colores personalizada, fuente Poppins y efecto 3D en las fichas
 - ❓ **Dialog de ayuda** — instrucciones del juego con ejemplo del tablero resuelto según la dificultad
 - 📱 **Layout responsive** — funciona en móvil, web y escritorio
+- 🗓️ **Desafío Diario** — un tablero por día igual para todos (semilla UTC), un solo intento y ranking diario en vivo
+
+---
+
+## 🗓️ Desafío Diario
+
+Un tablero por día, igual para todo el mundo, con **un solo intento**. Es el modo con fotos: en vez de números, las fichas son porciones de una imagen que hay que reconstruir.
+
+### Semilla determinista UTC
+
+El tablero no se guarda ni se sincroniza: se **deriva de la fecha**. La semilla es `YYYYMMDD` en **UTC** y de ahí sale un tablero reproducible, así que dos dispositivos cualesquiera obtienen exactamente el mismo sin hablar entre ellos.
+
+```dart
+static int semillaDe(DateTime fecha)              // YYYYMMDD en UTC
+static List<int> tableroDe(DateTime ahora)        // PuzzleLogic.generarTableroDiario(semillaDe(ahora))
+```
+
+La semilla se captura **una sola vez, al entrar a la pantalla** (`initState`), nunca al ganar. Si alguien arranca a las 23:59 UTC y termina pasada la medianoche, el tablero que jugó es el del día en que *empezó*: recalcularla al ganar mandaría el resultado al ranking del día siguiente y le marcaría como jugado un desafío que nunca vio. Por eso `marcarJugado(semilla)` recibe la semilla en vez de leer el reloj.
+
+### Imágenes en Firebase Storage
+
+Empaquetar cientos de fotos habría hecho explotar el tamaño de la app, así que la foto del día se descarga de **Cloud Storage** siguiendo una convención de nombres:
+
+```text
+daily/YYYYMMDD.jpg        →        daily/20260920.jpg
+```
+
+Subir la foto del día es solo dejar el archivo con el nombre correcto: no hay índice que mantener ni configuración que tocar. La URL se resuelve con `getDownloadURL()` del SDK (no armándola a mano), para que funcione con las reglas de seguridad tal como están, mandando el token de la sesión. Las imágenes quedan cacheadas en disco (`cached_network_image`), así que reabrir el desafío el mismo día no vuelve a descargar.
+
+### Intento único diario
+
+Completar el desafío marca el día en `SharedPreferences`. Al volver a la pantalla principal, el botón pasa a decir **"Ver Resultados del Día"** y abre el ranking en vez de dejar rejugar. El candado se renueva solo: guarda la fecha, no un booleano, así que mañana la comparación da distinto sin que nadie tenga que limpiar nada.
+
+El ranking diario vive en Firestore, en una ruta aparte del Top 5 clásico: **ordena por tiempo** (no por movimientos, al revés que el clásico) y **escribe siempre**, no solo si el puntaje se clasifica. El resultado propio queda en el dispositivo, suficiente para el botón de compartir.
+
+### Fallback local
+
+El tablero **nunca se ve vacío ni queda injugable**. El respaldo está en dos capas porque son dos fallos distintos:
+
+| Fallo | Quién lo cubre |
+|---|---|
+| La URL no se resuelve —sin red, foto todavía no subida, Storage rechaza— | `DailyChallengeService.imagenDe` devuelve `imagenRespaldo` |
+| La URL resuelve pero la descarga falla | El `errorBuilder` de `ImageTile` cae a `imagenRespaldo` |
+
+Cubrir una sola capa dejaría un agujero: si el archivo existe pero la descarga se corta a mitad, la primera no se entera. Además `GameScreen` arranca con la foto de respaldo ya puesta y la reemplaza cuando llega la del día, así que el tablero es jugable desde el primer frame y, si la foto nunca llega, ya estaba la otra.
+
+El camino de error **no puede entrar en un bucle de reintentos**: `ImageTile` es `StatelessWidget` —no hay `setState` propio que dispare un rebuild—, el `errorBuilder` devuelve un `AssetImage` empaquetado y nunca vuelve a envolver la imagen de red (no se recursa), y la resolución de la URL corre una sola vez desde `initState`, no en cada `build`.
 
 ---
 
@@ -46,7 +93,9 @@ Sliding Puzzle es un juego de lógica clásico donde el jugador debe ordenar las
 | flutter_soloud | 4.0.9 | Efectos de sonido y música de fondo (motor SoLoud) |
 | url_launcher | 6.3.1 | Abre la ficha de la app en Google Play (aviso de calificación) |
 | **Firebase Authentication (Anonymous)** | firebase_auth 6.6.1 | Sesión anónima para el Top 5 Global |
-| **Cloud Firestore** | cloud_firestore 6.9.0 | Base de datos del Top 5 Global |
+| **Cloud Firestore** | cloud_firestore 6.9.0 | Base de datos del Top 5 Global y del ranking diario |
+| **Firebase Storage** | firebase_storage 13.6.0 | Foto del Desafío Diario (`daily/YYYYMMDD.jpg`) |
+| cached_network_image | 3.4.1 | Descarga y caché en disco de la foto del día |
 | Poppins | — | Tipografía empaquetada como asset (sin descarga en runtime) |
 
 ---

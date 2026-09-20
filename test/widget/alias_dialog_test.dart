@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/alias_dialog.dart';
+
+import '../helpers/localized_app.dart';
 
 /// App mínima con un botón que abre el diálogo y entrega el resultado a
 /// [alCerrar]. Devuelve también la clave del navigator, para poder desmontar
@@ -12,8 +13,7 @@ import 'package:sliding_puzzle/widgets/alias_dialog.dart';
   final navegador = GlobalKey<NavigatorState>();
   return (
     navegador: navegador,
-    app: MaterialApp(
-      theme: AppTheme.light,
+    app: appLocalizada(
       navigatorKey: navegador,
       home: Builder(
         builder: (context) => Scaffold(

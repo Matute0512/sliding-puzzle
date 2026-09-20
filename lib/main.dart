@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:sliding_puzzle/services/records_service.dart';
 
 import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/supported_locales.dart';
 import 'providers/app_settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/sound_service.dart';
@@ -50,8 +52,15 @@ class SlidingPuzzleApp extends StatelessWidget {
     final themeMode = context.watch<AppSettingsProvider>().themeMode;
 
     return MaterialApp(
+      // El título es el nombre comercial de la app, no texto traducible.
       title: 'Sliding Puzzle',
       debugShowCheckedModeBanner: false,
+      // Sin `locale` explícito: la app sigue el idioma del sistema.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      // `localesSoportados` fija el orden del respaldo (español primero). Ver el
+      // comentario en lib/l10n/supported_locales.dart: el orden generado por
+      // gen-l10n dejaría el inglés como respaldo.
+      supportedLocales: localesSoportados,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

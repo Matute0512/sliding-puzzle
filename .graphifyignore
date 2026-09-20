@@ -25,3 +25,8 @@
 # Web: favicon e íconos PWA.
 /web/favicon.png
 /web/icons/
+
+# Configuración local del agente. Está en el gitignore GLOBAL
+# (~/.config/git/ignore), y graphify no lee ese archivo: sin esta línea
+# `settings.local.json` aparece como código pendiente en cada update.
+/.claude/

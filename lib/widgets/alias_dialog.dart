@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 /// Diálogo para elegir el alias del Top 5 Global (máx. 5 letras mayúsculas).
@@ -50,12 +51,13 @@ class _AliasDialogState extends State<AliasDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        '🏆 ¡Entraste al Top 5!',
-        style: TextStyle(fontWeight: FontWeight.bold),
+      title: Text(
+        l10n.aliasDialogTitle,
+        style: const TextStyle(fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       ),
       // Scrolleable: con el teclado abierto los insets recortan el alto
@@ -65,8 +67,7 @@ class _AliasDialogState extends State<AliasDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Elegí un alias (hasta 5 letras) para publicar tu puntaje '
-              'en el ranking global.',
+              l10n.aliasDialogBody,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: colors.textSecondary),
             ),
@@ -83,7 +84,7 @@ class _AliasDialogState extends State<AliasDialog> {
                 fontWeight: FontWeight.bold,
               ),
               decoration: InputDecoration(
-                hintText: 'MATE',
+                hintText: l10n.aliasHint,
                 counterText: '',
                 filled: true,
                 fillColor: colors.cardBackground,
@@ -113,9 +114,9 @@ class _AliasDialogState extends State<AliasDialog> {
                   ),
                 ),
                 onPressed: _publicar,
-                child: const Text(
-                  'Publicar',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  l10n.publish,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -123,7 +124,7 @@ class _AliasDialogState extends State<AliasDialog> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Ahora no',
+                l10n.notNow,
                 style: TextStyle(color: colors.textSecondary),
               ),
             ),
