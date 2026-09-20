@@ -1,7 +1,7 @@
 name: CI
 
 # Pipeline pre-publicación:
-#   1. quality        -> flutter analyze + flutter test + Android lint (siempre)
+#   1. quality        -> flutter analyze + flutter test + Android lint del módulo :app (siempre)
 #   2. build-release  -> AAB release ofuscado (firmado de producción si hay secrets,
 #                        si no, con keystore temporal solo para validar el build)
 #
@@ -13,6 +13,9 @@ name: CI
 on:
   push:
     branches: [main, develop, 'release/**']
+    # Los tags también disparan: sin esta línea `git push origin vX.Y.Z` no
+    # arrancaba nada y el AAB quedaba colgado de un push de rama, no del tag.
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -61,9 +64,18 @@ jobs:
       - name: Android lint
         working-directory: android
         # chmod como defensa: git desde Windows puede perder el bit de ejecución.
+        #
+        # `:app:lint` y NO `lint` a secas: el task agregado recorre todos los
+        # subproyectos de Gradle, incluidos los plugins de pub-cache, y ahí no
+        # podemos hacer nada. `firebase_storage 13.6.0` trae `@Nullable` (la
+        # anotación de Java) en código Kotlin y lint lo marca como ERROR
+        # [KotlinNullnessAnnotation], así que `:firebase_storage:lintDebug`
+        # abortaba el build entero. Su fuente es de solo lectura y `pub get` la
+        # regenera: no se arregla ahí ni admite baseline.
+        # Lo que se lintea acá es el código propio, que es lo único accionable.
         run: |
           chmod +x gradlew
-          ./gradlew lint
+          ./gradlew :app:lint
 
   build-release:
     name: Build AAB release
