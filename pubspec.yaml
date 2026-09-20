@@ -86,7 +86,6 @@ flutter:
     - assets/sounds/
     # Imágenes del rompecabezas con fotos (Desafío Diario).
     - assets/images/
-    - assets/images/
 
   fonts:
     - family: Poppins
