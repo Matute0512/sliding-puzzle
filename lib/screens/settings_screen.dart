@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/app_settings_provider.dart';
 import '../theme/app_theme.dart';
+import 'image_puzzle_test_screen.dart';
 
 /// Pantalla de configuración: tema, sonido y música.
 class SettingsScreen extends StatelessWidget {
@@ -12,6 +15,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final settings = context.watch<AppSettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -20,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: Text(
-          'Configuración',
+          l10n.settingsTitle,
           style: TextStyle(
             color: colors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -33,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              _SeccionTitulo(titulo: 'Apariencia', colors: colors),
+              _SeccionTitulo(titulo: l10n.appearance, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
                 colors: colors,
@@ -41,7 +45,7 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tema',
+                      l10n.theme,
                       style: TextStyle(
                         fontSize: 14,
                         color: colors.textSecondary,
@@ -65,33 +69,33 @@ class SettingsScreen extends StatelessWidget {
                           selectedForegroundColor: Colors.white,
                           foregroundColor: colors.textPrimary,
                         ),
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: ThemeMode.light,
-                            icon: Icon(Icons.light_mode),
+                            icon: const Icon(Icons.light_mode),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Claro', maxLines: 1),
+                              child: Text(l10n.themeLight, maxLines: 1),
                             ),
-                            tooltip: 'Claro',
+                            tooltip: l10n.themeLight,
                           ),
                           ButtonSegment(
                             value: ThemeMode.dark,
-                            icon: Icon(Icons.dark_mode),
+                            icon: const Icon(Icons.dark_mode),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Oscuro', maxLines: 1),
+                              child: Text(l10n.themeDark, maxLines: 1),
                             ),
-                            tooltip: 'Oscuro',
+                            tooltip: l10n.themeDark,
                           ),
                           ButtonSegment(
                             value: ThemeMode.system,
-                            icon: Icon(Icons.brightness_auto),
+                            icon: const Icon(Icons.brightness_auto),
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text('Sistema', maxLines: 1),
+                              child: Text(l10n.themeSystem, maxLines: 1),
                             ),
-                            tooltip: 'Sistema',
+                            tooltip: l10n.themeSystem,
                           ),
                         ],
                         selected: {settings.themeMode},
@@ -106,7 +110,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              _SeccionTitulo(titulo: 'Sonido', colors: colors),
+              _SeccionTitulo(titulo: l10n.sound, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
                 colors: colors,
@@ -114,8 +118,8 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     _FilaSwitch(
                       icono: Icons.touch_app_outlined,
-                      label: 'Efectos de sonido',
-                      descripcion: 'Click al mover fichas y victoria',
+                      label: l10n.soundEffects,
+                      descripcion: l10n.soundEffectsDesc,
                       valor: settings.sonidoActivado,
                       colors: colors,
                       onChanged: (_) {
@@ -125,8 +129,8 @@ class SettingsScreen extends StatelessWidget {
                     Divider(color: colors.emptyTile, height: 24),
                     _FilaSwitch(
                       icono: Icons.music_note_outlined,
-                      label: 'Música de fondo',
-                      descripcion: 'Música durante el menú y el juego',
+                      label: l10n.backgroundMusic,
+                      descripcion: l10n.backgroundMusicDesc,
                       valor: settings.musicaActivada,
                       colors: colors,
                       onChanged: (_) {
@@ -136,6 +140,42 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              // ⚠️ TEMPORAL: acceso a la pantalla de prueba del puzzle con
+              // imagen. Se borra junto con `image_puzzle_test_screen.dart`.
+              // `kDebugMode` garantiza que no llegue a un build de release, así
+              // que no hace falta traducir estos textos.
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                _SeccionTitulo(titulo: 'DEBUG', colors: colors),
+                const SizedBox(height: 12),
+                _CardConfiguracion(
+                  colors: colors,
+                  // El Material propio es obligatorio: `_CardConfiguracion` es
+                  // un DecoratedBox con color, y un ListTile ahí adentro dispara
+                  // una assertion ("background color or ink splashes may be
+                  // invisible") porque pintaría sus efectos en el Material del
+                  // Scaffold, por debajo de la card.
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.image_outlined,
+                        color: AppTheme.seedColor,
+                      ),
+                      title: Text(
+                        'Puzzle con imagen',
+                        style: TextStyle(color: colors.textPrimary),
+                      ),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ImagePuzzleTestScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

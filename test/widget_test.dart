@@ -5,8 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/screens/home_screen.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/puzzle_board.dart';
+
+import 'helpers/localized_app.dart';
 
 void main() {
   setUp(() {
@@ -21,7 +22,7 @@ void main() {
     (tester) async {
       for (final size in [3, 4, 5]) {
         await tester.pumpWidget(
-          MaterialApp(theme: AppTheme.light, home: GameScreen(size: size)),
+          appLocalizada(home: GameScreen(size: size)),
         );
         await tester.pump();
 
@@ -56,7 +57,7 @@ void main() {
 
         for (final size in [3, 4, 5]) {
           await tester.pumpWidget(
-            MaterialApp(theme: AppTheme.light, home: GameScreen(size: size)),
+            appLocalizada(home: GameScreen(size: size)),
           );
           await tester.pump();
 
@@ -128,7 +129,7 @@ void main() {
     tester.view.physicalSize = const Size(380, 500);
 
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+      appLocalizada(home: const HomeScreen()),
     );
     await tester.pump();
 

@@ -33,6 +33,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Localizaciones generadas: las regenera `flutter pub get` (generate: true en
+# pubspec.yaml) a partir de los .arb, que sí se versionan. Son artefactos de
+# build, no fuente.
+/lib/l10n/app_localizations*.dart
+
 # Symbolication related
 app.*.symbols
 

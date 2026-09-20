@@ -2,13 +2,17 @@ import 'dart:async';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/daily_challenge_service.dart';
+import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/alias_dialog.dart';
+import '../widgets/daily_victory_dialog.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_board.dart';
 
@@ -23,12 +27,40 @@ class GameScreen extends StatefulWidget {
   /// Partida guardada que se debe retomar. Si es `null`, arranca una nueva.
   final PartidaGuardada? partidaInicial;
 
+  /// `true` si la partida es el Desafío Diario.
+  ///
+  /// El diario está **aislado** del resto del juego en tres cosas:
+  ///
+  /// * El tablero no se sortea: sale de la fecha UTC, igual para todos
+  ///   (`DailyChallengeService`).
+  /// * No toca el Top 5 global de Firestore, ni para leer ni para escribir.
+  ///   El diario tiene su propio candado y su propio ranking (todavía sin
+  ///   construir); mezclarlos ensuciaría la tabla de las partidas clásicas.
+  /// * No se guarda como partida en curso. No hace falta: como el tablero
+  ///   deriva de la fecha, volver a entrar al diario devuelve exactamente el
+  ///   mismo, así que no hay progreso que rescatar de disco. Y guardarlo sería
+  ///   peligroso: "Continuar Partida" lo retomaría como partida libre y
+  ///   escribiría en el ranking global al ganar.
+  final bool esDiario;
+
   const GameScreen({
     super.key,
     required this.size,
     this.nivelDesafio,
     this.partidaInicial,
-  });
+    this.esDiario = false,
+  }) : assert(
+         !esDiario || size == PuzzleLogic.diarioSize,
+         'El Desafío Diario siempre es de 3x3 (PuzzleLogic.diarioSize)',
+       ),
+       assert(
+         !esDiario || nivelDesafio == null,
+         'El Desafío Diario no es un nivel del Modo Desafío',
+       ),
+       assert(
+         !esDiario || partidaInicial == null,
+         'El Desafío Diario no se retoma desde disco: el tablero sale de la fecha',
+       );
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -68,6 +100,23 @@ class _GameScreenState extends State<GameScreen> {
   /// partida que ya se reinició.
   int _partidaId = 0;
 
+  /// Semilla (YYYYMMDD) del Desafío Diario en curso; `null` en los otros modos.
+  ///
+  /// Se captura **una sola vez**, al arrancar la partida, y no se vuelve a
+  /// consultar. Si alguien empieza a las 23:59 UTC y termina después de la
+  /// medianoche, el tablero que jugó —y el puntaje que le corresponde— son los
+  /// del día en que empezó. Recalcularla al ganar mandaría ese resultado al
+  /// ranking del día siguiente y le marcaría como jugado un desafío que nunca
+  /// vio.
+  int? _semillaDiaria;
+
+  /// Imagen del tablero del día, resuelta desde Cloud Storage.
+  ///
+  /// Arranca en la foto de respaldo y se reemplaza cuando la del día está
+  /// lista. Así el tablero nunca se ve vacío mientras se resuelve la URL, y si
+  /// la resolución falla se queda con la de respaldo sin más vueltas.
+  ImageProvider? _imagenDiaria;
+
   bool _juegoIniciado = false;
   bool _pausado = false;
   Timer? _timer;
@@ -77,9 +126,13 @@ class _GameScreenState extends State<GameScreen> {
   /// `true` cuando esta partida pertenece al Modo Desafío.
   bool get _esDesafio => widget.nivelDesafio != null;
 
-  /// Tablero inicial según el modo: scramble clásico aleatorio o scramble
-  /// determinista del nivel de desafío (misma semilla por nivel).
+  /// Tablero inicial según el modo: scramble clásico aleatorio, scramble
+  /// determinista del nivel de desafío, o el del día (misma semilla para todo
+  /// el mundo).
   List<int> _nuevoTablero() {
+    // Se usa la semilla capturada al arrancar, no la de "ahora": ver
+    // [_semillaDiaria].
+    if (widget.esDiario) return PuzzleLogic.generarTableroDiario(_semillaDiaria!);
     final nivel = widget.nivelDesafio;
     return nivel != null
         ? PuzzleLogic.generarTableroDesafio(nivel)
@@ -89,6 +142,15 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    // Va primero: `_nuevoTablero()` la necesita.
+    _semillaDiaria = widget.esDiario ? DailyChallengeService.semillaHoy : null;
+    if (widget.esDiario) {
+      // Se arranca con la foto empaquetada y se resuelve la del día por detrás:
+      // esperar la red antes de montar el tablero dejaría la pantalla en blanco
+      // justo al entrar.
+      _imagenDiaria = DailyChallengeService.imagenRespaldo;
+      unawaited(_cargarImagenDiaria());
+    }
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
         : 0;
@@ -148,6 +210,11 @@ class _GameScreenState extends State<GameScreen> {
   /// Solo se guarda una partida ya empezada y sin terminar: un tablero intacto
   /// no es "una partida en curso" y no debe ofrecer "Continuar Partida".
   Future<void> _guardarPartida() async {
+    // El Desafío Diario no se guarda: el tablero sale de la fecha, así que
+    // volver a entrar devuelve el mismo y no hay nada que rescatar. Guardarlo
+    // además sería una fuga — "Continuar Partida" lo retomaría como partida
+    // libre, sin `esDiario`, y al ganar escribiría en el Top 5 global.
+    if (widget.esDiario) return;
     if (!_juegoIniciado || _juegoTerminado) return;
     await SavedGameService.guardar(
       PartidaGuardada(
@@ -159,6 +226,16 @@ class _GameScreenState extends State<GameScreen> {
         segundos: _segundosTotales,
       ),
     );
+  }
+
+  /// Resuelve la foto del día desde Cloud Storage.
+  ///
+  /// Nunca falla: si algo sale mal, `imagenDe` devuelve la de respaldo y el
+  /// `setState` es un no-op efectivo.
+  Future<void> _cargarImagenDiaria() async {
+    final imagen = await DailyChallengeService.imagenDe(_semillaDiaria!);
+    if (!mounted) return;
+    setState(() => _imagenDiaria = imagen);
   }
 
   /// Sale al menú principal limpiando la pila de navegación.
@@ -269,6 +346,12 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _mostrarVictoria() async {
+    // El diario va primero: no comparte nada con los otros dos modos.
+    if (widget.esDiario) {
+      await _mostrarVictoriaDiario();
+      return;
+    }
+
     if (_esDesafio) {
       await _mostrarVictoriaDesafio();
       return;
@@ -280,6 +363,7 @@ class _GameScreenState extends State<GameScreen> {
     _resolverPuestoGlobal(_partidaId);
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -295,7 +379,7 @@ class _GameScreenState extends State<GameScreen> {
             title: ValueListenableBuilder<String?>(
               valueListenable: _avisoTop,
               builder: (_, aviso, _) => Text(
-                aviso != null ? '🏆 ¡Top 5 global!' : '🎉 ¡Ganaste!',
+                aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -305,13 +389,13 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 _FilaResultado(
                   icono: Icons.timer,
-                  label: 'Tiempo',
-                  valor: '${_segundos.value}s',
+                  label: l10n.time,
+                  valor: l10n.secondsShort(_segundos.value),
                 ),
                 const SizedBox(height: 8),
                 _FilaResultado(
                   icono: Icons.sports_esports,
-                  label: 'Movimientos',
+                  label: l10n.moves,
                   valor: '$_movimientos',
                 ),
                 ValueListenableBuilder<String?>(
@@ -350,9 +434,9 @@ class _GameScreenState extends State<GameScreen> {
                       Navigator.pop(context);
                       _reiniciar();
                     },
-                    child: const Text(
-                      'Jugar de nuevo',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.playAgain,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -365,9 +449,9 @@ class _GameScreenState extends State<GameScreen> {
                     // frame (dos animaciones de salida superpuestas).
                     onPressed: () => unawaited(_volverAlMenu()),
                     icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                    label: const Text(
-                      'Volver al Menú',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    label: Text(
+                      l10n.backToMenu,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -393,6 +477,90 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Cierra el Desafío Diario: consume el intento del día y muestra el
+  /// resultado.
+  ///
+  /// **No toca Firestore.** El ranking del día todavía no existe; cuando se
+  /// construya, su escritura va acá, y no en `_registrarPuntajeLibre` —que es
+  /// la del Top 5 global de las partidas clásicas— para que las dos tablas no
+  /// se mezclen nunca.
+  Future<void> _mostrarVictoriaDiario() async {
+    // La semilla del día que se jugó, capturada al arrancar la partida.
+    final semilla = _semillaDiaria!;
+    final movimientos = _movimientos;
+    final segundos = _segundos.value;
+
+    // El candado se cierra ANTES de mostrar el diálogo: si el sistema mata la
+    // app con el modal abierto, el intento del día ya quedó consumado. Al
+    // revés, cerrar la app a tiempo dejaría el desafío repetible.
+    //
+    // Se marca [semilla] y no "hoy": si la partida cruzó la medianoche UTC, el
+    // desafío consumido es el del día en que se empezó a jugar.
+    await DailyChallengeService.marcarJugado(semilla);
+    // El resultado local es lo que después alimenta el botón de compartir.
+    await DailyChallengeService.guardarResultado(
+      ResultadoDiario(
+        semilla: semilla,
+        movimientos: movimientos,
+        segundos: segundos,
+      ),
+    );
+    if (!mounted) return;
+
+    _celebrar();
+
+    await DailyVictoryDialog.mostrar(
+      context,
+      movimientos: movimientos,
+      segundos: segundos,
+      confetti: _confettiController,
+    );
+
+    if (!mounted) return;
+
+    // La subida al ranking va DESPUÉS de la celebración, no antes: si el
+    // jugador todavía no tiene alias, esto abre un formulario, y hacerlo
+    // esperar por un formulario justo al ganar le roba el momento. Acá, en
+    // cambio, ya vio su resultado y el pedido de alias cae camino a la salida.
+    await _subirAlRankingDiario(semilla, movimientos, segundos);
+    if (!mounted) return;
+
+    // El desafío es de un solo intento, así que no hay "Jugar de nuevo": al
+    // cerrar el diálogo se vuelve al menú, que ahora muestra el botón en su
+    // estado de "ya jugaste".
+    await _volverAlMenu();
+  }
+
+  /// Sube el resultado al ranking del día.
+  ///
+  /// Pide el alias si el jugador todavía no eligió uno —el ranking necesita un
+  /// nombre— y si lo cancela no se sube nada, igual que en el Top 5 clásico.
+  ///
+  /// Se espera la escritura en vez de lanzarla por detrás: Firestore resuelve
+  /// contra su caché local cuando no hay red, así que no bloquea la celebración,
+  /// y esperarla hace que el flujo sea determinista. Si algo falla,
+  /// [DailyLeaderboardService.registrarPuntaje] nunca lanza: el juego sigue.
+  Future<void> _subirAlRankingDiario(
+    int semilla,
+    int movimientos,
+    int segundos,
+  ) async {
+    var alias = await RecordsService.obtenerAlias();
+    if (alias == null || alias.isEmpty) {
+      if (!mounted) return;
+      alias = await _pedirAlias();
+    }
+    if (alias == null || alias.isEmpty) return;
+    await RecordsService.guardarAlias(alias);
+
+    await DailyLeaderboardService.registrarPuntaje(
+      semilla: semilla,
+      alias: alias,
+      movimientos: movimientos,
+      tiempoSegundos: segundos,
+    );
+  }
+
   /// Resuelve el puesto en el Top 5 Global por detrás del modal de victoria y,
   /// si el jugador clasificó, completa el aviso del modal cuando la respuesta
   /// llega. [idPartida] descarta respuestas tardías de una partida ya reiniciada
@@ -400,7 +568,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _resolverPuestoGlobal(int idPartida) async {
     final puesto = await _registrarPuntajeLibre();
     if (puesto == null || !mounted || idPartida != _partidaId) return;
-    _avisoTop.value = '¡Entraste al Top 5 global! Puesto #$puesto';
+    _avisoTop.value = AppLocalizations.of(context)!.top5Entered(puesto);
   }
 
   /// Registra la partida libre en el Top 5 Global si clasifica.
@@ -477,6 +645,7 @@ class _GameScreenState extends State<GameScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         final colors = Theme.of(dialogContext).extension<AppColors>()!;
+        final l10n = AppLocalizations.of(dialogContext)!;
         return Stack(
           alignment: Alignment.topCenter,
           children: [
@@ -485,7 +654,7 @@ class _GameScreenState extends State<GameScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(
-                '⭐ ¡Nivel $nivel superado!',
+                l10n.levelPassed(nivel),
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -496,14 +665,14 @@ class _GameScreenState extends State<GameScreen> {
                   const SizedBox(height: 12),
                   _FilaResultado(
                     icono: Icons.sports_esports,
-                    label: 'Movimientos',
+                    label: l10n.moves,
                     valor: '$_movimientos',
                   ),
                   const SizedBox(height: 8),
                   _FilaResultado(
                     icono: Icons.flag_rounded,
-                    label: 'Objetivo',
-                    valor: '$_objetivo movs',
+                    label: l10n.goal,
+                    valor: l10n.goalMoves(_objetivo),
                   ),
                 ],
               ),
@@ -525,9 +694,9 @@ class _GameScreenState extends State<GameScreen> {
                           Navigator.pop(context); // cierra el diálogo
                           Navigator.pop(context, true); // encadena el siguiente
                         },
-                        child: const Text(
-                          'Siguiente Nivel',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        child: Text(
+                          l10n.nextLevel,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -543,9 +712,9 @@ class _GameScreenState extends State<GameScreen> {
                         Navigator.pop(context); // cierra el diálogo
                         _reiniciar();
                       },
-                      child: const Text(
-                        'Reintentar',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Text(
+                        l10n.retry,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -555,7 +724,7 @@ class _GameScreenState extends State<GameScreen> {
                         Navigator.pop(context, false); // vuelve a la grilla
                       },
                       child: Text(
-                        'Volver a niveles',
+                        l10n.backToLevels,
                         style: TextStyle(color: colors.textSecondary),
                       ),
                     ),
@@ -567,9 +736,9 @@ class _GameScreenState extends State<GameScreen> {
                       // Salta la grilla de niveles y el juego de una pasada.
                       onPressed: () => unawaited(_volverAlMenu()),
                       icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                      label: const Text(
-                        'Volver al Menú',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      label: Text(
+                        l10n.backToMenu,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -621,59 +790,51 @@ class _GameScreenState extends State<GameScreen> {
   void _mostrarAyuda() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '🧩 ¿Cómo jugar?',
-          style: TextStyle(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _ItemAyuda(
-              texto:
-                  'Tocá o deslizá una ficha adyacente al espacio vacío para moverla.',
-            ),
-            const _ItemAyuda(
-              texto: 'Las fichas con borde blanco son las que podés mover.',
-            ),
-            const _ItemAyuda(
-              texto: 'El objetivo es ordenar los números en orden ascendente.',
-            ),
-            const _ItemAyuda(
-              texto:
-                  'El espacio vacío debe quedar en la esquina inferior derecha.',
-            ),
-            const _ItemAyuda(
-              texto:
-                  '¡Intentá resolverlo en el menor tiempo y movimientos posibles!',
-            ),
-            const SizedBox(height: 16),
-            Center(child: _tableroResuelto()),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.seedColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            l10n.howToPlayTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ItemAyuda(texto: l10n.howToPlay1),
+              _ItemAyuda(texto: l10n.howToPlay2),
+              _ItemAyuda(texto: l10n.howToPlay3),
+              _ItemAyuda(texto: l10n.howToPlay4),
+              _ItemAyuda(texto: l10n.howToPlay5),
+              const SizedBox(height: 16),
+              Center(child: _tableroResuelto()),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.seedColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  l10n.gotIt,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                '¡Entendido!',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -721,6 +882,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     // `PopScope` envuelve el Scaffold para interceptar el botón Atrás del
     // sistema (y el gesto de retroceso) y guardar la partida antes de salir.
@@ -750,7 +912,7 @@ class _GameScreenState extends State<GameScreen> {
             onPressed: _mostrarAyuda,
           ),
           IconButton(
-            tooltip: _pausado ? 'Reanudar' : 'Pausar',
+            tooltip: _pausado ? l10n.resume : l10n.pause,
             icon: Icon(
               _pausado ? Icons.play_arrow : Icons.pause,
               color: colors.textPrimary,
@@ -784,7 +946,7 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.sports_esports,
-                                label: 'Movimientos',
+                                label: l10n.moves,
                                 valor: '$_movimientos',
                               ),
                             ),
@@ -792,8 +954,8 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.flag_rounded,
-                                label: 'Objetivo',
-                                valor: '$_objetivo movs',
+                                label: l10n.goal,
+                                valor: l10n.goalMoves(_objetivo),
                               ),
                             ),
                           ],
@@ -806,8 +968,8 @@ class _GameScreenState extends State<GameScreen> {
                                 valueListenable: _segundos,
                                 builder: (context, segundos, _) => HudCard(
                                   icono: Icons.timer,
-                                  label: 'Tiempo',
-                                  valor: '${segundos}s',
+                                  label: l10n.time,
+                                  valor: l10n.secondsShort(segundos),
                                 ),
                               ),
                             ),
@@ -815,7 +977,7 @@ class _GameScreenState extends State<GameScreen> {
                             Expanded(
                               child: HudCard(
                                 icono: Icons.sports_esports,
-                                label: 'Movimientos',
+                                label: l10n.moves,
                                 valor: '$_movimientos',
                               ),
                             ),
@@ -828,6 +990,10 @@ class _GameScreenState extends State<GameScreen> {
                           tablero: _tablero,
                           size: widget.size,
                           onTileTap: _onTapFicha,
+                          // Solo el diario se arma como imagen; los otros dos
+                          // modos siguen con fichas numéricas.
+                          imagen: _imagenDiaria,
+                          imagenRespaldo: DailyChallengeService.imagenRespaldo,
                         ),
                       ),
                     ],
@@ -865,7 +1031,7 @@ class _GameScreenState extends State<GameScreen> {
                       Icons.play_circle_fill,
                       color: colors.textPrimary,
                     ),
-                    tooltip: 'Reanudar',
+                    tooltip: l10n.resume,
                     onPressed: _alternarPausa,
                   ),
                 ),

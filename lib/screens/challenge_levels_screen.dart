@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
 import '../services/sound_service.dart';
@@ -82,7 +83,7 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: const Text('Completá el nivel anterior para desbloquear'),
+          content: Text(AppLocalizations.of(context)!.levelLocked),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -107,7 +108,7 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
             const Icon(Icons.flag_rounded, color: AppTheme.seedColor, size: 22),
             const SizedBox(width: 8),
             Text(
-              'Modo Desafío',
+              AppLocalizations.of(context)!.challengeMode,
               style: TextStyle(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -180,6 +181,8 @@ class _ResumenProgreso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -201,7 +204,7 @@ class _ResumenProgreso extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nivel alcanzado',
+                  l10n.levelReached,
                   style: TextStyle(
                     fontSize: 13,
                     color: colors.textSecondary,
@@ -209,7 +212,7 @@ class _ResumenProgreso extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$nivelMaximo / 20',
+                  l10n.levelProgress(nivelMaximo),
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -223,7 +226,7 @@ class _ResumenProgreso extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Estrellas',
+                l10n.stars,
                 style: TextStyle(
                   fontSize: 13,
                   color: colors.textSecondary,
@@ -240,7 +243,7 @@ class _ResumenProgreso extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$totalEstrellas / 60',
+                    l10n.starsProgress(totalEstrellas),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -277,12 +280,13 @@ class _CeldaNivel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Semantics(
       button: true,
       label: bloqueado
-          ? 'Nivel $nivel bloqueado'
-          : 'Nivel $nivel, $estrellas de 3 estrellas',
+          ? l10n.levelLockedSemantics(nivel)
+          : l10n.levelStarsSemantics(nivel, estrellas),
       child: Material(
         color: bloqueado ? colors.emptyTile : colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
@@ -331,7 +335,7 @@ class _CeldaNivel extends StatelessWidget {
                   const SizedBox(height: 4),
                 if (bloqueado)
                   Text(
-                    'Bloqueado',
+                    l10n.locked,
                     style: TextStyle(
                       fontSize: 9,
                       color: colors.textSecondary,

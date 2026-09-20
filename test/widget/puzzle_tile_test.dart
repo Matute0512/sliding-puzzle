@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/widgets/puzzle_tile.dart';
+
+import '../helpers/localized_app.dart';
 
 void main() {
   Widget construir({int numero = 5, int size = 3, VoidCallback? onTap}) {
-    return MaterialApp(
-      theme: AppTheme.light,
+    return appLocalizada(
       home: Scaffold(
         body: Center(
           child: PuzzleTile(
