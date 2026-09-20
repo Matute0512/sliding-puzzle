@@ -128,4 +128,7 @@ flutter_launcher_icons:
   image_path: "assets/icon/ficha_icono.png"
   adaptive_icon_background: "#0F172A"
   adaptive_icon_foreground: "assets/icon/ficha_icono.png"
-  min_sdk_android: 21
+  # Tiene que coincidir con el minSdk real de la app (24). Si va por debajo,
+  # el generador asume un piso que la app no tiene y puede colocar los íconos
+  # adaptativos en carpetas que ningún dispositivo soportado va a leer.
+  min_sdk_android: 24
