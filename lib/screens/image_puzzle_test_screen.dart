@@ -100,7 +100,9 @@ class _ImagePuzzleTestScreenState extends State<ImagePuzzleTestScreen> {
                     tablero: _tablero,
                     size: widget.size,
                     onTileTap: _onTapFicha,
-                    imagen: DailyChallengeService.imagenDiaria,
+                    // Foto empaquetada: esta pantalla es para probar `ImageTile`
+                    // sin depender de la red ni de que la foto del día exista.
+                    imagen: DailyChallengeService.imagenRespaldo,
                   ),
                 ),
                 const SizedBox(height: 24),

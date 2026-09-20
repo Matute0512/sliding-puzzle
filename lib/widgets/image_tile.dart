@@ -38,6 +38,13 @@ class ImageTile extends StatelessWidget {
   /// Imagen completa del rompecabezas.
   final ImageProvider imagen;
 
+  /// Imagen que se muestra si [imagen] no llega a cargar.
+  ///
+  /// Pensado para la foto del día, que se descarga: si no hay red o el archivo
+  /// todavía no se subió, el tablero cae a una foto empaquetada en vez de
+  /// quedar en blanco. `null` deja el comportamiento anterior (celda vacía).
+  final ImageProvider? respaldo;
+
   /// Número de ficha (1..n²-1). Determina qué porción se muestra.
   final int numero;
 
@@ -53,6 +60,7 @@ class ImageTile extends StatelessWidget {
     required this.imagen,
     required this.numero,
     required this.size,
+    this.respaldo,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
   });
 
@@ -75,6 +83,22 @@ class ImageTile extends StatelessWidget {
     return FractionalOffset(col / divisor, fila / divisor);
   }
 
+  /// La imagen con su respaldo, para no repetir el `errorBuilder` en los dos
+  /// lugares donde se dibuja.
+  Widget _imagenConRespaldo(BoxFit fit) {
+    final respaldoSeguro = respaldo;
+    return Image(
+      image: imagen,
+      fit: fit,
+      // Si la descarga falla —sin red, archivo inexistente, Storage rechaza—
+      // se cae a la foto empaquetada. Sin esto, un día sin foto subida dejaría
+      // el tablero en blanco y el desafío sería injugable.
+      errorBuilder: respaldoSeguro == null
+          ? null
+          : (_, _, _) => Image(image: respaldoSeguro, fit: fit),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Ficha vacía o tablero degenerado: no hay porción que mostrar.
@@ -92,7 +116,7 @@ class ImageTile extends StatelessWidget {
           // En `PuzzleBoard` nunca pasa; se degrada a la imagen entera para no
           // romper con un error de layout difícil de rastrear.
           if (!lado.isFinite) {
-            return Image(image: imagen, fit: BoxFit.contain);
+            return _imagenConRespaldo(BoxFit.contain);
           }
 
           return ClipRect(
@@ -110,7 +134,7 @@ class ImageTile extends StatelessWidget {
                 height: lado * size,
                 // `cover` recorta a cuadrado si la imagen no lo es, sin
                 // deformarla. Con una imagen ya cuadrada no recorta nada.
-                child: Image(image: imagen, fit: BoxFit.cover),
+                child: _imagenConRespaldo(BoxFit.cover),
               ),
             ),
           );

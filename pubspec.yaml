@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.3.1+9
+version: 2.3.1+10
 
 environment:
   sdk: ^3.12.1
@@ -45,6 +45,17 @@ dependencies:
   firebase_core: ^4.14.0
   firebase_auth: ^6.6.1
   cloud_firestore: ^6.9.0
+  # Foto del día desde Cloud Storage + caché en disco.
+  #
+  # Pinneado exacto y NO `^3.4.1` a propósito: la línea 4.x arrastra
+  # `material_ui`, que usa la anotación `@awaitNotRequired` — que este SDK
+  # (Dart 3.12) todavía no tiene. El paquete declara un constraint de SDK que
+  # pub acepta igual, así que el error aparece recién al compilar los tests:
+  # `Error: Undefined name 'awaitNotRequired'` en dialog.dart de material_ui.
+  # `flutter analyze` pasa, porque no mira las fuentes de las dependencias.
+  # Antes de subir esta versión, verificar que el SDK ya soporte la anotación.
+  cached_network_image: 3.4.1
+  firebase_storage: ^13.6.0
 
 dev_dependencies:
   flutter_test:
@@ -74,7 +85,6 @@ flutter:
   assets:
     - assets/sounds/
     # Imágenes del rompecabezas con fotos (Desafío Diario).
-    - assets/images/
     - assets/images/
 
   fonts:
@@ -118,4 +128,7 @@ flutter_launcher_icons:
   image_path: "assets/icon/ficha_icono.png"
   adaptive_icon_background: "#0F172A"
   adaptive_icon_foreground: "assets/icon/ficha_icono.png"
-  min_sdk_android: 21
+  # Tiene que coincidir con el minSdk real de la app (24). Si va por debajo,
+  # el generador asume un piso que la app no tiene y puede colocar los íconos
+  # adaptativos en carpetas que ningún dispositivo soportado va a leer.
+  min_sdk_android: 24
