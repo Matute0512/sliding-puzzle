@@ -140,6 +140,30 @@ void main() {
     });
   });
 
+  group('foto del día en Cloud Storage', () {
+    test('la ruta es daily/YYYYMMDD.jpg', () {
+      // El nombre es la fecha, así subir la foto del día es solo dejar el
+      // archivo con el nombre correcto: sin índice ni configuración.
+      expect(DailyChallengeService.rutaImagen(20260919), 'daily/20260919.jpg');
+      expect(DailyChallengeService.rutaImagen(20260105), 'daily/20260105.jpg');
+    });
+
+    test('cada día apunta a un archivo distinto', () {
+      expect(
+        DailyChallengeService.rutaImagen(20260919),
+        isNot(DailyChallengeService.rutaImagen(20260920)),
+      );
+    });
+
+    test('sin Firebase disponible cae a la foto de respaldo', () async {
+      // Es el caso que importa: sin red, sin Storage configurado, o si la foto
+      // del día todavía no se subió. El desafío tiene que seguir jugándose.
+      final imagen = await DailyChallengeService.imagenDe(20260919);
+
+      expect(imagen, same(DailyChallengeService.imagenRespaldo));
+    });
+  });
+
   group('tablero determinista', () {
     test('la misma fecha da siempre el mismo tablero', () {
       // Es la garantía que hace que todos jueguen lo mismo sin sincronizar

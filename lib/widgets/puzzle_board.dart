@@ -18,12 +18,16 @@ class PuzzleBoard extends StatelessWidget {
   /// pistas de "movible" dependen del [tablero], no de cómo se dibuje la ficha.
   final ImageProvider? imagen;
 
+  /// Imagen a la que caer si [imagen] no carga. Ver `ImageTile.respaldo`.
+  final ImageProvider? imagenRespaldo;
+
   const PuzzleBoard({
     super.key,
     required this.tablero,
     required this.size,
     required this.onTileTap,
     this.imagen,
+    this.imagenRespaldo,
   });
 
   /// Mueve la ficha [indice] únicamente si el deslizamiento va en dirección
@@ -82,6 +86,7 @@ class PuzzleBoard extends StatelessWidget {
                     numero: tablero[i],
                     size: n,
                     imagen: imagen,
+                    imagenRespaldo: imagenRespaldo,
                     activa: movibles.contains(i),
                     onTap: () => onTileTap(i),
                     onSwipe: (direccion) => _deslizarFicha(i, direccion),

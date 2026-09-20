@@ -28,6 +28,9 @@ class PuzzleTile extends StatelessWidget {
   /// gestos y semántica siguen igual que en el modo numérico.
   final ImageProvider? imagen;
 
+  /// Imagen a la que caer si [imagen] no carga. Ver `ImageTile.respaldo`.
+  final ImageProvider? imagenRespaldo;
+
   const PuzzleTile({
     super.key,
     required this.numero,
@@ -37,6 +40,7 @@ class PuzzleTile extends StatelessWidget {
     this.activa = false,
     this.esSocket = false,
     this.imagen,
+    this.imagenRespaldo,
   });
 
   @override
@@ -99,6 +103,7 @@ class PuzzleTile extends StatelessWidget {
       child: conImagen
           ? ImageTile(
               imagen: imagen!,
+              respaldo: imagenRespaldo,
               numero: numero,
               size: size,
               borderRadius: radio,
