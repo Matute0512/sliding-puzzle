@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,14 +108,49 @@ class DailyChallengeService {
   /// Tablero del Desafío Diario de hoy.
   static List<int> tableroHoy() => tableroDe(DateTime.now());
 
-  /// Imagen que se arma en el tablero del día.
+  /// Foto de respaldo, empaquetada en la app.
   ///
-  /// Una sola por ahora. Cuando haya varias, lo natural es elegirla con la
-  /// misma semilla que el tablero: misma fecha -> misma foto, así el desafío
-  /// sigue siendo idéntico en todos los dispositivos sin sincronizar nada.
-  static const AssetImage imagenDiaria = AssetImage(
+  /// Se usa cuando la foto del día no se puede traer: sin internet, si todavía
+  /// no se subió la del día, o si Storage rechaza la lectura. El tablero nunca
+  /// queda vacío ni crashea por una foto que falta.
+  static const AssetImage imagenRespaldo = AssetImage(
     'assets/images/pexels-toni-clavel-62572784-38947608.jpg',
   );
+
+  /// Ruta de la foto del día dentro del bucket de Cloud Storage.
+  ///
+  /// `daily/YYYYMMDD.jpg`. La fecha como nombre hace que subir la del día sea
+  /// simplemente dejar un archivo con el nombre correcto: no hay índice que
+  /// mantener ni configuración que tocar.
+  static String rutaImagen(int semilla) => 'daily/$semilla.jpg';
+
+  /// Imagen del tablero del día, lista para pasarle a `PuzzleBoard`.
+  ///
+  /// Resuelve la URL de descarga con el SDK de Storage (en vez de armar la URL
+  /// a mano) porque así funciona sin depender de que las reglas permitan
+  /// lectura anónima: el SDK manda el token de la sesión.
+  ///
+  /// **Nunca lanza y nunca devuelve `null`.** Si algo falla devuelve
+  /// [imagenRespaldo], que es justo lo que se quiere: un día sin foto subida no
+  /// puede dejar el desafío injugable.
+  ///
+  /// Ojo: que esto resuelva no garantiza que la imagen después *cargue*. Si la
+  /// descarga falla, el `errorBuilder` de `ImageTile` vuelve a caer en
+  /// [imagenRespaldo]. Los dos caminos están cubiertos a propósito.
+  static Future<ImageProvider> imagenDe(int semilla) async {
+    try {
+      final url = await FirebaseStorage.instance
+          .ref(rutaImagen(semilla))
+          .getDownloadURL();
+      return CachedNetworkImageProvider(url);
+    } catch (e) {
+      debugPrint(
+        'Desafío Diario: no se pudo resolver la foto del día $semilla '
+        '($e). Se usa la de respaldo.',
+      );
+      return imagenRespaldo;
+    }
+  }
 
   /// `true` si el jugador ya completó el desafío del día de [ahora].
   static Future<bool> yaJugoHoy({DateTime? ahora}) async {
