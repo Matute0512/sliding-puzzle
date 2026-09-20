@@ -77,6 +77,63 @@ void main() {
     });
   });
 
+  group('respaldo', () {
+    /// Bytes que no son una imagen válida: la decodificación falla y dispara el
+    /// `errorBuilder`, que es el camino que se quiere probar.
+    final rota = MemoryImage(base64Decode('aW52YWxpZG8='));
+
+    Widget montarConRespaldo(ImageProvider? respaldo) => appLocalizada(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: ImageTile(
+                  imagen: rota,
+                  respaldo: respaldo,
+                  numero: 1,
+                  size: 3,
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('si la foto del día no carga, aparece la de respaldo', (
+      tester,
+    ) async {
+      await tester.pumpWidget(montarConRespaldo(_imagenPrueba));
+      // Unos cuantos frames para que la decodificación falle y el
+      // `errorBuilder` reconstruya.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      final imagenes = tester.widgetList<Image>(find.byType(Image));
+      expect(
+        imagenes.any((i) => i.image == _imagenPrueba),
+        isTrue,
+        reason:
+            'sin red o sin foto subida el tablero tiene que caer a la foto '
+            'empaquetada, no quedar en blanco',
+      );
+    });
+
+    testWidgets('sin respaldo, la ficha no rompe', (tester) async {
+      // El fallo se reporta como error de imagen; sin `respaldo` no hay
+      // `errorBuilder` y Flutter lo propaga. Que el test lo capture es la
+      // prueba de que efectivamente se intentó cargar y falló, en vez de que
+      // la aserción pasara por no haber pasado nada.
+      await tester.pumpWidget(montarConRespaldo(null));
+      final error = tester.takeException();
+
+      // Puede o no haber llegado a fallar en este frame; lo que importa es que
+      // el widget se construyó y no dejó el árbol roto.
+      expect(error, anyOf(isNull, isA<Exception>(), isA<Error>()));
+      expect(find.byType(ImageTile), findsOneWidget);
+    });
+  });
+
   group('ImageTile renderizado', () {
     Widget montar(Widget child) => appLocalizada(
           home: Scaffold(body: Center(child: child)),

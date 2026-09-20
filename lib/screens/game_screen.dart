@@ -110,6 +110,13 @@ class _GameScreenState extends State<GameScreen> {
   /// vio.
   int? _semillaDiaria;
 
+  /// Imagen del tablero del día, resuelta desde Cloud Storage.
+  ///
+  /// Arranca en la foto de respaldo y se reemplaza cuando la del día está
+  /// lista. Así el tablero nunca se ve vacío mientras se resuelve la URL, y si
+  /// la resolución falla se queda con la de respaldo sin más vueltas.
+  ImageProvider? _imagenDiaria;
+
   bool _juegoIniciado = false;
   bool _pausado = false;
   Timer? _timer;
@@ -137,6 +144,13 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     // Va primero: `_nuevoTablero()` la necesita.
     _semillaDiaria = widget.esDiario ? DailyChallengeService.semillaHoy : null;
+    if (widget.esDiario) {
+      // Se arranca con la foto empaquetada y se resuelve la del día por detrás:
+      // esperar la red antes de montar el tablero dejaría la pantalla en blanco
+      // justo al entrar.
+      _imagenDiaria = DailyChallengeService.imagenRespaldo;
+      unawaited(_cargarImagenDiaria());
+    }
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
         : 0;
@@ -212,6 +226,16 @@ class _GameScreenState extends State<GameScreen> {
         segundos: _segundosTotales,
       ),
     );
+  }
+
+  /// Resuelve la foto del día desde Cloud Storage.
+  ///
+  /// Nunca falla: si algo sale mal, `imagenDe` devuelve la de respaldo y el
+  /// `setState` es un no-op efectivo.
+  Future<void> _cargarImagenDiaria() async {
+    final imagen = await DailyChallengeService.imagenDe(_semillaDiaria!);
+    if (!mounted) return;
+    setState(() => _imagenDiaria = imagen);
   }
 
   /// Sale al menú principal limpiando la pila de navegación.
@@ -968,9 +992,8 @@ class _GameScreenState extends State<GameScreen> {
                           onTileTap: _onTapFicha,
                           // Solo el diario se arma como imagen; los otros dos
                           // modos siguen con fichas numéricas.
-                          imagen: widget.esDiario
-                              ? DailyChallengeService.imagenDiaria
-                              : null,
+                          imagen: _imagenDiaria,
+                          imagenRespaldo: DailyChallengeService.imagenRespaldo,
                         ),
                       ),
                     ],
