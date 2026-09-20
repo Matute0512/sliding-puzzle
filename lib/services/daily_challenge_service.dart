@@ -1,7 +1,46 @@
+import 'dart:convert';
+
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/puzzle_logic.dart';
+
+/// Resultado del Desafío Diario de un día concreto.
+///
+/// Se guarda en disco junto al candado porque el botón "Compartir" necesita el
+/// tiempo y los movimientos del jugador, y el ranking de Firestore es de solo
+/// lectura desde la app (no se consulta "mi puntaje" para no gastar una lectura
+/// más). El dato es local y de un solo día: no hay historial.
+class ResultadoDiario {
+  /// Semilla (YYYYMMDD) del día jugado.
+  final int semilla;
+  final int movimientos;
+  final int segundos;
+
+  const ResultadoDiario({
+    required this.semilla,
+    required this.movimientos,
+    required this.segundos,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'semilla': semilla,
+        'movimientos': movimientos,
+        'segundos': segundos,
+      };
+
+  static ResultadoDiario? fromJson(Map<String, dynamic> json) {
+    final semilla = json['semilla'];
+    final movimientos = json['movimientos'];
+    final segundos = json['segundos'];
+    if (semilla is! int || movimientos is! int || segundos is! int) return null;
+    return ResultadoDiario(
+      semilla: semilla,
+      movimientos: movimientos,
+      segundos: segundos,
+    );
+  }
+}
 
 /// Motor del Desafío Diario: un tablero por día, igual para todo el mundo, con
 /// un solo intento.
@@ -34,6 +73,9 @@ class DailyChallengeService {
 
   /// Fecha (YYYYMMDD) del último día que el jugador completó.
   static const String _claveUltimoDia = 'desafio_diario_ultimo_dia';
+
+  /// Último resultado guardado (JSON con semilla, movimientos y segundos).
+  static const String _claveResultado = 'desafio_diario_resultado';
 
   /// Convierte un instante a la fecha UTC en formato `YYYYMMDD`.
   ///
@@ -80,20 +122,58 @@ class DailyChallengeService {
     return ultimo != null && ultimo == semillaDe(ahora ?? DateTime.now());
   }
 
+  /// Marca como completado el desafío de [semilla].
+  ///
+  /// Recibe la semilla en vez de leer el reloj a propósito: quien jugó sabe qué
+  /// día jugó. Si alguien arranca a las 23:59 UTC y termina después de la
+  /// medianoche, lo que consumió es el desafío del día en que **empezó**, y
+  /// marcar el día nuevo le regalaría el de hoy sin haberlo visto.
+  static Future<void> marcarJugado(int semilla) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_claveUltimoDia, semilla);
+  }
+
   /// Marca el desafío del día de [ahora] como completado.
   ///
   /// Se llama al resolver el tablero. Guardar la fecha (y no un booleano) es lo
   /// que hace que el candado se renueve solo: mañana la comparación da distinto
   /// sin que nadie tenga que limpiar nada.
-  static Future<void> marcarJugadoHoy({DateTime? ahora}) async {
+  static Future<void> marcarJugadoHoy({DateTime? ahora}) =>
+      marcarJugado(semillaDe(ahora ?? DateTime.now()));
+
+  /// Guarda el resultado del jugador para el día [semilla].
+  ///
+  /// Reemplaza el anterior: solo interesa el último día jugado.
+  static Future<void> guardarResultado(ResultadoDiario resultado) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_claveUltimoDia, semillaDe(ahora ?? DateTime.now()));
+    await prefs.setString(_claveResultado, jsonEncode(resultado.toJson()));
   }
 
-  /// Borra el candado. Pensado para tests y para un futuro "reiniciar progreso"
-  /// desde Ajustes; la app no lo usa en el flujo normal.
+  /// Resultado del jugador en el día [semilla], o `null` si no hay ninguno
+  /// guardado o si el guardado es de otro día.
+  static Future<ResultadoDiario?> resultadoDe(int semilla) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_claveResultado);
+    if (raw == null) return null;
+
+    try {
+      final json = jsonDecode(raw);
+      if (json is! Map<String, dynamic>) return null;
+      final resultado = ResultadoDiario.fromJson(json);
+      // Un resultado de otro día no sirve para compartir el de hoy.
+      return resultado?.semilla == semilla ? resultado : null;
+    } catch (_) {
+      // Datos corruptos: se ignoran.
+      return null;
+    }
+  }
+
+  /// Borra el candado y el resultado guardado. Pensado para tests y para un
+  /// futuro "reiniciar progreso" desde Ajustes; la app no lo usa en el flujo
+  /// normal.
   static Future<void> reiniciar() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_claveUltimoDia);
+    await prefs.remove(_claveResultado);
   }
 }

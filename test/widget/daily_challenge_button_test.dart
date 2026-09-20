@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/screens/home_screen.dart';
@@ -63,9 +62,7 @@ void main() {
     expect(find.text('Ver Resultados del Día'), findsNothing);
   });
 
-  testWidgets('tocar el botón avisa que la pantalla todavía no existe', (
-    tester,
-  ) async {
+  testWidgets('tocar el botón abre los resultados del día', (tester) async {
     montarHome();
     await DailyChallengeService.marcarJugadoHoy();
     await renderHome(tester);
@@ -77,9 +74,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(boton);
+    // Sin `pumpAndSettle`: mientras la consulta está en vuelo hay un spinner
+    // girando y no settlea nunca.
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
 
-    expect(find.widgetWithText(SnackBar, 'Próximamente'), findsOneWidget);
+    expect(find.text('Resultados del Día'), findsOneWidget);
   });
 }

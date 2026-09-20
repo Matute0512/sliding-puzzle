@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../app_info.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../screens/challenge_levels_screen.dart';
@@ -12,11 +13,8 @@ import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/daily_results_dialog.dart';
 import '../widgets/difficulty_button.dart';
-
-/// URL de la ficha de la app en Google Play.
-const String _urlPlayStore =
-    'https://play.google.com/store/apps/details?id=dev.matute.slidingpuzzle';
 
 /// Pantalla de inicio con selección de dificultad.
 class HomeScreen extends StatefulWidget {
@@ -172,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _marcarYAbirTienda() async {
     await RecordsService.marcarAppCalificada();
 
-    final uri = Uri.parse(_urlPlayStore);
+    final uri = Uri.parse(urlPlayStore);
     try {
       final abierto = await launchUrl(
         uri,
@@ -314,20 +312,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// resolverlo no ensucia el ranking de las partidas clásicas.
   Future<void> _onTapDiario() async {
     if (_jugoDiarioHoy) {
-      // La pantalla de resultados del día todavía no existe.
-      debugPrint(
-        'Desafío Diario: ya jugado hoy '
-        '(semilla ${DailyChallengeService.semillaHoy}).',
+      // El candado cerrado significa que jugó HOY (así lo compara
+      // `yaJugoHoy`), así que el día a mostrar es el de hoy.
+      await DailyResultsDialog.mostrar(
+        context,
+        semilla: DailyChallengeService.semillaHoy,
       );
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(l10n.dailySoon),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       return;
     }
 

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/daily_challenge_service.dart';
+import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
@@ -99,6 +100,16 @@ class _GameScreenState extends State<GameScreen> {
   /// partida que ya se reinició.
   int _partidaId = 0;
 
+  /// Semilla (YYYYMMDD) del Desafío Diario en curso; `null` en los otros modos.
+  ///
+  /// Se captura **una sola vez**, al arrancar la partida, y no se vuelve a
+  /// consultar. Si alguien empieza a las 23:59 UTC y termina después de la
+  /// medianoche, el tablero que jugó —y el puntaje que le corresponde— son los
+  /// del día en que empezó. Recalcularla al ganar mandaría ese resultado al
+  /// ranking del día siguiente y le marcaría como jugado un desafío que nunca
+  /// vio.
+  int? _semillaDiaria;
+
   bool _juegoIniciado = false;
   bool _pausado = false;
   Timer? _timer;
@@ -112,7 +123,9 @@ class _GameScreenState extends State<GameScreen> {
   /// determinista del nivel de desafío, o el del día (misma semilla para todo
   /// el mundo).
   List<int> _nuevoTablero() {
-    if (widget.esDiario) return DailyChallengeService.tableroHoy();
+    // Se usa la semilla capturada al arrancar, no la de "ahora": ver
+    // [_semillaDiaria].
+    if (widget.esDiario) return PuzzleLogic.generarTableroDiario(_semillaDiaria!);
     final nivel = widget.nivelDesafio;
     return nivel != null
         ? PuzzleLogic.generarTableroDesafio(nivel)
@@ -122,6 +135,8 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    // Va primero: `_nuevoTablero()` la necesita.
+    _semillaDiaria = widget.esDiario ? DailyChallengeService.semillaHoy : null;
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
         : 0;
@@ -446,15 +461,26 @@ class _GameScreenState extends State<GameScreen> {
   /// la del Top 5 global de las partidas clásicas— para que las dos tablas no
   /// se mezclen nunca.
   Future<void> _mostrarVictoriaDiario() async {
-    // Se congelan los valores antes de cualquier `await`, por el mismo motivo
-    // que en `_registrarPuntajeLibre`: no releerlos después de ceder el turno.
+    // La semilla del día que se jugó, capturada al arrancar la partida.
+    final semilla = _semillaDiaria!;
     final movimientos = _movimientos;
     final segundos = _segundos.value;
 
     // El candado se cierra ANTES de mostrar el diálogo: si el sistema mata la
     // app con el modal abierto, el intento del día ya quedó consumado. Al
     // revés, cerrar la app a tiempo dejaría el desafío repetible.
-    await DailyChallengeService.marcarJugadoHoy();
+    //
+    // Se marca [semilla] y no "hoy": si la partida cruzó la medianoche UTC, el
+    // desafío consumido es el del día en que se empezó a jugar.
+    await DailyChallengeService.marcarJugado(semilla);
+    // El resultado local es lo que después alimenta el botón de compartir.
+    await DailyChallengeService.guardarResultado(
+      ResultadoDiario(
+        semilla: semilla,
+        movimientos: movimientos,
+        segundos: segundos,
+      ),
+    );
     if (!mounted) return;
 
     _celebrar();
@@ -467,10 +493,48 @@ class _GameScreenState extends State<GameScreen> {
     );
 
     if (!mounted) return;
+
+    // La subida al ranking va DESPUÉS de la celebración, no antes: si el
+    // jugador todavía no tiene alias, esto abre un formulario, y hacerlo
+    // esperar por un formulario justo al ganar le roba el momento. Acá, en
+    // cambio, ya vio su resultado y el pedido de alias cae camino a la salida.
+    await _subirAlRankingDiario(semilla, movimientos, segundos);
+    if (!mounted) return;
+
     // El desafío es de un solo intento, así que no hay "Jugar de nuevo": al
     // cerrar el diálogo se vuelve al menú, que ahora muestra el botón en su
     // estado de "ya jugaste".
     await _volverAlMenu();
+  }
+
+  /// Sube el resultado al ranking del día.
+  ///
+  /// Pide el alias si el jugador todavía no eligió uno —el ranking necesita un
+  /// nombre— y si lo cancela no se sube nada, igual que en el Top 5 clásico.
+  ///
+  /// Se espera la escritura en vez de lanzarla por detrás: Firestore resuelve
+  /// contra su caché local cuando no hay red, así que no bloquea la celebración,
+  /// y esperarla hace que el flujo sea determinista. Si algo falla,
+  /// [DailyLeaderboardService.registrarPuntaje] nunca lanza: el juego sigue.
+  Future<void> _subirAlRankingDiario(
+    int semilla,
+    int movimientos,
+    int segundos,
+  ) async {
+    var alias = await RecordsService.obtenerAlias();
+    if (alias == null || alias.isEmpty) {
+      if (!mounted) return;
+      alias = await _pedirAlias();
+    }
+    if (alias == null || alias.isEmpty) return;
+    await RecordsService.guardarAlias(alias);
+
+    await DailyLeaderboardService.registrarPuntaje(
+      semilla: semilla,
+      alias: alias,
+      movimientos: movimientos,
+      tiempoSegundos: segundos,
+    );
   }
 
   /// Resuelve el puesto en el Top 5 Global por detrás del modal de victoria y,
