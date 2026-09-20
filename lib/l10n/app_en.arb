@@ -33,9 +33,33 @@
   "dailyChallengeSubtitle": "One board a day · everyone plays the same",
   "dailyChallengePlayed": "View Today's Results",
   "dailyChallengePlayedSubtitle": "You already played today · come back tomorrow",
-  "dailySoon": "Coming soon",
   "dailyVictoryTitle": "Today's challenge complete!",
   "dailyVictoryBody": "Come back tomorrow for the next one. The daily ranking is coming soon.",
+
+  "dailyResultsTitle": "Today's Results",
+  "dailyResultsDay": "Challenge #{semilla}",
+  "@dailyResultsDay": {
+    "description": "Subtitle with the UTC date of the challenge. The seed is YYYYMMDD; passed as text so no thousands separator is added.",
+    "placeholders": {
+      "semilla": { "type": "String" }
+    }
+  },
+  "dailyResultsEmpty": "Nobody has played yet today. You can be the first!",
+  "dailyResultsError": "Couldn't load the results.",
+  "dailyResultsRetry": "Retry",
+  "dailyResultsYou": "Your result",
+  "dailyShare": "Share",
+  "dailyShareCopied": "Result copied to clipboard",
+  "dailyShareText": "🧩 Sliding Puzzle Daily #{semilla}\n⏱️ {tiempo} | 🔄 {movimientos}\nPlay at {link}!",
+  "@dailyShareText": {
+    "description": "Text copied to the clipboard to share the daily result.",
+    "placeholders": {
+      "semilla": { "type": "String" },
+      "tiempo": { "type": "String" },
+      "movimientos": { "type": "int" },
+      "link": { "type": "String" }
+    }
+  },
 
   "continueGame": "Continue Game",
   "continueGameSemantics": "Continue game. {detalle}",

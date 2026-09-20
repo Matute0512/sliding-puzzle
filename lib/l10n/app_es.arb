@@ -51,9 +51,33 @@
   "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",
   "dailyChallengePlayed": "Ver Resultados del Día",
   "dailyChallengePlayedSubtitle": "Ya jugaste el de hoy · volvé mañana",
-  "dailySoon": "Próximamente",
   "dailyVictoryTitle": "¡Desafío de hoy completado!",
   "dailyVictoryBody": "Volvé mañana para el siguiente. El ranking del día llega pronto.",
+
+  "dailyResultsTitle": "Resultados del Día",
+  "dailyResultsDay": "Desafío #{semilla}",
+  "@dailyResultsDay": {
+    "description": "Subtítulo con la fecha UTC del desafío. La semilla es YYYYMMDD; va como texto para que no se le agregue separador de miles.",
+    "placeholders": {
+      "semilla": { "type": "String" }
+    }
+  },
+  "dailyResultsEmpty": "Todavía no jugó nadie hoy. ¡Podés ser el primero!",
+  "dailyResultsError": "No se pudieron cargar los resultados.",
+  "dailyResultsRetry": "Reintentar",
+  "dailyResultsYou": "Tu resultado",
+  "dailyShare": "Compartir",
+  "dailyShareCopied": "Resultado copiado al portapapeles",
+  "dailyShareText": "🧩 Sliding Puzzle Diario #{semilla}\n⏱️ {tiempo} | 🔄 {movimientos}\n¡Jugá en {link}!",
+  "@dailyShareText": {
+    "description": "Texto que se copia al portapapeles para compartir el resultado del día.",
+    "placeholders": {
+      "semilla": { "type": "String" },
+      "tiempo": { "type": "String" },
+      "movimientos": { "type": "int" },
+      "link": { "type": "String" }
+    }
+  },
 
   "continueGame": "Continuar Partida",
   "continueGameSemantics": "Continuar partida. {detalle}",
