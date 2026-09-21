@@ -67,9 +67,15 @@ class ResultadoDiario {
 ///
 /// ## Reloj inyectable
 ///
-/// Todos los métodos que dependen de "ahora" aceptan un [DateTime] opcional.
-/// Sin él usan `DateTime.now()`. Es lo que permite testear el cruce de medianoche
-/// sin tocar el reloj del sistema ni esperar.
+/// Los métodos que dependen de "ahora" —[yaJugoHoy], [marcarJugadoHoy]— aceptan
+/// un [DateTime] opcional y, sin él, leen [reloj]. Es lo que permite testear el
+/// cruce de medianoche sin tocar el reloj del sistema ni esperar.
+///
+/// [reloj] existe porque los getters sin parámetros ([semillaHoy], [tableroHoy])
+/// no tienen dónde recibir un [DateTime], y son justamente los que usa la UI.
+/// Los tests lo reemplazan para hacer que "hoy" sea el día que les conviene:
+/// sin esa costura, el cruce de medianoche al volver del segundo plano no se
+/// podría ejercitar desde un widget test.
 class DailyChallengeService {
   DailyChallengeService._();
 
@@ -95,8 +101,18 @@ class DailyChallengeService {
     return utc.year * 10000 + utc.month * 100 + utc.day;
   }
 
+  /// Reloj del que sale "hoy" cuando no se pasa uno explícito.
+  ///
+  /// Es `DateTime.now` en producción. Los tests lo reemplazan para poder cruzar
+  /// la medianoche UTC sin tocar el reloj de la máquina ni esperar: es la única
+  /// forma de ejercitar la recarga del desafío al volver del segundo plano.
+  /// Los métodos que ya aceptan un `DateTime` opcional no lo miran — ese
+  /// parámetro sigue mandando.
+  @visibleForTesting
+  static DateTime Function() reloj = DateTime.now;
+
   /// Semilla del día de hoy (UTC).
-  static int get semillaHoy => semillaDe(DateTime.now());
+  static int get semillaHoy => semillaDe(reloj());
 
   /// Tablero del Desafío Diario para el día de [ahora] (hoy si se omite).
   ///
@@ -106,7 +122,7 @@ class DailyChallengeService {
       PuzzleLogic.generarTableroDiario(semillaDe(ahora));
 
   /// Tablero del Desafío Diario de hoy.
-  static List<int> tableroHoy() => tableroDe(DateTime.now());
+  static List<int> tableroHoy() => tableroDe(reloj());
 
   /// Foto de respaldo, empaquetada en la app.
   ///
@@ -123,6 +139,24 @@ class DailyChallengeService {
   /// simplemente dejar un archivo con el nombre correcto: no hay índice que
   /// mantener ni configuración que tocar.
   static String rutaImagen(int semilla) => 'daily/$semilla.jpg';
+
+  /// Clave de caché de la foto del día.
+  ///
+  /// Lleva la **semilla adelante** para que la relación "un día, una foto" quede
+  /// explícita: ninguna imagen puede servirse desde el caché de otro día, ni
+  /// siquiera si Storage llegara a devolver la misma URL para dos fechas
+  /// distintas (un CDN o un proxy por delante bastarían para que pasara).
+  ///
+  /// Lleva **también la URL** porque el token de Storage cambia cuando se
+  /// reemplaza el archivo, y quedarse solo con la semilla rompería esa
+  /// actualización de una forma difícil de ver: `CachedNetworkImageProvider`
+  /// define su igualdad como `cacheKey ?? url` (ver
+  /// `cached_network_image_provider.dart`), así que con la clave fija en la
+  /// semilla dos providers de la misma fecha pero distinto contenido serían
+  /// **iguales**, y el `Image` ni siquiera volvería a pedir la imagen: seguiría
+  /// mostrando la vieja desde el `ImageCache` en memoria.
+  static String claveCacheImagen(int semilla, String url) =>
+      'daily-$semilla-$url';
 
   /// Imagen del tablero del día, lista para pasarle a `PuzzleBoard`.
   ///
@@ -142,7 +176,10 @@ class DailyChallengeService {
       final url = await FirebaseStorage.instance
           .ref(rutaImagen(semilla))
           .getDownloadURL();
-      return CachedNetworkImageProvider(url);
+      return CachedNetworkImageProvider(
+        url,
+        cacheKey: claveCacheImagen(semilla, url),
+      );
     } catch (e) {
       debugPrint(
         'Desafío Diario: no se pudo resolver la foto del día $semilla '
@@ -156,7 +193,7 @@ class DailyChallengeService {
   static Future<bool> yaJugoHoy({DateTime? ahora}) async {
     final prefs = await SharedPreferences.getInstance();
     final ultimo = prefs.getInt(_claveUltimoDia);
-    return ultimo != null && ultimo == semillaDe(ahora ?? DateTime.now());
+    return ultimo != null && ultimo == semillaDe(ahora ?? reloj());
   }
 
   /// Marca como completado el desafío de [semilla].
@@ -176,7 +213,7 @@ class DailyChallengeService {
   /// que hace que el candado se renueve solo: mañana la comparación da distinto
   /// sin que nadie tenga que limpiar nada.
   static Future<void> marcarJugadoHoy({DateTime? ahora}) =>
-      marcarJugado(semillaDe(ahora ?? DateTime.now()));
+      marcarJugado(semillaDe(ahora ?? reloj()));
 
   /// Guarda el resultado del jugador para el día [semilla].
   ///
