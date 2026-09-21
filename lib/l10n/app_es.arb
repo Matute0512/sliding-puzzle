@@ -54,6 +54,10 @@
   "dailyVictoryTitle": "¡Desafío de hoy completado!",
   "dailyVictoryBody": "Volvé mañana para el siguiente. El ranking del día llega pronto.",
 
+  "dailyPreviewTitle": "La foto de hoy",
+  "dailyPreviewBody": "Es la foto que vas a armar. ¡Mirala bien antes de empezar!",
+  "dailyPreviewStart": "¡Empezar!",
+
   "dailyResultsTitle": "Resultados del Día",
   "dailyResultsDay": "Desafío #{semilla}",
   "@dailyResultsDay": {
