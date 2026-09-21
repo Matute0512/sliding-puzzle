@@ -141,11 +141,23 @@ void main() {
   });
 
   group('foto del día en Cloud Storage', () {
-    test('la ruta es daily/YYYYMMDD.jpg', () {
+    test('la ruta es daily/YYYYMMDD.webp', () {
       // El nombre es la fecha, así subir la foto del día es solo dejar el
       // archivo con el nombre correcto: sin índice ni configuración.
-      expect(DailyChallengeService.rutaImagen(20260919), 'daily/20260919.jpg');
-      expect(DailyChallengeService.rutaImagen(20260105), 'daily/20260105.jpg');
+      expect(DailyChallengeService.rutaImagen(20260919), 'daily/20260919.webp');
+      expect(DailyChallengeService.rutaImagen(20260105), 'daily/20260105.webp');
+    });
+
+    test('la extensión es la que produce el script de optimización', () {
+      // Storage no negocia formatos: no falla al resolver la URL, devuelve
+      // `object-not-found` y el tablero cae al respaldo en silencio. Un
+      // desajuste acá ya costó un hotfix (era `.jpg` y las fotos son `.webp`),
+      // así que la extensión queda clavada por test.
+      expect(
+        DailyChallengeService.rutaImagen(20260919),
+        endsWith('.webp'),
+        reason: 'tiene que coincidir con lo que sube el script de optimización',
+      );
     });
 
     test('cada día apunta a un archivo distinto', () {
@@ -161,6 +173,83 @@ void main() {
       final imagen = await DailyChallengeService.imagenDe(20260919);
 
       expect(imagen, same(DailyChallengeService.imagenRespaldo));
+    });
+  });
+
+  group('clave de caché de la foto del día', () {
+    const url = 'https://storage.example/v0/b/x/o/daily.jpg?alt=media&token=a';
+
+    test('cada día tiene su propia entrada de caché', () {
+      // Aunque Storage devolviera la misma URL para dos fechas —con un CDN o un
+      // proxy por delante dejaría de ser imposible— la clave no se puede
+      // compartir: el tablero de hoy mostraría la foto de ayer.
+      expect(
+        DailyChallengeService.claveCacheImagen(20260919, url),
+        isNot(DailyChallengeService.claveCacheImagen(20260920, url)),
+      );
+    });
+
+    test('la misma foto da siempre la misma clave', () {
+      expect(
+        DailyChallengeService.claveCacheImagen(20260919, url),
+        DailyChallengeService.claveCacheImagen(20260919, url),
+      );
+    });
+
+    test('reemplazar la foto del día renueva la clave', () {
+      // Al reemplazar el archivo, Storage emite un token nuevo. Si la clave
+      // quedara fija en la semilla, `CachedNetworkImageProvider` compararía los
+      // dos providers como iguales (`cacheKey ?? url`) y el `Image` ni siquiera
+      // volvería a pedir la imagen: seguiría sirviendo la vieja.
+      expect(
+        DailyChallengeService.claveCacheImagen(20260919, 'url-vieja'),
+        isNot(DailyChallengeService.claveCacheImagen(20260919, 'url-nueva')),
+      );
+    });
+  });
+
+  group('reloj inyectable', () {
+    tearDown(() => DailyChallengeService.reloj = DateTime.now);
+
+    test('semillaHoy sale del reloj', () {
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 19, 23, 30);
+      expect(DailyChallengeService.semillaHoy, 20260919);
+    });
+
+    test('tableroHoy sigue al reloj', () {
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 19);
+      final del19 = DailyChallengeService.tableroHoy();
+
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 20);
+      expect(DailyChallengeService.tableroHoy(), isNot(equals(del19)));
+    });
+
+    test('yaJugoHoy sin argumento lee el reloj', () async {
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 19);
+      await DailyChallengeService.marcarJugadoHoy();
+      expect(await DailyChallengeService.yaJugoHoy(), isTrue);
+
+      // Un segundo después de la medianoche UTC ya es otro desafío: el candado
+      // tiene que destrabarse solo, sin que nadie limpie nada.
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 20, 0, 0, 1);
+      expect(await DailyChallengeService.yaJugoHoy(), isFalse);
+    });
+
+    test('un DateTime explícito le gana al reloj', () async {
+      DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 20);
+      await DailyChallengeService.marcarJugadoHoy(
+        ahora: DateTime.utc(2026, 9, 19),
+      );
+
+      expect(
+        await DailyChallengeService.yaJugoHoy(ahora: DateTime.utc(2026, 9, 19)),
+        isTrue,
+      );
+      expect(
+        await DailyChallengeService.yaJugoHoy(),
+        isFalse,
+        reason: 'sin argumento manda el reloj, que acá apunta al día siguiente',
+      );
     });
   });
 

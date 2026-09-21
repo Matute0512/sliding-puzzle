@@ -83,6 +83,14 @@ class ImageTile extends StatelessWidget {
     return FractionalOffset(col / divisor, fila / divisor);
   }
 
+  /// Imágenes que ya avisaron que no se pudieron dibujar.
+  ///
+  /// El `errorBuilder` corre una vez **por ficha** —ocho en el diario 3x3—, así
+  /// que sin esto un solo fallo de descarga imprimiría ocho líneas idénticas.
+  /// El fallo es de la imagen, no de la ficha, y por eso el registro es
+  /// estático. Se acota solo: cada `ImageProvider` distinto entra una vez.
+  static final Set<ImageProvider> _avisadas = <ImageProvider>{};
+
   /// La imagen con su respaldo, para no repetir el `errorBuilder` en los dos
   /// lugares donde se dibuja.
   Widget _imagenConRespaldo(BoxFit fit) {
@@ -95,7 +103,20 @@ class ImageTile extends StatelessWidget {
       // el tablero en blanco y el desafío sería injugable.
       errorBuilder: respaldoSeguro == null
           ? null
-          : (_, _, _) => Image(image: respaldoSeguro, fit: fit),
+          : (_, error, _) {
+              // Este es el tramo más silencioso del camino de la foto del día:
+              // `DailyChallengeService.imagenDe` avisa cuando no puede resolver
+              // la URL, pero cuando la resuelve y **la descarga** falla después,
+              // el único síntoma era que el tablero mostraba la foto de
+              // respaldo. Se veía igual que un día sin foto subida.
+              if (_avisadas.add(imagen)) {
+                debugPrint(
+                  'ImageTile: no se pudo descargar la imagen del tablero '
+                  '($error). Se usa la de respaldo.',
+                );
+              }
+              return Image(image: respaldoSeguro, fit: fit);
+            },
     );
   }
 
