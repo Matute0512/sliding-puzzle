@@ -135,10 +135,17 @@ class DailyChallengeService {
 
   /// Ruta de la foto del día dentro del bucket de Cloud Storage.
   ///
-  /// `daily/YYYYMMDD.jpg`. La fecha como nombre hace que subir la del día sea
+  /// `daily/YYYYMMDD.webp`. La fecha como nombre hace que subir la del día sea
   /// simplemente dejar un archivo con el nombre correcto: no hay índice que
   /// mantener ni configuración que tocar.
-  static String rutaImagen(int semilla) => 'daily/$semilla.jpg';
+  ///
+  /// La extensión es `.webp` porque es la que produce el script que optimiza las
+  /// fotos antes de subirlas. Tiene que coincidir **exactamente**: Storage no
+  /// negocia formatos ni redirige, así que un desajuste acá no falla al resolver
+  /// la URL —`getDownloadURL()` anda igual— sino que devuelve
+  /// `object-not-found` y manda el tablero al respaldo. Fue justo lo que pasó
+  /// con `.jpg`.
+  static String rutaImagen(int semilla) => 'daily/$semilla.webp';
 
   /// Clave de caché de la foto del día.
   ///

@@ -141,11 +141,23 @@ void main() {
   });
 
   group('foto del día en Cloud Storage', () {
-    test('la ruta es daily/YYYYMMDD.jpg', () {
+    test('la ruta es daily/YYYYMMDD.webp', () {
       // El nombre es la fecha, así subir la foto del día es solo dejar el
       // archivo con el nombre correcto: sin índice ni configuración.
-      expect(DailyChallengeService.rutaImagen(20260919), 'daily/20260919.jpg');
-      expect(DailyChallengeService.rutaImagen(20260105), 'daily/20260105.jpg');
+      expect(DailyChallengeService.rutaImagen(20260919), 'daily/20260919.webp');
+      expect(DailyChallengeService.rutaImagen(20260105), 'daily/20260105.webp');
+    });
+
+    test('la extensión es la que produce el script de optimización', () {
+      // Storage no negocia formatos: no falla al resolver la URL, devuelve
+      // `object-not-found` y el tablero cae al respaldo en silencio. Un
+      // desajuste acá ya costó un hotfix (era `.jpg` y las fotos son `.webp`),
+      // así que la extensión queda clavada por test.
+      expect(
+        DailyChallengeService.rutaImagen(20260919),
+        endsWith('.webp'),
+        reason: 'tiene que coincidir con lo que sube el script de optimización',
+      );
     });
 
     test('cada día apunta a un archivo distinto', () {

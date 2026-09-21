@@ -56,10 +56,10 @@ La única excepción es **antes del primer movimiento**. Si la app quedó en seg
 Empaquetar cientos de fotos habría hecho explotar el tamaño de la app, así que la foto del día se descarga de **Cloud Storage** siguiendo una convención de nombres:
 
 ```text
-daily/YYYYMMDD.jpg        →        daily/20260920.jpg
+daily/YYYYMMDD.webp       →        daily/20260920.webp
 ```
 
-Subir la foto del día es solo dejar el archivo con el nombre correcto: no hay índice que mantener ni configuración que tocar. La URL se resuelve con `getDownloadURL()` del SDK (no armándola a mano), para que funcione con las reglas de seguridad tal como están, mandando el token de la sesión. Las imágenes quedan cacheadas en disco (`cached_network_image`), así que reabrir el desafío el mismo día no vuelve a descargar. La entrada de caché se identifica con `DailyChallengeService.claveCacheImagen(semilla, url)`: la **semilla adelante** para que dos días no puedan compartir entrada ni aunque Storage devolviera la misma URL para ambos, y la **URL detrás** para que reemplazar la foto de un día ya cacheado sí se vea —`CachedNetworkImageProvider` compara por `cacheKey ?? url`, así que con la clave fija en la semilla el `Image` ni siquiera volvería a pedirla.
+Subir la foto del día es solo dejar el archivo con el nombre correcto: no hay índice que mantener ni configuración que tocar. La extensión (`.webp`, la que produce el script que optimiza las fotos) tiene que coincidir **exactamente** con la que pide `DailyChallengeService.rutaImagen`: Storage no negocia formatos ni redirige, así que un desajuste no falla al resolver la URL sino que devuelve `object-not-found` y manda el tablero al respaldo. La URL se resuelve con `getDownloadURL()` del SDK (no armándola a mano), para que funcione con las reglas de seguridad tal como están, mandando el token de la sesión. Las imágenes quedan cacheadas en disco (`cached_network_image`), así que reabrir el desafío el mismo día no vuelve a descargar. La entrada de caché se identifica con `DailyChallengeService.claveCacheImagen(semilla, url)`: la **semilla adelante** para que dos días no puedan compartir entrada ni aunque Storage devolviera la misma URL para ambos, y la **URL detrás** para que reemplazar la foto de un día ya cacheado sí se vea —`CachedNetworkImageProvider` compara por `cacheKey ?? url`, así que con la clave fija en la semilla el `Image` ni siquiera volvería a pedirla.
 
 ### Vista previa de la foto
 
@@ -104,7 +104,7 @@ El camino de error **no puede entrar en un bucle de reintentos**: `ImageTile` es
 | url_launcher | 6.3.1 | Abre la ficha de la app en Google Play (aviso de calificación) |
 | **Firebase Authentication (Anonymous)** | firebase_auth 6.6.1 | Sesión anónima para el Top 5 Global |
 | **Cloud Firestore** | cloud_firestore 6.9.0 | Base de datos del Top 5 Global y del ranking diario |
-| **Firebase Storage** | firebase_storage 13.6.0 | Foto del Desafío Diario (`daily/YYYYMMDD.jpg`) |
+| **Firebase Storage** | firebase_storage 13.6.0 | Foto del Desafío Diario (`daily/YYYYMMDD.webp`) |
 | cached_network_image | 3.4.1 | Descarga y caché en disco de la foto del día |
 | Poppins | — | Tipografía empaquetada como asset (sin descarga en runtime) |
 
