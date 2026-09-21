@@ -49,6 +49,8 @@ static List<int> tableroDe(DateTime ahora)        // PuzzleLogic.generarTableroD
 
 La semilla se captura **una sola vez, al entrar a la pantalla** (`initState`), nunca al ganar. Si alguien arranca a las 23:59 UTC y termina pasada la medianoche, el tablero que jugó es el del día en que *empezó*: recalcularla al ganar mandaría el resultado al ranking del día siguiente y le marcaría como jugado un desafío que nunca vio. Por eso `marcarJugado(semilla)` recibe la semilla en vez de leer el reloj.
 
+La única excepción es **antes del primer movimiento**. Si la app quedó en segundo plano cruzando la medianoche UTC y el jugador todavía no movió ninguna ficha, al volver se recarga el desafío del día nuevo (`GameScreen._adoptarDiaActualSiCambio`): no hay puntaje ni tablero que proteger, y quedarse en el de ayer lo dejaría sin el desafío de hoy. Una vez que la partida arrancó, el día queda congelado.
+
 ### Imágenes en Firebase Storage
 
 Empaquetar cientos de fotos habría hecho explotar el tamaño de la app, así que la foto del día se descarga de **Cloud Storage** siguiendo una convención de nombres:
@@ -57,7 +59,13 @@ Empaquetar cientos de fotos habría hecho explotar el tamaño de la app, así qu
 daily/YYYYMMDD.jpg        →        daily/20260920.jpg
 ```
 
-Subir la foto del día es solo dejar el archivo con el nombre correcto: no hay índice que mantener ni configuración que tocar. La URL se resuelve con `getDownloadURL()` del SDK (no armándola a mano), para que funcione con las reglas de seguridad tal como están, mandando el token de la sesión. Las imágenes quedan cacheadas en disco (`cached_network_image`), así que reabrir el desafío el mismo día no vuelve a descargar.
+Subir la foto del día es solo dejar el archivo con el nombre correcto: no hay índice que mantener ni configuración que tocar. La URL se resuelve con `getDownloadURL()` del SDK (no armándola a mano), para que funcione con las reglas de seguridad tal como están, mandando el token de la sesión. Las imágenes quedan cacheadas en disco (`cached_network_image`), así que reabrir el desafío el mismo día no vuelve a descargar. La entrada de caché se identifica con `DailyChallengeService.claveCacheImagen(semilla, url)`: la **semilla adelante** para que dos días no puedan compartir entrada ni aunque Storage devolviera la misma URL para ambos, y la **URL detrás** para que reemplazar la foto de un día ya cacheado sí se vea —`CachedNetworkImageProvider` compara por `cacheKey ?? url`, así que con la clave fija en la semilla el `Image` ni siquiera volvería a pedirla.
+
+### Vista previa de la foto
+
+El Desafío Diario abre con la foto del día entera a la vista (`DailyPreviewDialog`), antes de dejar mover ninguna ficha: el tablero arranca desarmado y cada ficha muestra un recorte que, aislado, no dice nada de la imagen completa. La vista previa la muestra **sin recortar** (`BoxFit.contain`), mientras que el tablero la recorta a cuadrado para que cada ficha sea 1/n exacto.
+
+El diálogo escucha el `ValueNotifier` de la imagen, así que **se actualiza solo** cuando la descarga termina: se abre con la foto de respaldo apenas hay un frame y no espera a la red. Si el día cambia con el diálogo abierto, muestra la foto nueva sin necesidad de abrirse otra vez.
 
 ### Intento único diario
 
@@ -75,6 +83,8 @@ El tablero **nunca se ve vacío ni queda injugable**. El respaldo está en dos c
 | La URL resuelve pero la descarga falla | El `errorBuilder` de `ImageTile` cae a `imagenRespaldo` |
 
 Cubrir una sola capa dejaría un agujero: si el archivo existe pero la descarga se corta a mitad, la primera no se entera. Además `GameScreen` arranca con la foto de respaldo ya puesta y la reemplaza cuando llega la del día, así que el tablero es jugable desde el primer frame y, si la foto nunca llega, ya estaba la otra.
+
+Las dos capas **avisan por log** cuando se activan —`Desafío Diario: no se pudo resolver la foto del día …` y `ImageTile: no se pudo descargar la imagen del tablero …`—. Sin ese aviso, una regla de Storage mal puesta se veía idéntica a un día sin foto subida: el tablero funcionaba y nadie notaba que no se estaba jugando la foto del día.
 
 El camino de error **no puede entrar en un bucle de reintentos**: `ImageTile` es `StatelessWidget` —no hay `setState` propio que dispare un rebuild—, el `errorBuilder` devuelve un `AssetImage` empaquetado y nunca vuelve a envolver la imagen de red (no se recursa), y la resolución de la URL corre una sola vez desde `initState`, no en cada `build`.
 

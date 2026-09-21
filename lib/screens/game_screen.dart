@@ -12,6 +12,7 @@ import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/alias_dialog.dart';
+import '../widgets/daily_preview_dialog.dart';
 import '../widgets/daily_victory_dialog.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_board.dart';
@@ -115,7 +116,23 @@ class _GameScreenState extends State<GameScreen> {
   /// Arranca en la foto de respaldo y se reemplaza cuando la del día está
   /// lista. Así el tablero nunca se ve vacío mientras se resuelve la URL, y si
   /// la resolución falla se queda con la de respaldo sin más vueltas.
-  ImageProvider? _imagenDiaria;
+  ///
+  /// Es un `ValueNotifier` —y no un campo simple— porque hay dos consumidores
+  /// que tienen que reaccionar a ese reemplazo por su cuenta: el tablero y la
+  /// vista previa, que se abre *antes* de que la descarga termine. Con un campo
+  /// simple el `setState` los alcanzaba a los dos, pero el diálogo vive en otra
+  /// ruta y no se entera de los `setState` de esta pantalla.
+  ///
+  /// `null` en los otros modos: ahí las fichas van con números.
+  final ValueNotifier<ImageProvider?> _imagenDiaria =
+      ValueNotifier<ImageProvider?>(null);
+
+  /// `true` mientras la vista previa del día está en pantalla.
+  ///
+  /// Evita apilar dos diálogos si el día cambia con la vista previa ya abierta:
+  /// ese caso no necesita abrir otro, porque el que está arriba escucha a
+  /// [_imagenDiaria] y se actualiza solo con la foto nueva.
+  bool _previewDiarioAbierta = false;
 
   bool _juegoIniciado = false;
   bool _pausado = false;
@@ -148,8 +165,15 @@ class _GameScreenState extends State<GameScreen> {
       // Se arranca con la foto empaquetada y se resuelve la del día por detrás:
       // esperar la red antes de montar el tablero dejaría la pantalla en blanco
       // justo al entrar.
-      _imagenDiaria = DailyChallengeService.imagenRespaldo;
+      _imagenDiaria.value = DailyChallengeService.imagenRespaldo;
       unawaited(_cargarImagenDiaria());
+      // La vista previa sale apenas hay un frame que mostrar. Esperar a la
+      // descarga para abrirla dejaría al jugador mirando un tablero desarmado
+      // sin saber qué foto tiene que armar, que es justo lo que viene a
+      // resolver.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_mostrarPreviewDiario());
+      });
     }
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
@@ -185,6 +209,7 @@ class _GameScreenState extends State<GameScreen> {
     _lifecycleListener.dispose();
     _segundos.dispose();
     _avisoTop.dispose();
+    _imagenDiaria.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -231,11 +256,30 @@ class _GameScreenState extends State<GameScreen> {
   /// Resuelve la foto del día desde Cloud Storage.
   ///
   /// Nunca falla: si algo sale mal, `imagenDe` devuelve la de respaldo y el
-  /// `setState` es un no-op efectivo.
+  /// cambio de valor es un no-op efectivo.
   Future<void> _cargarImagenDiaria() async {
-    final imagen = await DailyChallengeService.imagenDe(_semillaDiaria!);
-    if (!mounted) return;
-    setState(() => _imagenDiaria = imagen);
+    // La semilla se captura antes del `await`: si el día cambia mientras la
+    // descarga está en vuelo, esta respuesta ya es de un desafío que no se está
+    // jugando y pisaría la foto del día nuevo.
+    final semilla = _semillaDiaria!;
+    final imagen = await DailyChallengeService.imagenDe(semilla);
+    if (!mounted || semilla != _semillaDiaria) return;
+    _imagenDiaria.value = imagen;
+  }
+
+  /// Muestra la foto del día entera antes de que el jugador empiece a mover.
+  Future<void> _mostrarPreviewDiario() async {
+    if (!mounted || _previewDiarioAbierta) return;
+    _previewDiarioAbierta = true;
+    try {
+      await DailyPreviewDialog.mostrar(
+        context,
+        imagen: _imagenDiaria,
+        respaldo: DailyChallengeService.imagenRespaldo,
+      );
+    } finally {
+      _previewDiarioAbierta = false;
+    }
   }
 
   /// Sale al menú principal limpiando la pila de navegación.
@@ -261,12 +305,50 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _reanudarSiJugando() {
-    if (_juegoIniciado && _pausado && !_juegoTerminado && mounted) {
+    if (!mounted) return;
+    // La app pudo quedar en segundo plano cruzando la medianoche UTC, así que
+    // "hoy" puede ya no ser el día de esta partida.
+    _adoptarDiaActualSiCambio();
+
+    if (_juegoIniciado && _pausado && !_juegoTerminado) {
       setState(() {
         _pausado = false;
         _iniciarTimer();
       });
     }
+  }
+
+  /// Pasa el desafío al día UTC nuevo si la app cruzó la medianoche en segundo
+  /// plano.
+  ///
+  /// Solo aplica mientras el jugador **no haya movido ninguna ficha**. Una vez
+  /// que la partida arrancó, el tablero y el puntaje son los del día en que se
+  /// empezó (ver [_semillaDiaria]): cambiarlos a mitad de camino le daría un
+  /// puntaje del día nuevo a un tablero que vio en el viejo, o —peor— le
+  /// marcaría como jugado un desafío con el que nunca se enfrentó.
+  ///
+  /// Antes del primer movimiento no hay nada que proteger: el tablero sigue
+  /// siendo uno que nadie más puede jugar, y el jugador se quedaría sin el
+  /// desafío del día sin haber hecho nada. Ahí sí corresponde recargar.
+  void _adoptarDiaActualSiCambio() {
+    if (!widget.esDiario || _juegoTerminado || _juegoIniciado) return;
+
+    final hoy = DailyChallengeService.semillaHoy;
+    if (hoy == _semillaDiaria) return;
+
+    setState(() {
+      _semillaDiaria = hoy;
+      _tablero = _nuevoTablero();
+      // La foto del día anterior no sirve para el tablero nuevo: se vuelve a la
+      // de respaldo hasta que llegue la de hoy, igual que al entrar.
+      _imagenDiaria.value = DailyChallengeService.imagenRespaldo;
+    });
+    unawaited(_cargarImagenDiaria());
+
+    // Es otra foto y el jugador todavía no vio ninguna: si la vista previa ya
+    // estaba abierta se actualiza sola (escucha a [_imagenDiaria]), y si no,
+    // hay que volver a mostrarla.
+    unawaited(_mostrarPreviewDiario());
   }
 
   /// Arranca el cronómetro y el refresco del HUD. La cuenta la lleva el
@@ -986,14 +1068,19 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 32),
                       AspectRatio(
                         aspectRatio: 1,
-                        child: PuzzleBoard(
-                          tablero: _tablero,
-                          size: widget.size,
-                          onTileTap: _onTapFicha,
-                          // Solo el diario se arma como imagen; los otros dos
-                          // modos siguen con fichas numéricas.
-                          imagen: _imagenDiaria,
-                          imagenRespaldo: DailyChallengeService.imagenRespaldo,
+                        child: ValueListenableBuilder<ImageProvider?>(
+                          valueListenable: _imagenDiaria,
+                          builder: (_, imagen, _) => PuzzleBoard(
+                            tablero: _tablero,
+                            size: widget.size,
+                            onTileTap: _onTapFicha,
+                            // Solo el diario se arma como imagen; los otros dos
+                            // modos siguen con fichas numéricas (`imagen` es
+                            // `null` ahí).
+                            imagen: imagen,
+                            imagenRespaldo:
+                                DailyChallengeService.imagenRespaldo,
+                          ),
                         ),
                       ),
                     ],
