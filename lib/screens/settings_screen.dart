@@ -38,78 +38,9 @@ class SettingsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              _SeccionTitulo(titulo: l10n.appearance, colors: colors),
-              const SizedBox(height: 12),
-              _CardConfiguracion(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.theme,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: KenneyInk.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // width: double.infinity + expandedInsets hacen que el
-                    // control ocupe todo el ancho de la card y reparta los
-                    // 3 segmentos de forma pareja y centrada.
-                    SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<ThemeMode>(
-                        expandedInsets: EdgeInsets.zero,
-                        // El checkmark de selección roba ancho horizontal y
-                        // hace que 'Sistema' se corte en pantallas angostas.
-                        showSelectedIcon: false,
-                        style: SegmentedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          selectedBackgroundColor: AppTheme.seedColor,
-                          selectedForegroundColor: Colors.white,
-                          foregroundColor: KenneyInk.primary,
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: ThemeMode.light,
-                            icon: const Icon(Icons.light_mode),
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(l10n.themeLight, maxLines: 1),
-                            ),
-                            tooltip: l10n.themeLight,
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.dark,
-                            icon: const Icon(Icons.dark_mode),
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(l10n.themeDark, maxLines: 1),
-                            ),
-                            tooltip: l10n.themeDark,
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.system,
-                            icon: const Icon(Icons.brightness_auto),
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(l10n.themeSystem, maxLines: 1),
-                            ),
-                            tooltip: l10n.themeSystem,
-                          ),
-                        ],
-                        selected: {settings.themeMode},
-                        onSelectionChanged: (valor) {
-                          context.read<AppSettingsProvider>().cambiarTema(
-                            valor.first,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              // Se sacó la sección "Apariencia" con el selector de tema: el
+              // juego tiene un único aspecto (ver `AppTheme.game`) y un control
+              // que no cambia nada sería peor que no tenerlo.
               _SeccionTitulo(titulo: l10n.sound, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
