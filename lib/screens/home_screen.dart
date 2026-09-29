@@ -13,6 +13,7 @@ import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import '../widgets/daily_results_dialog.dart';
 import '../widgets/difficulty_button.dart';
 
@@ -533,16 +534,19 @@ class _BotonContinuar extends StatelessWidget {
     return Semantics(
       button: true,
       label: l10n.continueGameSemantics(detalle),
-      child: Material(
-        color: AppTheme.seedColor,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-            child: Row(
-              children: [
+      // El `Material` va transparente y por dentro del sprite: así la tinta del
+      // `InkWell` se pinta arriba del fondo en vez de taparlo.
+      child: KenneySurface(
+        slice: KenneySlices.primaryButton,
+        tint: AppTheme.seedColor,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+              child: Row(
+                children: [
                 const Icon(
                   Icons.play_circle_fill_rounded,
                   color: Colors.white,
@@ -580,7 +584,8 @@ class _BotonContinuar extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

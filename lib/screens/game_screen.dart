@@ -11,6 +11,7 @@ import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import '../widgets/alias_dialog.dart';
 import '../widgets/daily_preview_dialog.dart';
 import '../widgets/daily_victory_dialog.dart';
@@ -452,23 +453,25 @@ class _GameScreenState extends State<GameScreen> {
       builder: (_) => Stack(
         alignment: Alignment.topCenter,
         children: [
-          AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            // El título y el aviso reaccionan al resultado del ranking, que
-            // puede llegar después de que el modal ya esté en pantalla.
-            title: ValueListenableBuilder<String?>(
-              valueListenable: _avisoTop,
-              builder: (_, aviso, _) => Text(
-                aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            content: Column(
+          KenneyDialog(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // El título y el aviso reaccionan al resultado del ranking, que
+                // puede llegar después de que el modal ya esté en pantalla.
+                ValueListenableBuilder<String?>(
+                  valueListenable: _avisoTop,
+                  builder: (_, aviso, _) => Text(
+                    aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: KenneyInk.primary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _FilaResultado(
                   icono: Icons.timer,
                   label: l10n.time,
@@ -497,48 +500,38 @@ class _GameScreenState extends State<GameScreen> {
                     );
                   },
                 ),
+                const SizedBox(height: 20),
+                KenneyButton(
+                  tint: AppTheme.seedColor,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _reiniciar();
+                  },
+                  child: Text(
+                    l10n.playAgain,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.seedColor,
+                  ),
+                  // Un único `popUntil`: cierra el diálogo Y el juego de una
+                  // pasada, en vez de encadenar dos navegaciones en el mismo
+                  // frame (dos animaciones de salida superpuestas).
+                  onPressed: () => unawaited(_volverAlMenu()),
+                  icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                  label: Text(
+                    l10n.backToMenu,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
               ],
             ),
-            actions: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.seedColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _reiniciar();
-                    },
-                    child: Text(
-                      l10n.playAgain,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.seedColor,
-                    ),
-                    // Un único `popUntil`: cierra el diálogo Y el juego de una
-                    // pasada, en vez de encadenar dos navegaciones en el mismo
-                    // frame (dos animaciones de salida superpuestas).
-                    onPressed: () => unawaited(_volverAlMenu()),
-                    icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                    label: Text(
-                      l10n.backToMenu,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
           // Confetti encima del dialog
           ConfettiWidget(
@@ -1068,18 +1061,29 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 32),
                       AspectRatio(
                         aspectRatio: 1,
-                        child: ValueListenableBuilder<ImageProvider?>(
-                          valueListenable: _imagenDiaria,
-                          builder: (_, imagen, _) => PuzzleBoard(
-                            tablero: _tablero,
-                            size: widget.size,
-                            onTileTap: _onTapFicha,
-                            // Solo el diario se arma como imagen; los otros dos
-                            // modos siguen con fichas numéricas (`imagen` es
-                            // `null` ahí).
-                            imagen: imagen,
-                            imagenRespaldo:
-                                DailyChallengeService.imagenRespaldo,
+                        // El pozo de Kenney va acá afuera y no dentro de
+                        // `PuzzleBoard` a propósito: `puzzle_solver.dart` deduce
+                        // la posición de cada ficha del tamaño exacto del
+                        // `PuzzleBoard` (`getSize`) y de que las fichas arranquen
+                        // en (0,0). Si el padding viviera adentro, el tablero
+                        // quedaría corrido respecto de esa cuenta y los tests que
+                        // juegan una partida entera fallarían.
+                        child: KenneySurface(
+                          slice: KenneySlices.insetWell,
+                          padding: const EdgeInsets.all(12),
+                          child: ValueListenableBuilder<ImageProvider?>(
+                            valueListenable: _imagenDiaria,
+                            builder: (_, imagen, _) => PuzzleBoard(
+                              tablero: _tablero,
+                              size: widget.size,
+                              onTileTap: _onTapFicha,
+                              // Solo el diario se arma como imagen; los otros dos
+                              // modos siguen con fichas numéricas (`imagen` es
+                              // `null` ahí).
+                              imagen: imagen,
+                              imagenRespaldo:
+                                  DailyChallengeService.imagenRespaldo,
+                            ),
                           ),
                         ),
                       ),

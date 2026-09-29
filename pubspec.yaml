@@ -86,6 +86,9 @@ flutter:
     - assets/sounds/
     # Imágenes del rompecabezas con fotos (Desafío Diario).
     - assets/images/
+    # Sprites del UI Pack de Kenney (CC0), usados como superficies 9-slice.
+    # Es el subconjunto curado, no el pack entero: ver .gitignore.
+    - assets/ui/kenney/
 
   fonts:
     - family: Poppins
