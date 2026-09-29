@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 
-/// Tarjeta del HUD para mostrar tiempos y movimientos
+import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
+
+/// Tarjeta del HUD para mostrar tiempos y movimientos.
+///
+/// La superficie es un sprite 9-slice de Kenney, y **sin tintar**: los sprites
+/// del pack tienen un solo aspecto, no siguen el tema claro/oscuro de la app.
+/// Eso obliga a fijar los colores del texto en vez de sacarlos de `AppColors`
+/// (ver [KenneyInk]): en tema oscuro `textPrimary` es casi blanco, y texto casi
+/// blanco sobre un panel gris claro no se lee.
 class HudCard extends StatelessWidget {
   final IconData icono;
   final String label;
@@ -16,39 +24,24 @@ class HudCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return Container(
+    return KenneySurface(
+      slice: KenneySlices.flatPanel,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           Icon(icono, color: AppTheme.seedColor, size: 22),
           const SizedBox(height: 4),
           Text(
             valor,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: colors.textPrimary,
+              color: KenneyInk.primary,
             ),
           ),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: colors.textSecondary,
-            ),
+            style: const TextStyle(fontSize: 12, color: KenneyInk.secondary),
           ),
         ],
       ),
