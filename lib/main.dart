@@ -11,6 +11,7 @@ import 'providers/app_settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/sound_service.dart';
 import 'theme/app_theme.dart';
+import 'theme/kenney_ui.dart';
 
 Future<void> _inicializarFirebase() async {
   try {
@@ -63,6 +64,12 @@ class SlidingPuzzleApp extends StatelessWidget {
       // modo claro/oscuro del sistema. Como `theme` es lo único que hay,
       // MaterialApp lo usa siempre, sin importar lo que diga el dispositivo.
       theme: AppTheme.game,
+      // El fondo del juego se monta acá, una sola vez, y no en cada pantalla:
+      // así el patrón es continuo entre pantallas y no se desplaza al navegar.
+      // Para que se vea, los Scaffold tienen el fondo transparente (ver
+      // AppTheme.game).
+      builder: (context, child) =>
+          GameBackground(child: child ?? const SizedBox.shrink()),
       home: const HomeScreen(),
     );
   }

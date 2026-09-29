@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sliding_puzzle/theme/app_theme.dart';
 import 'package:sliding_puzzle/theme/kenney_ui.dart';
 
 import '../helpers/localized_app.dart';
@@ -169,6 +170,39 @@ void main() {
       // responde, que es lo que se espera de un botón deshabilitado.
       expect(find.text('deshabilitado'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('fondo del juego', () {
+    // Este widget se monta desde `MaterialApp.builder` en main.dart, y los
+    // tests montan `appLocalizada` en vez de `SlidingPuzzleApp`, así que sin
+    // este test el cableado del fondo no lo cubre nada: un asset mal escrito o
+    // un `centerSlice` de más pasaría sin que ningún test se entere.
+    testWidgets('repite la baldosa y resuelve el asset', (tester) async {
+      await tester.pumpWidget(
+        appLocalizada(home: const GameBackground(child: Scaffold())),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      final caja = tester.widget<DecoratedBox>(
+        find
+            .descendant(
+              of: find.byType(GameBackground),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      final deco = caja.decoration as BoxDecoration;
+      final imagen = deco.image!;
+
+      expect((imagen.image as AssetImage).assetName, KenneySlices.flatSquare.asset);
+      expect(imagen.repeat, ImageRepeat.repeat);
+      // Sin `centerSlice`: acá el sprite se repite, no se estira. Si alguien lo
+      // agregara, la baldosa se deformaría en vez de tilearse.
+      expect(imagen.centerSlice, isNull);
+      // El color de base es el que se ve por las esquinas redondeadas.
+      expect(deco.color, AppTheme.gameBackground);
     });
   });
 }

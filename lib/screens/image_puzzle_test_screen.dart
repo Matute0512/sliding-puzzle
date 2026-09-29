@@ -69,7 +69,8 @@ class _ImagePuzzleTestScreenState extends State<ImagePuzzleTestScreen> {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -127,7 +128,7 @@ class _ImagePuzzleTestScreenState extends State<ImagePuzzleTestScreen> {
                   'Cambiar de tablero: modificar `size` en '
                   'ImagePuzzleTestScreen.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                  style: TextStyle(fontSize: 10, color: colors.textSecondary),
                 ),
               ],
             ),

@@ -133,10 +133,10 @@ class PuzzleTile extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: size == 3
-                                ? 28
+                                ? 24
                                 : size == 4
-                                ? 22
-                                : 16,
+                                ? 19
+                                : 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

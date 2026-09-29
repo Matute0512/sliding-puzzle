@@ -91,6 +91,24 @@ flutter:
     - assets/ui/kenney/
 
   fonts:
+    # Tipografía arcade del UI Pack de Kenney (CC0). Es la fuente por defecto de
+    # toda la app (ver AppTheme.game). Verificado: tiene cobertura completa del
+    # español (á é í ó ú ü ñ ¡ ¿ en minúscula y mayúscula), así que no aparecen
+    # cuadraditos en los textos traducidos.
+    - family: Kenney Future
+      fonts:
+        - asset: assets/fonts/KenneyFuture-Regular.ttf
+
+    # Ojo: la variante "Kenney Future Narrow" del pack NO se registra. Medida
+    # contra la regular da el mismo ancho promedio (+38% vs Poppins las dos): lo
+    # que hace es redistribuir, achicando las letras anchas (W: 1.082 -> 0.949)
+    # y ensanchando las finas (i: 0.332 -> 0.449). Para bajar el ancho hay que
+    # tocar los fontSize, no cambiar de familia.
+
+    # Poppins quedó sin uso al pasar Kenney Future a fuente global. Se deja
+    # registrada para poder volver atrás con un cambio de una línea en
+    # AppTheme; si se confirma el rediseño, se puede borrar la familia y los
+    # tres .ttf (son ~475 KB de bundle).
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf

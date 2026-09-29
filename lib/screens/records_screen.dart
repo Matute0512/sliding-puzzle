@@ -89,7 +89,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -141,7 +142,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   l10n.top5Error,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: colors.textSecondary,
                   ),
                 ),
@@ -233,7 +234,7 @@ class _SeccionTop extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: KenneyInk.primary,
                 ),
@@ -242,7 +243,7 @@ class _SeccionTop extends StatelessWidget {
               Text(
                 descripcion,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   color: KenneyInk.secondary,
                 ),
               ),
@@ -255,7 +256,7 @@ class _SeccionTop extends StatelessWidget {
               l10n.top5Empty,
               style: const TextStyle(
                 color: KenneyInk.secondary,
-                fontSize: 13,
+                fontSize: 11,
               ),
             )
           else
@@ -271,7 +272,7 @@ class _SeccionTop extends StatelessWidget {
                         child: Text(
                           '#',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: KenneyInk.secondary,
                           ),
@@ -281,7 +282,7 @@ class _SeccionTop extends StatelessWidget {
                         child: Text(
                           l10n.aliasColumn,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: KenneyInk.secondary,
                           ),
@@ -300,7 +301,7 @@ class _SeccionTop extends StatelessWidget {
                             Text(
                               l10n.movesColumn,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: KenneyInk.secondary,
                               ),
@@ -321,7 +322,7 @@ class _SeccionTop extends StatelessWidget {
                             Text(
                               l10n.timeColumn,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: KenneyInk.secondary,
                               ),
@@ -360,7 +361,7 @@ class _SeccionTop extends StatelessWidget {
                               : Text(
                                   '$puesto',
                                   style: const TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: KenneyInk.secondary,
                                   ),
@@ -372,7 +373,7 @@ class _SeccionTop extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -385,7 +386,7 @@ class _SeccionTop extends StatelessWidget {
                             '${puntaje.movimientos}',
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -398,7 +399,7 @@ class _SeccionTop extends StatelessWidget {
                             l10n.secondsShort(puntaje.tiempoSegundos),
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,

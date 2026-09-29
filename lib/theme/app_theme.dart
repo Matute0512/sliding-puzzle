@@ -74,9 +74,38 @@ class AppTheme {
   static const Color seedColor = Color(0xFF4361EE);
   static const Color accentShadow = Color(0xFF3146B5);
 
-  /// Azul marino profundo. Es el fondo de todas las pantallas y la fuente única
-  /// de `scaffoldBackgroundColor` y de `AppColors.background`.
+  /// Familia por defecto de toda la app. Es la tipografía arcade de Kenney.
+  ///
+  /// Es **+38% más ancha** que Poppins (medido sobre las tablas `hmtx` de los
+  /// dos .ttf, no estimado). Por eso los `fontSize` de la app se redujeron ~15%
+  /// en el mismo cambio: compensa parte del ancho sin que el texto quede chico,
+  /// y al ser un factor uniforme mantiene la jerarquía entre tamaños. Si hay
+  /// que ajustar más, el número a mover es el factor, no cada `fontSize`.
+  ///
+  /// La variante "Narrow" del pack no ayuda a esto: da el mismo ancho promedio.
+  static const String fontFamily = 'Kenney Future';
+
+  /// Azul marino profundo. Ya no es el fondo visible de las pantallas —eso lo
+  /// hace el patrón repetido de `GameBackground`— sino el color que se ve por
+  /// las juntas entre baldosa y baldosa, y el respaldo mientras el patrón
+  /// carga.
   static const Color gameBackground = Color(0xFF0F172A);
+
+  /// Tinte que se le aplica al patrón de fondo (`BlendMode.modulate` sobre un
+  /// sprite gris, igual que en los botones). Es un azul profundo tirando a
+  /// cian: lo bastante distinto de [gameBackground] para que se lean las
+  /// baldosas, y lo bastante apagado para que el tablero siga siendo lo que
+  /// salta a la vista. Subir el brillo acá hace el fondo más protagonista.
+  static const Color patternTint = Color(0xFF1B3B5A);
+
+  /// Tinte de las tarjetas del HUD (Tiempo, Movimientos).
+  ///
+  /// Más oscuro que [patternTint] a propósito: en gris claro las tarjetas se
+  /// leían como dos parches pegados arriba del fondo nuevo, y el HUD tiene que
+  /// sentirse parte de la escena. Al ser una superficie **oscura**, el texto de
+  /// adentro vuelve a salir del tema (`AppColors`) y no de `KenneyInk`, que es
+  /// para texto sobre sprite claro.
+  static const Color hudTint = Color(0xFF152B45);
 
   // Colores del podio. Son para tintar la estrella del ranking (ver
   // `KenneyIcon.tint`): el pack de Kenney no trae bronce, así que el podio no
@@ -100,8 +129,13 @@ class AppTheme {
         brightness: Brightness.dark,
       ),
       useMaterial3: true,
-      scaffoldBackgroundColor: gameBackground,
-      textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
+      fontFamily: fontFamily,
+      // Transparente a propósito: el fondo lo pinta el patrón repetido de
+      // `GameBackground`, que envuelve la app entera desde `MaterialApp.builder`
+      // (ver main.dart). Si el Scaffold pintara un color sólido, taparía el
+      // patrón en todas las pantallas.
+      scaffoldBackgroundColor: Colors.transparent,
+      textTheme: ThemeData.dark().textTheme.apply(fontFamily: fontFamily),
       extensions: const [AppColors.game],
     );
   }

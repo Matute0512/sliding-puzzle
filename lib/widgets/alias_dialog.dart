@@ -68,7 +68,7 @@ class _AliasDialogState extends State<AliasDialog> {
               l10n.aliasDialogTitle,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: KenneyInk.primary,
               ),
@@ -77,7 +77,7 @@ class _AliasDialogState extends State<AliasDialog> {
             Text(
               l10n.aliasDialogBody,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: KenneyInk.secondary),
+              style: const TextStyle(fontSize: 12, color: KenneyInk.secondary),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -88,7 +88,7 @@ class _AliasDialogState extends State<AliasDialog> {
               maxLength: 5,
               inputFormatters: [LengthLimitingTextInputFormatter(5)],
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: KenneyInk.primary,
               ),
