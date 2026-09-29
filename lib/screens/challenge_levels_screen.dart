@@ -6,6 +6,7 @@ import '../logic/puzzle_logic.dart';
 import '../services/records_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import 'game_screen.dart';
 
 /// Pantalla del Modo Desafío: una campaña de 20 niveles (1 a 10 en 3x3,
@@ -132,7 +133,6 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
                           0,
                           (a, b) => a + b,
                         ),
-                        colors: colors,
                       ),
                     ),
                     Expanded(
@@ -171,32 +171,24 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
 class _ResumenProgreso extends StatelessWidget {
   final int nivelMaximo;
   final int totalEstrellas;
-  final AppColors colors;
 
   const _ResumenProgreso({
     required this.nivelMaximo,
     required this.totalEstrellas,
-    required this.colors,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Container(
-      width: double.infinity,
+    // Sin `width: double.infinity`: el `Row` de adentro ya tiene un `Expanded`,
+    // así que ocupa todo el ancho disponible por sí solo.
+    //
+    // La superficie es un panel 9-slice de Kenney, claro en los dos temas: por
+    // eso los textos de adentro usan KenneyInk y no AppColors.
+    return KenneySurface(
+      slice: KenneySlices.flatPanel,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Row(
         children: [
           Expanded(
@@ -205,18 +197,18 @@ class _ResumenProgreso extends StatelessWidget {
               children: [
                 Text(
                   l10n.levelReached,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: colors.textSecondary,
+                    color: KenneyInk.secondary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   l10n.levelProgress(nivelMaximo),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: colors.textPrimary,
+                    color: KenneyInk.primary,
                   ),
                 ),
               ],
@@ -227,27 +219,23 @@ class _ResumenProgreso extends StatelessWidget {
             children: [
               Text(
                 l10n.stars,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
-                  color: colors.textSecondary,
+                  color: KenneyInk.secondary,
                 ),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    color: Color(0xFFF59E0B),
-                    size: 20,
-                  ),
+                  const KenneyIcon(KenneySlices.star, size: 20),
                   const SizedBox(width: 4),
                   Text(
                     l10n.starsProgress(totalEstrellas),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: colors.textPrimary,
+                      color: KenneyInk.primary,
                     ),
                   ),
                 ],
@@ -279,7 +267,6 @@ class _CeldaNivel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = AppLocalizations.of(context)!;
 
     return Semantics(
@@ -287,35 +274,35 @@ class _CeldaNivel extends StatelessWidget {
       label: bloqueado
           ? l10n.levelLockedSemantics(nivel)
           : l10n.levelStarsSemantics(nivel, estrellas),
-      child: Material(
-        color: bloqueado ? colors.emptyTile : colors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: esActual
-                  ? Border.all(color: AppTheme.seedColor, width: 2)
-                  : null,
-              boxShadow: bloqueado
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
+      // La celda es un cuadrado 9-slice de Kenney. El nivel bloqueado se
+      // atenúa entero con `Opacity` en vez de cambiar el color de fondo: el
+      // sprite no se recolorea por tema, y así se lee "apagado" sin tener que
+      // mantener un segundo sprite solo para el estado bloqueado.
+      //
+      // El `Material` transparente por dentro del sprite es para que la tinta
+      // del `InkWell` se pinte encima del fondo en vez de taparlo.
+      child: Opacity(
+        opacity: bloqueado ? 0.55 : 1,
+        child: KenneySurface(
+          slice: KenneySlices.flatSquare,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: esActual
+                      ? Border.all(color: AppTheme.seedColor, width: 2)
+                      : null,
+                ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (bloqueado)
-                  Icon(
+                  const Icon(
                     Icons.lock_outline_rounded,
-                    color: colors.textSecondary,
+                    color: KenneyInk.secondary,
                     size: 24,
                   )
                 else
@@ -326,7 +313,7 @@ class _CeldaNivel extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: esActual
                           ? AppTheme.seedColor
-                          : colors.textPrimary,
+                          : KenneyInk.primary,
                     ),
                   ),
                 if (bloqueado)
@@ -336,32 +323,34 @@ class _CeldaNivel extends StatelessWidget {
                 if (bloqueado)
                   Text(
                     l10n.locked,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 9,
-                      color: colors.textSecondary,
+                      color: KenneyInk.secondary,
                     ),
                   )
                 else
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Estrella amarilla la ganada, contorno gris la pendiente.
+                      // El sprite reemplaza al `Icons.star_*` de Material, que
+                      // no tiene contraparte en el pack de Kenney.
                       for (var i = 0; i < 3; i++)
-                        Icon(
+                        KenneyIcon(
                           i < estrellas
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          color: i < estrellas
-                              ? const Color(0xFFF59E0B)
-                              : colors.textSecondary,
+                              ? KenneySlices.star
+                              : KenneySlices.starOutline,
                           size: 16,
                         ),
                     ],
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
