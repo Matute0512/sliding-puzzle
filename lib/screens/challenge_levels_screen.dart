@@ -228,7 +228,13 @@ class _ResumenProgreso extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const KenneyIcon(KenneySlices.star, size: 20),
+                  // El sprite de la estrella es la máscara gris, así que el
+                  // ámbar hay que ponerlo por tinte.
+                  const KenneyIcon(
+                    KenneySlices.star,
+                    size: 20,
+                    tint: Color(0xFFF59E0B),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     l10n.starsProgress(totalEstrellas),
@@ -332,15 +338,16 @@ class _CeldaNivel extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Estrella amarilla la ganada, contorno gris la pendiente.
-                      // El sprite reemplaza al `Icons.star_*` de Material, que
-                      // no tiene contraparte en el pack de Kenney.
+                      // Estrella ámbar la ganada, contorno gris la pendiente.
+                      // La estrella del pack es la máscara gris, así que el
+                      // ámbar va por tinte; el contorno ya es gris de fábrica.
                       for (var i = 0; i < 3; i++)
                         KenneyIcon(
                           i < estrellas
                               ? KenneySlices.star
                               : KenneySlices.starOutline,
                           size: 16,
+                          tint: i < estrellas ? const Color(0xFFF59E0B) : null,
                         ),
                     ],
                   ),

@@ -337,6 +337,7 @@ class _SeccionTop extends StatelessWidget {
                   final puesto = entry.key + 1;
                   final puntaje = entry.value;
                   final esPrimero = puesto == 1;
+                  final colorPodio = AppTheme.podiumColor(puesto);
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -344,16 +345,26 @@ class _SeccionTop extends StatelessWidget {
                       children: [
                         SizedBox(
                           width: 28,
-                          child: Text(
-                            '$puesto',
-                            style: TextStyle(
-                              fontSize: esPrimero ? 16 : 13,
-                              fontWeight: FontWeight.bold,
-                              color: esPrimero
-                                  ? const Color(0xFFF59E0B)
-                                  : KenneyInk.secondary,
-                            ),
-                          ),
+                          // Los tres primeros puestos van con estrella de podio
+                          // (oro, plata y bronce); del 4º en adelante, el número
+                          // pelado, que no necesita destacarse.
+                          child: colorPodio != null
+                              ? KenneyIcon(
+                                  KenneySlices.star,
+                                  size: 20,
+                                  tint: colorPodio,
+                                  // El número desaparece de la vista, así que
+                                  // el puesto tiene que quedar en la semántica.
+                                  semanticLabel: '$puesto',
+                                )
+                              : Text(
+                                  '$puesto',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: KenneyInk.secondary,
+                                  ),
+                                ),
                         ),
                         Expanded(
                           child: Text(

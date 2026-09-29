@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Colores personalizados que cambian entre tema claro y oscuro,
-/// pero no forman parte del ColorScheme generado por Material 3.
+/// Colores personalizados que no forman parte del ColorScheme generado por
+/// Material 3.
+///
+/// Hay una sola instancia ([game]) a propósito: el juego tiene un único aspecto
+/// y no sigue el modo claro/oscuro del sistema. Los paneles de Kenney son
+/// claros pase lo que pase, así que un segundo juego de colores para fondo
+/// claro no tendría dónde aplicarse.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   final Color background;
@@ -18,18 +23,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.emptyTile,
   });
 
-  static const light = AppColors(
-    background: Color(0xFFF4F6F9),
-    cardBackground: Colors.white,
-    textPrimary: Color(0xFF1E293B),
-    // #5B6B83 ≈ 4.9:1 sobre #F4F6F9 (AA para texto normal).
-    // El anterior #64748B quedaba en ~4.4:1, bajo el mínimo de 4.5:1.
-    textSecondary: Color(0xFF5B6B83),
-    emptyTile: Color(0xFFE2E8F0),
-  );
-
-  static const dark = AppColors(
-    background: Color(0xFF0F172A),
+  /// Únicos colores de la app. Pensados sobre el azul marino de
+  /// [AppTheme.gameBackground], que es el fondo de todas las pantallas.
+  static const game = AppColors(
+    background: AppTheme.gameBackground,
     cardBackground: Color(0xFF1E293B),
     textPrimary: Color(0xFFF1F5F9),
     textSecondary: Color(0xFF94A3B8),
@@ -66,33 +63,46 @@ class AppColors extends ThemeExtension<AppColors> {
   }
 }
 
-/// Define los temas claro y oscuro de la app,
-/// ambos basados en el mismo seed color (#4361EE).
+/// Define el único tema de la app.
+///
+/// Antes había tema claro y oscuro y la app seguía al sistema. Se sacó a
+/// propósito: el rediseño usa sprites de Kenney, que tienen un solo aspecto y
+/// son claros. Mantener un tema claro no aportaba nada (los paneles se veían
+/// igual) y el fondo oscuro es lo que hace resaltar esos paneles y los botones
+/// azules.
 class AppTheme {
   static const Color seedColor = Color(0xFF4361EE);
   static const Color accentShadow = Color(0xFF3146B5);
 
-  static ThemeData get light {
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: seedColor,
-        brightness: Brightness.light,
-      ),
-      useMaterial3: true,
-      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
-      extensions: const [AppColors.light],
-    );
-  }
+  /// Azul marino profundo. Es el fondo de todas las pantallas y la fuente única
+  /// de `scaffoldBackgroundColor` y de `AppColors.background`.
+  static const Color gameBackground = Color(0xFF0F172A);
 
-  static ThemeData get dark {
+  // Colores del podio. Son para tintar la estrella del ranking (ver
+  // `KenneyIcon.tint`): el pack de Kenney no trae bronce, así que el podio no
+  // se puede armar con sprites ya coloreados.
+  static const Color podiumGold = Color(0xFFF59E0B);
+  static const Color podiumSilver = Color(0xFF94A3B8);
+  static const Color podiumBronze = Color(0xFFB45309);
+
+  /// Color de la estrella del podio, o `null` si el puesto no es 1º, 2º ni 3º.
+  static Color? podiumColor(int puesto) => switch (puesto) {
+        1 => podiumGold,
+        2 => podiumSilver,
+        3 => podiumBronze,
+        _ => null,
+      };
+
+  static ThemeData get game {
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: Brightness.dark,
       ),
       useMaterial3: true,
+      scaffoldBackgroundColor: gameBackground,
       textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
-      extensions: const [AppColors.dark],
+      extensions: const [AppColors.game],
     );
   }
 }

@@ -128,7 +128,16 @@ abstract final class KenneySlices {
   static const iconArrowUpLight = '$_dir/icon_arrow_up_light.png';
   static const iconArrowUpDark = '$_dir/icon_arrow_up_dark.png';
   static const iconRepeat = '$_dir/icon_repeat_light.png';
+  /// Estrella **gris a propósito**: es la máscara de sombreado que se tinta con
+  /// el color que corresponda (ver [KenneyIcon.tint]). Las variantes de color
+  /// del pack no sirven para esto, y además el pack no trae bronce: las
+  /// estrellas de color son azul, verde, gris, rojo y amarillo, así que un
+  /// podio oro/plata/bronce solo se puede armar tintando.
   static const star = '$_dir/star.png';
+
+  /// Contorno de estrella para las pendientes. Ya es gris en todas las
+  /// variantes del pack (el contorno de Kenney es neutro), así que se usa sin
+  /// tintar.
   static const starOutline = '$_dir/star_outline.png';
   static const divider = '$_dir/divider.png';
 
@@ -280,14 +289,26 @@ class KenneyButton extends StatelessWidget {
 
 /// Ícono de Kenney a tamaño fijo.
 ///
-/// Los SVG/PNG sueltos del pack (íconos, flechas, estrellas) vienen en una
-/// grilla de 32 o 64 px y no están pensados para estirarse: se dibujan a
-/// [size] y listo. No llevan `centerSlice`.
+/// Los PNG sueltos del pack (íconos, flechas, estrellas) vienen en una grilla de
+/// 32 o 64 px y no están pensados para estirarse: se dibujan a [size] y listo.
+/// No llevan `centerSlice`.
+///
+/// [tint] recolorea el sprite igual que en [KenneySlice.decoration]: con
+/// `BlendMode.modulate` sobre un sprite **gris**, que es un mapa de sombreado.
+/// Sobre un sprite ya coloreado el resultado sale embarrado, así que si hay que
+/// tintarlo, hay que copiar la variante gris del pack (ver [KenneySlices.star]).
 class KenneyIcon extends StatelessWidget {
-  const KenneyIcon(this.asset, {super.key, this.size = 24, this.semanticLabel});
+  const KenneyIcon(
+    this.asset, {
+    super.key,
+    this.size = 24,
+    this.tint,
+    this.semanticLabel,
+  });
 
   final String asset;
   final double size;
+  final Color? tint;
   final String? semanticLabel;
 
   @override
@@ -296,6 +317,10 @@ class KenneyIcon extends StatelessWidget {
       asset,
       width: size,
       height: size,
+      // `modulate` y no `srcIn`: `srcIn` pinta el ícono de un color plano y se
+      // come el sombreado (el brillo, la cara y la sombra del sprite).
+      color: tint,
+      colorBlendMode: tint == null ? null : BlendMode.modulate,
       semanticLabel: semanticLabel,
     );
   }
