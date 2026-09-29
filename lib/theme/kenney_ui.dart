@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_theme.dart';
+
 /// Un sprite del UI Pack de Kenney junto con su receta 9-slice.
 ///
 /// [centerSlice] es el rectángulo interior del PNG que sí se puede estirar. Al
@@ -164,6 +166,52 @@ abstract final class KenneyInk {
   /// Líneas y divisores sobre el panel. En vez de `AppColors.emptyTile`, que en
   /// tema oscuro es casi del color del panel y desaparecería.
   static const Color line = Color(0xFFCBD5E1);
+}
+
+/// Fondo del juego: un sprite del pack repetido como baldosa.
+///
+/// Se monta **una sola vez**, envolviendo la app desde `MaterialApp.builder`
+/// (ver `main.dart`), y no por pantalla. Así todas las comparten el mismo fondo
+/// y el patrón no se desplaza al navegar: es un fondo fijo de arcade, no algo
+/// que viaje con cada ruta.
+///
+/// Ojo: **el UI Pack de Kenney no trae ningún patrón de fondo**. `Preview.png` y
+/// `Sample.png` de la raíz del pack son collages de documentación de 918x515
+/// (una grilla con todos los sprites y un mock de UI), no texturas repetibles.
+/// La baldosa de acá es [KenneySlices.flatSquare], o sea el cuadrado plano del
+/// pack: al repetirse, su borde de 2px hace de junta entre baldosas y sus
+/// esquinas redondeadas dejan un diamante oscuro en cada cruce. Sale una grilla
+/// de baldosas sin inventar ningún asset.
+///
+/// El tinte va por `BlendMode.modulate` sobre el sprite gris, igual que los
+/// botones, así que cambiar [AppTheme.patternTint] cambia el fondo entero. Si
+/// el patrón distrae, bajarlo es subir el tinte hacia [AppTheme.gameBackground].
+class GameBackground extends StatelessWidget {
+  const GameBackground({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        // Color de base: es lo que se ve por las esquinas, donde las cuatro
+        // baldosas redondeadas no llegan a cubrir.
+        color: AppTheme.gameBackground,
+        image: DecorationImage(
+          image: AssetImage(KenneySlices.flatSquare.asset),
+          repeat: ImageRepeat.repeat,
+          colorFilter: const ColorFilter.mode(
+            AppTheme.patternTint,
+            BlendMode.modulate,
+          ),
+          // Sin `centerSlice` a propósito: acá el sprite no se estira, se
+          // repite. `centerSlice` es para lo contrario (llenar una caja).
+        ),
+      ),
+      child: child,
+    );
+  }
 }
 
 /// Superficie 9-slice: pinta [slice] de fondo y encima coloca [child].

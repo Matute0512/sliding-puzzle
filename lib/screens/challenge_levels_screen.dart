@@ -98,7 +98,8 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -198,7 +199,7 @@ class _ResumenProgreso extends StatelessWidget {
                 Text(
                   l10n.levelReached,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 11,
                     color: KenneyInk.secondary,
                   ),
                 ),
@@ -206,7 +207,7 @@ class _ResumenProgreso extends StatelessWidget {
                 Text(
                   l10n.levelProgress(nivelMaximo),
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 19,
                     fontWeight: FontWeight.bold,
                     color: KenneyInk.primary,
                   ),
@@ -220,7 +221,7 @@ class _ResumenProgreso extends StatelessWidget {
               Text(
                 l10n.stars,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   color: KenneyInk.secondary,
                 ),
               ),
@@ -239,7 +240,7 @@ class _ResumenProgreso extends StatelessWidget {
                   Text(
                     l10n.starsProgress(totalEstrellas),
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                       color: KenneyInk.primary,
                     ),
@@ -315,7 +316,7 @@ class _CeldaNivel extends StatelessWidget {
                   Text(
                     '$nivel',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                       color: esActual
                           ? AppTheme.seedColor
@@ -330,7 +331,7 @@ class _CeldaNivel extends StatelessWidget {
                   Text(
                     l10n.locked,
                     style: const TextStyle(
-                      fontSize: 9,
+                      fontSize: 8,
                       color: KenneyInk.secondary,
                     ),
                   )

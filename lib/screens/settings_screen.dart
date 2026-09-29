@@ -19,7 +19,8 @@ class SettingsScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -122,7 +123,7 @@ class _SeccionTitulo extends StatelessWidget {
     return Text(
       titulo,
       style: TextStyle(
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: FontWeight.w600,
         color: colors.textSecondary,
         letterSpacing: 0.8,
@@ -180,7 +181,7 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: KenneyInk.primary,
                 ),
@@ -188,7 +189,7 @@ class _FilaSwitch extends StatelessWidget {
               Text(
                 descripcion,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   color: KenneyInk.secondary,
                 ),
               ),

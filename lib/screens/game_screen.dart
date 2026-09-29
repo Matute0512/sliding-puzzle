@@ -464,7 +464,7 @@ class _GameScreenState extends State<GameScreen> {
                   builder: (_, aviso, _) => Text(
                     aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: KenneyInk.primary,
                     ),
@@ -941,7 +941,7 @@ class _GameScreenState extends State<GameScreen> {
                           : '${fila * n + col + 1}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: n == 3 ? 18 : n == 4 ? 16 : 14,
+                        fontSize: n == 3 ? 15 : n == 4 ? 14 : 12,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.seedColor,
                       ),
@@ -976,7 +976,8 @@ class _GameScreenState extends State<GameScreen> {
         navigator.pop();
       },
       child: Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -1215,13 +1216,13 @@ class _ItemAyuda extends StatelessWidget {
         children: [
           const Text(
             '• ',
-            style: TextStyle(color: AppTheme.seedColor, fontSize: 16),
+            style: TextStyle(color: AppTheme.seedColor, fontSize: 14),
           ),
           Expanded(
             child: Text(
               texto,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 color: colors.textPrimary,
               ),
             ),

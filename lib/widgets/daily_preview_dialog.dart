@@ -68,7 +68,7 @@ class DailyPreviewDialog extends StatelessWidget {
             l10n.dailyPreviewTitle,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
               color: KenneyInk.primary,
             ),
@@ -104,7 +104,7 @@ class DailyPreviewDialog extends StatelessWidget {
           Text(
             l10n.dailyPreviewBody,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: KenneyInk.secondary),
+            style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
           ),
           const SizedBox(height: 20),
           SizedBox(

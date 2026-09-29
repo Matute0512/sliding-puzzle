@@ -65,7 +65,7 @@ class DailyVictoryDialog extends StatelessWidget {
                 l10n.dailyVictoryTitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: KenneyInk.primary,
                 ),
@@ -86,7 +86,7 @@ class DailyVictoryDialog extends StatelessWidget {
               Text(
                 l10n.dailyVictoryBody,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: KenneyInk.secondary),
+                style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -149,13 +149,13 @@ class _FilaResultado extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 15, color: KenneyInk.secondary),
+            style: const TextStyle(fontSize: 13, color: KenneyInk.secondary),
           ),
         ),
         Text(
           valor,
           style: const TextStyle(
-            fontSize: 17,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: KenneyInk.primary,
           ),

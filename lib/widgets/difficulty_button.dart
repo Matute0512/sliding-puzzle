@@ -45,14 +45,14 @@ class DifficultyButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
             ),
             Text(
               descripcion,
-              style: TextStyle(fontSize: 12, color: textColor),
+              style: TextStyle(fontSize: 10, color: textColor),
             ),
           ],
         ),

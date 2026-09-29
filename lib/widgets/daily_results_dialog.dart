@@ -101,7 +101,7 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
               l10n.dailyResultsTitle,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: KenneyInk.primary,
               ),
@@ -111,7 +111,7 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
               l10n.dailyResultsDay('${widget.semilla}'),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 11,
                 color: KenneyInk.secondary,
               ),
             ),
@@ -160,7 +160,7 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
                       Text(
                         l10n.dailyResultsYou,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: KenneyInk.secondary,
                           letterSpacing: 0.8,
@@ -269,7 +269,7 @@ class _FilaPuntaje extends StatelessWidget {
                     '$puesto',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: _colorPuesto,
                     ),
@@ -282,7 +282,7 @@ class _FilaPuntaje extends StatelessWidget {
                 puntaje.alias,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: KenneyInk.primary,
                 ),
@@ -294,7 +294,7 @@ class _FilaPuntaje extends StatelessWidget {
           Text(
             l10n.secondsShort(puntaje.tiempoSegundos),
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
               color: KenneyInk.primary,
             ),
@@ -305,7 +305,7 @@ class _FilaPuntaje extends StatelessWidget {
             child: Text(
               '${puntaje.movimientos}',
               textAlign: TextAlign.end,
-              style: const TextStyle(fontSize: 13, color: KenneyInk.secondary),
+              style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
             ),
           ),
         ],
@@ -334,7 +334,7 @@ class _Estado extends StatelessWidget {
           Text(
             mensaje,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: KenneyInk.secondary),
+            style: const TextStyle(fontSize: 12, color: KenneyInk.secondary),
           ),
           if (accion case final accion?) ...[
             const SizedBox(height: 4),

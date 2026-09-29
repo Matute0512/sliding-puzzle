@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 l10n.rateBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   color: colors.textSecondary,
                 ),
               ),
@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             l10n.privacyBody,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               color: colors.textSecondary,
             ),
           ),
@@ -350,7 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -399,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'Sliding Puzzle',
                           style: TextStyle(
-                            fontSize: 36,
+                            fontSize: 31,
                             fontWeight: FontWeight.bold,
                             color: colors.textPrimary,
                           ),
@@ -419,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           l10n.chooseDifficulty,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             color: colors.textSecondary,
                           ),
                         ),
@@ -484,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             l10n.viewRecords,
                             style: const TextStyle(
                               color: AppTheme.seedColor,
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -561,7 +562,7 @@ class _BotonContinuar extends StatelessWidget {
                         l10n.continueGame,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -570,7 +571,7 @@ class _BotonContinuar extends StatelessWidget {
                         detalle,
                         style: const TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 11,
                         ),
                       ),
                     ],
