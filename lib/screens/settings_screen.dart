@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/app_settings_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import 'image_puzzle_test_screen.dart';
 
 /// Pantalla de configuración: tema, sonido y música.
@@ -40,15 +41,14 @@ class SettingsScreen extends StatelessWidget {
               _SeccionTitulo(titulo: l10n.appearance, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
-                colors: colors,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       l10n.theme,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: colors.textSecondary,
+                        color: KenneyInk.secondary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -67,7 +67,7 @@ class SettingsScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           selectedBackgroundColor: AppTheme.seedColor,
                           selectedForegroundColor: Colors.white,
-                          foregroundColor: colors.textPrimary,
+                          foregroundColor: KenneyInk.primary,
                         ),
                         segments: [
                           ButtonSegment(
@@ -113,7 +113,6 @@ class SettingsScreen extends StatelessWidget {
               _SeccionTitulo(titulo: l10n.sound, colors: colors),
               const SizedBox(height: 12),
               _CardConfiguracion(
-                colors: colors,
                 child: Column(
                   children: [
                     _FilaSwitch(
@@ -121,18 +120,16 @@ class SettingsScreen extends StatelessWidget {
                       label: l10n.soundEffects,
                       descripcion: l10n.soundEffectsDesc,
                       valor: settings.sonidoActivado,
-                      colors: colors,
                       onChanged: (_) {
                         context.read<AppSettingsProvider>().alternarSonido();
                       },
                     ),
-                    Divider(color: colors.emptyTile, height: 24),
+                    const Divider(color: KenneyInk.line, height: 24),
                     _FilaSwitch(
                       icono: Icons.music_note_outlined,
                       label: l10n.backgroundMusic,
                       descripcion: l10n.backgroundMusicDesc,
                       valor: settings.musicaActivada,
-                      colors: colors,
                       onChanged: (_) {
                         context.read<AppSettingsProvider>().alternarMusica();
                       },
@@ -149,12 +146,11 @@ class SettingsScreen extends StatelessWidget {
                 _SeccionTitulo(titulo: 'DEBUG', colors: colors),
                 const SizedBox(height: 12),
                 _CardConfiguracion(
-                  colors: colors,
-                  // El Material propio es obligatorio: `_CardConfiguracion` es
-                  // un DecoratedBox con color, y un ListTile ahí adentro dispara
-                  // una assertion ("background color or ink splashes may be
-                  // invisible") porque pintaría sus efectos en el Material del
-                  // Scaffold, por debajo de la card.
+                  // El Material propio sigue siendo obligatorio: la superficie
+                  // es un `DecoratedBox` con un sprite de fondo, y un ListTile
+                  // ahí adentro dispara una assertion ("background color or ink
+                  // splashes may be invisible") porque pintaría sus efectos en
+                  // el Material del Scaffold, por debajo de la tarjeta.
                   child: Material(
                     color: Colors.transparent,
                     child: ListTile(
@@ -163,9 +159,9 @@ class SettingsScreen extends StatelessWidget {
                         Icons.image_outlined,
                         color: AppTheme.seedColor,
                       ),
-                      title: Text(
+                      title: const Text(
                         'Puzzle con imagen',
-                        style: TextStyle(color: colors.textPrimary),
+                        style: TextStyle(color: KenneyInk.primary),
                       ),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
@@ -204,29 +200,23 @@ class _SeccionTitulo extends StatelessWidget {
   }
 }
 
+/// Tarjeta de configuración. La superficie es un panel 9-slice de Kenney, que
+/// es claro en los dos temas: por eso los textos que van adentro usan
+/// [KenneyInk] y no `AppColors` (ver [KenneyInk]).
 class _CardConfiguracion extends StatelessWidget {
   final Widget child;
-  final AppColors colors;
 
-  const _CardConfiguracion({required this.child, required this.colors});
+  const _CardConfiguracion({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      child: KenneySurface(
+        slice: KenneySlices.flatPanel,
+        padding: const EdgeInsets.all(20),
+        child: child,
       ),
-      child: child,
     );
   }
 }
@@ -236,7 +226,6 @@ class _FilaSwitch extends StatelessWidget {
   final String label;
   final String descripcion;
   final bool valor;
-  final AppColors colors;
   final ValueChanged<bool> onChanged;
 
   const _FilaSwitch({
@@ -244,7 +233,6 @@ class _FilaSwitch extends StatelessWidget {
     required this.label,
     required this.descripcion,
     required this.valor,
-    required this.colors,
     required this.onChanged,
   });
 
@@ -260,17 +248,17 @@ class _FilaSwitch extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: colors.textPrimary,
+                  color: KenneyInk.primary,
                 ),
               ),
               Text(
                 descripcion,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: colors.textSecondary,
+                  color: KenneyInk.secondary,
                 ),
               ),
             ],

@@ -151,6 +151,10 @@ abstract final class KenneyInk {
 
   /// Texto secundario. 4.9:1 sobre el gris del sprite (AA).
   static const Color secondary = Color(0xFF5B6B83);
+
+  /// Líneas y divisores sobre el panel. En vez de `AppColors.emptyTile`, que en
+  /// tema oscuro es casi del color del panel y desaparecería.
+  static const Color line = Color(0xFFCBD5E1);
 }
 
 /// Superficie 9-slice: pinta [slice] de fondo y encima coloca [child].

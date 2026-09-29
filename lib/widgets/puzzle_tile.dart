@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import 'image_tile.dart';
 
 /// Ficha individual del tablero del puzzle.
@@ -69,11 +70,21 @@ class PuzzleTile extends StatelessWidget {
         : null;
     final radio = BorderRadius.circular(_radioFicha);
 
+    // El fondo de la ficha es un sprite 9-slice: la celda vacía usa el cuadrado
+    // plano (se lee como hueco) y la ocupada el cuadrado con bisel, tintado con
+    // el color de la app.
+    //
+    // Sin `borderRadius` en la decoración a propósito: el sprite ya trae sus
+    // esquinas redondeadas dibujadas, y recortarlo además con el radio de
+    // `_radioFicha` (12) le comería el borde, porque la esquina del sprite mide
+    // 8px lógicos y no escala con la celda. `_radioFicha` se sigue usando para
+    // el anillo de "movible" y para el recorte de `ImageTile`.
+    final fondo = (esVacio ? KenneySlices.flatSquare : KenneySlices.primarySquare)
+        .decoration(tint: esVacio ? null : AppTheme.seedColor);
+
     final contenido = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
-      decoration: BoxDecoration(
-        color: esVacio ? colors.emptyTile : AppTheme.seedColor,
-        borderRadius: radio,
+      decoration: fondo.copyWith(
         boxShadow: esVacio
             ? [
                 BoxShadow(
