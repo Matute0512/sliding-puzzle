@@ -17,7 +17,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Modo Desafío'), findsOneWidget);
+    // El modo Desafío ya no es un botón propio: es el segmento derecho del
+    // switch del menú, que renderiza su etiqueta en versalitas.
+    expect(find.text('DESAFÍO'), findsOneWidget);
   });
 
   testWidgets('ChallengeLevelsScreen muestra el resumen y niveles bloqueados',

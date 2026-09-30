@@ -21,13 +21,24 @@
   "playStoreError": "Couldn't open Google Play",
 
   "chooseDifficulty": "Pick a difficulty",
+  "difficultyIntro": "Each board raises the pace and the precision.",
   "difficultyEasy": "Easy",
   "difficultyMedium": "Medium",
   "difficultyHard": "Hard",
+  "difficultyExpert": "Expert",
   "boardSize": "Board {size}×{size}",
   "challengeMode": "Challenge Mode",
   "challengeModeSubtitle": "20 levels · earn 3 stars",
+  "classicMode": "Classic",
+  "challengeTab": "Challenge",
   "viewRecords": "View records",
+
+  "arcadeEdition": "Arcade edition",
+
+  "bestRun": "Best run",
+  "bestRunMoves": "{movs} moves",
+  "bestRunEmpty": "You haven't finished a game yet",
+  "bestRunRecordOn": "Record on {size}×{size}",
 
   "dailyChallenge": "Daily Challenge",
   "dailyChallengeSubtitle": "One board a day · everyone plays the same",

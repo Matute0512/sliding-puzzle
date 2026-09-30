@@ -114,7 +114,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsNothing);
+      expect(find.text('CONTINUAR PARTIDA'), findsNothing);
     });
 
     testWidgets('aparece si hay una partida guardada', (tester) async {
@@ -125,7 +125,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsOneWidget);
+      expect(find.text('CONTINUAR PARTIDA'), findsOneWidget);
       // El detalle muestra modo, movimientos y tiempo de la partida pendiente.
       expect(
         find.textContaining('Tablero 3×3 · 5 movs · 30s'),
@@ -142,7 +142,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsOneWidget);
+      expect(find.text('CONTINUAR PARTIDA'), findsOneWidget);
       expect(find.textContaining('Desafío · Nivel 1'), findsOneWidget);
     });
 
@@ -157,7 +157,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsNothing);
+      expect(find.text('CONTINUAR PARTIDA'), findsNothing);
     });
 
     testWidgets('descartar oculta la tarjeta y borra el guardado', (tester) async {
@@ -167,14 +167,14 @@ void main() {
         appLocalizada(home: const HomeScreen()),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Continuar Partida'), findsOneWidget);
+      expect(find.text('CONTINUAR PARTIDA'), findsOneWidget);
 
       // Se busca por el ícono: `byTooltip` devuelve el proxy del tooltip, que no
       // recibe el hit-test (el toque caería en el InkWell de la tarjeta).
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsNothing);
+      expect(find.text('CONTINUAR PARTIDA'), findsNothing);
       expect(await SavedGameService.obtener(), isNull);
     });
 
@@ -193,7 +193,7 @@ void main() {
 
       // Seguimos en el menú y no se abrió ninguna partida.
       expect(find.byType(GameScreen), findsNothing);
-      expect(find.text('Elegí una dificultad'), findsOneWidget);
+      expect(find.text('ELEGÍ UNA DIFICULTAD'), findsOneWidget);
     });
 
     testWidgets('descartar borra en disco, no sólo en pantalla', (tester) async {
@@ -217,7 +217,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Continuar Partida'), findsNothing);
+      expect(find.text('CONTINUAR PARTIDA'), findsNothing);
     });
   });
 

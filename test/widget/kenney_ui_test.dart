@@ -176,9 +176,8 @@ void main() {
   group('fondo del juego', () {
     // Este widget se monta desde `MaterialApp.builder` en main.dart, y los
     // tests montan `appLocalizada` en vez de `SlidingPuzzleApp`, así que sin
-    // este test el cableado del fondo no lo cubre nada: un asset mal escrito o
-    // un `centerSlice` de más pasaría sin que ningún test se entere.
-    testWidgets('repite la baldosa y resuelve el asset', (tester) async {
+    // este test el cableado del fondo no lo cubre nada.
+    testWidgets('pinta el degradado del rediseño', (tester) async {
       await tester.pumpWidget(
         appLocalizada(home: const GameBackground(child: Scaffold())),
       );
@@ -194,15 +193,48 @@ void main() {
             .first,
       );
       final deco = caja.decoration as BoxDecoration;
-      final imagen = deco.image!;
 
-      expect((imagen.image as AssetImage).assetName, KenneySlices.flatSquare.asset);
-      expect(imagen.repeat, ImageRepeat.repeat);
-      // Sin `centerSlice`: acá el sprite se repite, no se estira. Si alguien lo
-      // agregara, la baldosa se deformaría en vez de tilearse.
-      expect(imagen.centerSlice, isNull);
-      // El color de base es el que se ve por las esquinas redondeadas.
+      // El color de base es lo que se ve por detrás del degradado.
       expect(deco.color, AppTheme.gameBackground);
+
+      final gradiente = deco.gradient! as LinearGradient;
+      expect(
+        gradiente.colors,
+        const [
+          AppTheme.backdropTop,
+          AppTheme.backdropMiddle,
+          AppTheme.backdropBottom,
+        ],
+      );
+
+      // Ya no hay imagen: el fondo dejó de ser la baldosa repetida de Kenney.
+      // Si alguien la reintrodujera, esto lo delata.
+      expect(deco.image, isNull);
+    });
+
+    testWidgets('las capas decorativas no se comen los toques', (tester) async {
+      // La grilla, los glows y el velo van en `Positioned.fill` **encima** del
+      // contenido. Sin el `IgnorePointer` que los envuelve, taparían cualquier
+      // botón y el menú quedaría inutilizable sin que salte ningún error.
+      var toques = 0;
+      await tester.pumpWidget(
+        appLocalizada(
+          home: GameBackground(
+            child: Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => toques++,
+                  child: const Text('tocar'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('tocar'));
+      expect(toques, 1);
     });
   });
 }
