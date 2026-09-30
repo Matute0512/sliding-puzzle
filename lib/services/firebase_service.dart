@@ -68,6 +68,37 @@ class FirebaseService {
     return lista.take(5).toList();
   }
 
+  /// Devuelve el mejor puntaje **propio** en el tablero [size], o `null` si no
+  /// hay sesión, si el jugador no tiene marca ahí o si la red falla.
+  ///
+  /// Nunca lanza, y es a propósito: alimenta una tarjeta del menú, así que la
+  /// experiencia sin conexión no se puede interrumpir por un dato decorativo.
+  /// Es el mismo contrato que [registrarSiClasifica].
+  ///
+  /// No sirve [obtenerTop] acá: devuelve solo cinco puntajes y la marca propia
+  /// puede quedar fuera de ese top. El documento hay que buscarlo en la ventana
+  /// completa, como ya hace [registrarSiClasifica].
+  static Future<PuntajeGlobal?> obtenerMejorPropio(int size) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return null;
+
+      final snap = await FirebaseFirestore.instance
+          .collection(nombreColeccion(size))
+          .limit(_limiteConsulta)
+          .get();
+
+      // Un documento por usuario y tamaño, así que hay a lo sumo uno propio.
+      for (final doc in snap.docs) {
+        if (doc.id == uid) return PuntajeGlobal.fromDocument(doc);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('No se pudo leer el récord propio: $e');
+      return null;
+    }
+  }
+
   /// Registra la partida libre en Firestore **solo si entra al Top 5** del
   /// tamaño indicado. Un documento por usuario (doc id = uid anónimo), con
   /// `set` merge: conserva la mejor marca del jugador.

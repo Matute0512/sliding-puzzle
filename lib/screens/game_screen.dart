@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/best_run_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
@@ -439,6 +440,21 @@ class _GameScreenState extends State<GameScreen> {
       await _mostrarVictoriaDesafio();
       return;
     }
+
+    // La marca del menú se guarda acá y **no** dentro de `_registrarPuntajeLibre`,
+    // que vuelve temprano si no hay red o no hay sesión: ése es justo el caso en
+    // que la tarjeta "Mejor partida" tiene que seguir funcionando. Va sin
+    // `await` para no meterle a la celebración la latencia de un disco.
+    unawaited(
+      BestRunService.registrarPartida(
+        MejorPartida(
+          tiempoSegundos: _segundos.value,
+          movimientos: _movimientos,
+          tamano: widget.size,
+          fecha: DateTime.now(),
+        ),
+      ),
+    );
 
     // El modal sale al instante y el ranking global se resuelve por detrás:
     // esperar la red acá retrasaba toda la celebración un round-trip.

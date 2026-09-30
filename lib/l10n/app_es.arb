@@ -33,9 +33,11 @@
   "playStoreError": "No se pudo abrir Google Play",
 
   "chooseDifficulty": "Elegí una dificultad",
+  "difficultyIntro": "Cada tablero aumenta el ritmo y la precisión.",
   "difficultyEasy": "Fácil",
   "difficultyMedium": "Medio",
   "difficultyHard": "Difícil",
+  "difficultyExpert": "Experto",
   "boardSize": "Tablero {size}×{size}",
   "@boardSize": {
     "description": "Descripción de la dificultad clásica, ej. 'Tablero 4×4'.",
@@ -45,7 +47,28 @@
   },
   "challengeMode": "Modo Desafío",
   "challengeModeSubtitle": "20 niveles · ganá 3 estrellas",
+  "classicMode": "Clásico",
+  "challengeTab": "Desafío",
   "viewRecords": "Ver récords",
+
+  "arcadeEdition": "Edición arcade",
+
+  "bestRun": "Mejor partida",
+  "bestRunMoves": "{movs} movs",
+  "@bestRunMoves": {
+    "description": "Contador de movimientos de la tarjeta de mejor partida del menú.",
+    "placeholders": {
+      "movs": { "type": "int" }
+    }
+  },
+  "bestRunEmpty": "Todavía no terminaste ninguna partida",
+  "bestRunRecordOn": "Récord en {size}×{size}",
+  "@bestRunRecordOn": {
+    "description": "Indica en qué tablero es el récord que muestra la tarjeta del menú.",
+    "placeholders": {
+      "size": { "type": "int" }
+    }
+  },
 
   "dailyChallenge": "Desafío Diario",
   "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",

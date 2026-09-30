@@ -168,24 +168,24 @@ abstract final class KenneyInk {
   static const Color line = Color(0xFFCBD5E1);
 }
 
-/// Fondo del juego: un sprite del pack repetido como baldosa.
+/// Fondo de la app: el "Layered arcade background" del rediseño.
 ///
 /// Se monta **una sola vez**, envolviendo la app desde `MaterialApp.builder`
-/// (ver `main.dart`), y no por pantalla. Así todas las comparten el mismo fondo
-/// y el patrón no se desplaza al navegar: es un fondo fijo de arcade, no algo
-/// que viaje con cada ruta.
+/// (ver `main.dart`), y no por pantalla. Así todas comparten el mismo fondo y el
+/// degradado no se reinicia al navegar: es un fondo fijo de arcade, no algo que
+/// viaje con cada ruta. Por eso los `Scaffold` van con el fondo transparente.
 ///
-/// Ojo: **el UI Pack de Kenney no trae ningún patrón de fondo**. `Preview.png` y
-/// `Sample.png` de la raíz del pack son collages de documentación de 918x515
-/// (una grilla con todos los sprites y un mock de UI), no texturas repetibles.
-/// La baldosa de acá es [KenneySlices.flatSquare], o sea el cuadrado plano del
-/// pack: al repetirse, su borde de 2px hace de junta entre baldosas y sus
-/// esquinas redondeadas dejan un diamante oscuro en cada cruce. Sale una grilla
-/// de baldosas sin inventar ningún asset.
+/// Son cuatro capas, de abajo hacia arriba:
 ///
-/// El tinte va por `BlendMode.modulate` sobre el sprite gris, igual que los
-/// botones, así que cambiar [AppTheme.patternTint] cambia el fondo entero. Si
-/// el patrón distrae, bajarlo es subir el tinte hacia [AppTheme.gameBackground].
+/// 1. El degradado vertical ([AppTheme.backdropTop] y compañía).
+/// 2. La grilla modular, que dibuja [_GrillaModularPainter].
+/// 3. Los dos glows de [_AtmosferaPainter].
+/// 4. El velo de legibilidad, que oscurece los extremos.
+///
+/// **Antes esto era una baldosa repetida** de [KenneySlices.flatSquare]. Se
+/// cambió por capas: el pack no trae ninguna textura repetible —`Preview.png` y
+/// `Sample.png` de su raíz son collages de documentación, no patrones— y el
+/// cuadrado plano tileado se leía como una grilla de botones, no como un fondo.
 class GameBackground extends StatelessWidget {
   const GameBackground({super.key, required this.child});
 
@@ -194,24 +194,159 @@ class GameBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        // Color de base: es lo que se ve por las esquinas, donde las cuatro
-        // baldosas redondeadas no llegan a cubrir.
+      decoration: const BoxDecoration(
+        // Color de base: es el respaldo mientras pinta el degradado y lo que se
+        // ve por detrás de todo.
         color: AppTheme.gameBackground,
-        image: DecorationImage(
-          image: AssetImage(KenneySlices.flatSquare.asset),
-          repeat: ImageRepeat.repeat,
-          colorFilter: const ColorFilter.mode(
-            AppTheme.patternTint,
-            BlendMode.modulate,
-          ),
-          // Sin `centerSlice` a propósito: acá el sprite no se estira, se
-          // repite. `centerSlice` es para lo contrario (llenar una caja).
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.backdropTop,
+            AppTheme.backdropMiddle,
+            AppTheme.backdropBottom,
+          ],
+          stops: [0, 0.52, 1],
         ),
       ),
-      child: child,
+      child: Stack(
+        // `passthrough` para que el contenido de la app reciba las constraints
+        // de pantalla completa tal cual, sin que el Stack las relaje.
+        fit: StackFit.passthrough,
+        children: [
+          // Las tres capas decorativas van con `IgnorePointer`: son fondo, y
+          // sin esto se comerían los toques que sí tienen que llegar al
+          // contenido de arriba.
+          const Positioned.fill(
+            child: IgnorePointer(child: CustomPaint(painter: _Grilla())),
+          ),
+          const Positioned.fill(
+            child: IgnorePointer(child: CustomPaint(painter: _Atmosfera())),
+          ),
+          const Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.veilTop,
+                      Colors.transparent,
+                      AppTheme.veilBottom,
+                    ],
+                    stops: [0, 0.45, 1],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
+}
+
+/// La grilla modular del fondo, una línea cada [AppTheme.gridStep] píxeles.
+///
+/// Va con `CustomPaint` y no con una `Column`/`Row` de `Divider`s porque en una
+/// pantalla alta son ~40 líneas: como widgets sería un árbol de decenas de
+/// elementos para algo que es puro dibujo.
+class _Grilla extends CustomPainter {
+  const _Grilla();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paso = AppTheme.gridStep;
+    final normal = Paint()
+      ..color = AppTheme.gridLine
+      ..strokeWidth = 1;
+    final acento = Paint()
+      ..color = AppTheme.gridLineAccent
+      ..strokeWidth = 1;
+
+    // Se cuenta con enteros en vez de acumular `x += paso`: con doubles, el
+    // error de redondeo corre las líneas y el `% 4` del acento deja de caer
+    // donde tiene que caer.
+    for (var i = 0; i * paso <= size.width; i++) {
+      final x = i * paso;
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        i % 4 == 0 ? acento : normal,
+      );
+    }
+    for (var i = 0; i * paso <= size.height; i++) {
+      final y = i * paso;
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        i % 4 == 0 ? acento : normal,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Grilla oldDelegate) => false;
+}
+
+/// Los dos glows del fondo ("atmosphere" en el frame).
+///
+/// Se pintan como `RadialGradient` en un `CustomPainter` en vez de posicionar
+/// dos `Container` con `Align`/`FractionallySizedBox`: el glow es un círculo que
+/// **sangra** por los bordes de la pantalla, y expresarlo como layout obliga a
+/// pelear con `AspectRatio` contra constraints de pantalla completa.
+class _Atmosfera extends CustomPainter {
+  const _Atmosfera();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Las posiciones y los tamaños salen del frame (400x844) llevados a
+    // fracciones, para que escalen con cualquier pantalla en vez de quedar
+    // clavados en píxeles de un mockup.
+    _glow(
+      canvas,
+      size,
+      centro: const Offset(0.25, 0.07),
+      diametro: 1.05,
+      color: AppTheme.backdropGlowUpper,
+      alfa: 0.20,
+    );
+    _glow(
+      canvas,
+      size,
+      centro: const Offset(0.85, 0.81),
+      diametro: 0.90,
+      color: AppTheme.backdropGlowLower,
+      alfa: 0.16,
+    );
+  }
+
+  void _glow(
+    Canvas canvas,
+    Size size, {
+    required Offset centro,
+    required double diametro,
+    required Color color,
+    required double alfa,
+  }) {
+    final radio = size.width * diametro / 2;
+    final punto = Offset(size.width * centro.dx, size.height * centro.dy);
+    final rect = Rect.fromCircle(center: punto, radius: radio);
+
+    canvas.drawCircle(
+      punto,
+      radio,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [color.withValues(alpha: alfa), color.withValues(alpha: 0)],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_Atmosfera oldDelegate) => false;
 }
 
 /// Superficie 9-slice: pinta [slice] de fondo y encima coloca [child].
