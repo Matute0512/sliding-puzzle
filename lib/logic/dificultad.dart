@@ -37,4 +37,16 @@ enum Dificultad {
   /// La UI recorre esta lista en vez de `Dificultad.values` para no ofrecer un
   /// tablero que todavía no tiene récords ni ranking. Ver [experto].
   static const List<Dificultad> jugables = [facil, medio, dificil];
+
+  /// La dificultad de un tablero de [tamano], o `null` si el enum no la cubre.
+  ///
+  /// La pantalla de juego recibe un `int size`, no un [Dificultad], y el header
+  /// necesita el nombre para la bajada ("Modo Difícil"). El mapeo vive acá y no
+  /// en el widget para que no se desincronice del enum.
+  static Dificultad? paraTamano(int tamano) {
+    for (final dificultad in values) {
+      if (dificultad.tamano == tamano) return dificultad;
+    }
+    return null;
+  }
 }

@@ -244,6 +244,55 @@ class AppTheme {
   /// el ancho lo reparte la grilla según la pantalla.
   static const double levelTileAspectRatio = 82.5 / 112;
 
+  // --- Tablero y HUD de la partida ------------------------------------------
+  //
+  // Del frame "Tablero numérico" (nodo `4:2825`). El tablero y las fichas son
+  // lo único de esa pantalla que no venía ya de otro frame.
+
+  /// Tarjetas de stat del HUD (Tiempo, Movs, Récord).
+  static const Color statSurface = Color(0xD90D1839);
+  static const Color statBorder = Color(0x366F8FFF);
+  static const double statHeight = 54;
+
+  /// Píldora de estado en vivo ("En juego" / "Pausado"), a la derecha del
+  /// objetivo. Comparte el cian de acento, con alfa muy bajo de fondo.
+  static const Color livePillSurface = Color(0x175BE0FF);
+
+  /// El pozo del tablero: la plancha clara sobre la que se apoyan las fichas.
+  ///
+  /// Es **clara** en los dos temas, así que va plana y no como sprite de Kenney:
+  /// es el mismo caso que las tarjetas navy pero al revés, y el pack solo trae
+  /// el pozo en gris oscuro.
+  static const Color boardSurface = Color(0xFFEAF0FF);
+  static const Color boardBorder = Color(0xB5FFFFFF);
+  static const double boardRadius = 12;
+  static const double boardPadding = 8;
+
+  /// Halo azul que despega el tablero del fondo: `0 16 13 rgba(23,44,158,0.53)`.
+  static const Color boardGlow = Color(0x87172C9E);
+
+  /// Borde de una ficha en reposo, sobre el degradado del sprite.
+  static const Color tileBorder = Color(0x786E85FF);
+
+  /// Borde del hueco vacío. Es claro pero **no** blanco pleno: el blanco pleno
+  /// es lo que marca las fichas movibles (ver `howToPlay2`), así que el hueco
+  /// tiene que quedar por debajo o la ayuda deja de ser cierta.
+  static const Color emptySlotBorder = Color(0xA8FFFFFF);
+
+  /// Botones de la partida (Reiniciar / Pausa).
+  static const Color controlSurface = Color(0xE80D1838);
+  static const Color controlBorder = Color(0x45657EFF);
+  static const Color controlPrimaryBorder = Color(0x42FFFFFF);
+  static const double controlHeight = 52;
+  static const double controlRadius = 13;
+
+  /// Fondo del botón primario de la partida (Pausa).
+  ///
+  /// Es el mismo `#526BFF` que [switchActive] y [levelTileCurrentInk]: los tres
+  /// frames usan el mismo azul de marca, pero en roles distintos, así que cada
+  /// uno tiene su nombre y puede moverse sin arrastrar a los otros.
+  static const Color controlPrimary = Color(0xFF526BFF);
+
   // --- Colores de dificultad -------------------------------------------------
   //
   // Son los del frame. Tintan el sprite gris del botón por `BlendMode.modulate`

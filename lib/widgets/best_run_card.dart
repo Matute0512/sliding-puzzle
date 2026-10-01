@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../logic/duracion.dart';
 import '../services/best_run_service.dart';
 import '../theme/app_theme.dart';
 import 'arcade_panel.dart';
@@ -52,7 +53,7 @@ class BestRunCard extends StatelessWidget {
                     Text(
                       // Sin marca todavía, el hueco va con guiones y no con un
                       // cero: un "00:00" se leería como un récord real.
-                      actual == null ? '--:--' : _mmss(actual.tiempoSegundos),
+                      actual == null ? '--:--' : duracionMmSs(actual.tiempoSegundos),
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -112,19 +113,6 @@ class BestRunCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// `mm:ss`, como el `00:37` del frame.
-///
-/// Ojo: el resto de la app muestra los tiempos con `l10n.secondsShort` ("37s").
-/// Acá se usa el formato de cronómetro porque es el del diseño y porque un
-/// récord se lee mejor como marca que como cantidad de segundos. Quedan dos
-/// formatos de tiempo conviviendo: si se unifican, el que debería ceder es este,
-/// no `secondsShort`, que está en la mitad de las pantallas.
-String _mmss(int segundos) {
-  final minutos = (segundos ~/ 60).toString().padLeft(2, '0');
-  final resto = (segundos % 60).toString().padLeft(2, '0');
-  return '$minutos:$resto';
 }
 
 /// Cuadrado con el trofeo a la izquierda de la tarjeta.
