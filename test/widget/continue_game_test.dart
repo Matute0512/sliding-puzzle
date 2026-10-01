@@ -290,6 +290,11 @@ void main() {
       );
       await tester.pump();
 
+      // La botonera bajó al pie de la pantalla con el rediseño: en el viewport
+      // de test (800×600) el tablero es tan alto que la deja fuera de la vista,
+      // así que hay que scrollear hasta ella antes de tocar.
+      await tester.ensureVisible(find.byIcon(Icons.pause));
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.pause));
       await tester.pumpAndSettle();
 
@@ -327,6 +332,8 @@ void main() {
       );
       await tester.pump();
 
+      await tester.ensureVisible(find.byIcon(Icons.refresh));
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.refresh));
       await tester.pumpAndSettle();
 

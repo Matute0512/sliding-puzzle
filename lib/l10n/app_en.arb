@@ -10,6 +10,14 @@
   "secondsShort": "{segundos}s",
   "goalMoves": "{objetivo} moves",
 
+  "restart": "Restart",
+  "record": "Record",
+  "livePlaying": "Playing",
+  "livePaused": "Paused",
+  "objectiveOrder": "Order from 1 to {total}",
+  "modeDifficulty": "{dificultad} mode",
+  "levelLabel": "Level {nivel}",
+
   "settingsTitle": "Settings",
   "privacyTitle": "Privacy & Data",
   "privacyTooltip": "Privacy & data",

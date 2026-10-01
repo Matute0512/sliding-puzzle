@@ -170,6 +170,16 @@ class BestRunService {
   static Future<MejorPartida?> obtenerVigente() async =>
       (await _leer()).vigente;
 
+  /// La mejor marca del tablero [tamano], o `null` si nunca lo completó.
+  ///
+  /// Es un dato distinto de [obtenerVigente], que devuelve el **último** tablero
+  /// completado. Acá el tablero es el que se está jugando, que es lo que tiene
+  /// sentido mostrar como "Récord" arriba del tablero: un 5×5 contra la marca
+  /// del 5×5, no contra la del 3×3 —que siempre gana, porque se resuelve en
+  /// menos movimientos y en menos tiempo—.
+  static Future<MejorPartida?> obtenerPorTablero(int tamano) async =>
+      (await _leer()).porTablero[tamano];
+
   /// Registra una partida libre terminada.
   ///
   /// Corre en el camino caliente de la victoria: nunca lanza.

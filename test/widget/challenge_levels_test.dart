@@ -57,9 +57,10 @@ void main() {
     );
     await tester.pump();
 
-    // Nivel 1 → tablero 3x3 con objetivo de 3 movimientos.
-    expect(find.text('Objetivo'), findsOneWidget);
+    // Nivel 1 → tablero 3x3 con objetivo de 3 movimientos. Los rótulos del HUD
+    // se pintan en versalitas, así que se busca la forma renderizada.
+    expect(find.text('OBJETIVO'), findsOneWidget);
     expect(find.text('3 movs'), findsOneWidget);
-    expect(find.text('Tiempo'), findsNothing);
+    expect(find.text('TIEMPO'), findsNothing);
   });
 }

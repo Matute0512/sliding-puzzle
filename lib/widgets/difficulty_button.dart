@@ -32,9 +32,9 @@ class DifficultyButton extends StatelessWidget {
       onTap: onTap,
       tint: color,
       icono: icono,
-      titulo: _titulo(l10n, dificultad),
+      titulo: nombreDificultad(l10n, dificultad),
       subtitulo: tablero,
-      semantica: '${_titulo(l10n, dificultad)}. $tablero',
+      semantica: '${nombreDificultad(l10n, dificultad)}. $tablero',
     );
   }
 }
@@ -57,7 +57,11 @@ class DifficultyButton extends StatelessWidget {
       ),
     };
 
-String _titulo(AppLocalizations l10n, Dificultad dificultad) =>
+/// Nombre de la dificultad para mostrar.
+///
+/// Lo comparten el botón del menú y la bajada del header de la partida, que
+/// recibe un `int size` y necesita el nombre para armar "Modo Difícil".
+String nombreDificultad(AppLocalizations l10n, Dificultad dificultad) =>
     switch (dificultad) {
       Dificultad.facil => l10n.difficultyEasy,
       Dificultad.medio => l10n.difficultyMedium,
