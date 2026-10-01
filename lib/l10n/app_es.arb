@@ -173,6 +173,19 @@
       "total": { "type": "int" }
     }
   },
+  "challengeCircuit": "Circuito arcade",
+  "selectLevel": "Seleccioná un nivel",
+  "challengeProgressLabel": "Tu progreso",
+  "unlockNextLevel": "Completá el nivel {nivel} para desbloquear el siguiente.",
+  "@unlockNextLevel": {
+    "description": "Aviso al pie de la grilla del Modo Desafío. Dice 'el siguiente' y no 'la siguiente fila' porque el Desafío desbloquea de a un nivel.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+  "challengeComplete": "¡Completaste los 20 niveles!",
+  "challengeFinalLevel": "¡Último nivel! Completalo para terminar el circuito.",
+
   "locked": "Bloqueado",
   "levelLockedSemantics": "Nivel {nivel} bloqueado",
   "@levelLockedSemantics": {

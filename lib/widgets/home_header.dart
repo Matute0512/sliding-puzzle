@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import 'header_square_button.dart';
 
 /// Header del menú: título centrado y dos acciones cuadradas a los costados.
 ///
@@ -77,11 +78,14 @@ class HomeHeader extends StatelessWidget {
               ],
             ),
           ),
-          _BotonCuadrado(
-            icono: Icons.emoji_events_rounded,
+          HeaderSquareButton(
             tooltip: l10n.viewRecords,
             onTap: onRecords,
-            color: colors,
+            child: Icon(
+              Icons.emoji_events_rounded,
+              size: 19,
+              color: colors.textPrimary,
+            ),
           ),
         ],
       ),
@@ -139,13 +143,15 @@ class _MenuCuadrado extends StatelessWidget {
           ),
         ),
       ],
-      child: _BotonCuadrado(
-        icono: Icons.grid_view_rounded,
+      child: HeaderSquareButton(
         // El `Tooltip` lo pone el `PopupMenuButton`: poner otro acá los dejaría
         // superpuestos.
-        tooltip: null,
         onTap: null,
-        color: color,
+        child: Icon(
+          Icons.grid_view_rounded,
+          size: 19,
+          color: color.textPrimary,
+        ),
       ),
     );
   }
@@ -177,50 +183,3 @@ class _FilaMenu extends StatelessWidget {
   }
 }
 
-/// Cuadrado de 40 con el ícono, la superficie y el borde del frame.
-///
-/// Cuando [onTap] es `null` el botón es solo la decoración: el gesto lo maneja
-/// el `PopupMenuButton` que lo envuelve.
-///
-/// El color y el borde van en el `Material` y no en un `Container` adentro del
-/// `InkWell`: un `Container` con `color` se pinta por encima de la tinta del
-/// ripple —que va sobre el `Material` más cercano— y el toque quedaría sin
-/// respuesta visual.
-class _BotonCuadrado extends StatelessWidget {
-  const _BotonCuadrado({
-    required this.icono,
-    required this.tooltip,
-    required this.onTap,
-    required this.color,
-  });
-
-  final IconData icono;
-  final String? tooltip;
-  final VoidCallback? onTap;
-  final AppColors color;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: const BorderSide(color: AppTheme.headerButtonBorder),
-    );
-
-    final cuadrado = Material(
-      color: AppTheme.headerButtonSurface,
-      shape: forma,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: forma,
-        child: SizedBox(
-          width: AppTheme.headerButtonSize,
-          height: AppTheme.headerButtonSize,
-          child: Icon(icono, size: 19, color: color.textPrimary),
-        ),
-      ),
-    );
-
-    if (tooltip == null) return cuadrado;
-    return Tooltip(message: tooltip!, child: cuadrado);
-  }
-}
