@@ -29,13 +29,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Sin progreso: nivel alcanzado 1 y estrellas 0.
-    expect(find.text('Nivel alcanzado'), findsOneWidget);
+    // El header es el del frame: título y bajada propios del Modo Desafío, en
+    // vez del nombre genérico que ponía el AppBar.
+    expect(find.text('DESAFÍO'), findsOneWidget);
+    expect(find.text('CIRCUITO ARCADE'), findsOneWidget);
+
+    // Sin progreso: nivel alcanzado 1 y 0 estrellas. El rótulo y el total son
+    // los del frame — "TU PROGRESO" y el número pelado, sin "/ 60".
+    expect(find.text('TU PROGRESO'), findsOneWidget);
     expect(find.text('1 / 20'), findsOneWidget);
-    expect(find.text('0 / 60'), findsOneWidget);
+    expect(find.text('0'), findsOneWidget);
 
     // Los niveles posteriores al 1 están bloqueados.
-    expect(find.text('Bloqueado'), findsWidgets);
+    expect(find.text('BLOQUEADO'), findsWidgets);
+
+    // El aviso del pie nombra el nivel que hay que completar para avanzar.
+    expect(
+      find.text('Completá el nivel 1 para desbloquear el siguiente.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('GameScreen en desafío muestra el HUD Objetivo y no el Tiempo',

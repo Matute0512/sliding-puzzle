@@ -7,12 +7,29 @@ import '../services/records_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
+import '../widgets/arcade_panel.dart';
+import '../widgets/header_square_button.dart';
 import 'game_screen.dart';
+import 'records_screen.dart';
 
 /// Pantalla del Modo Desafío: una campaña de 20 niveles (1 a 10 en 3x3,
 /// 11 a 20 en 4x4) con un objetivo de movimientos y hasta 3 estrellas por
 /// nivel. Muestra el progreso desbloqueado, las mejores estrellas por nivel
 /// y candados en los niveles todavía bloqueados.
+///
+/// El layout sale del frame "Modo desafío" (nodo `4:2689`). Del frame **no** se
+/// implementaron el status bar de iOS ni el home indicator: son *chrome* de
+/// mockup, no parte de la app. El frame tampoco trae fondo propio —usa el
+/// "Layered arcade background" que ya pinta `GameBackground` en toda la app—,
+/// así que acá no hay nada que hacer por ese lado.
+///
+/// Dos diferencias con el frame, las dos deliberadas:
+///
+/// - La grilla del frame muestra 12 niveles en 3 filas; el Desafío tiene 20, así
+///   que scrollea. El aviso del pie queda fuera del scroll, fijo abajo.
+/// - Kenney Future es ~38% más ancha que la Inter con la que está medido el
+///   frame, así que los cuerpos de texto bajan uno o dos puntos. Es el mismo
+///   ajuste que se hizo en el resto de la app.
 class ChallengeLevelsScreen extends StatefulWidget {
   const ChallengeLevelsScreen({super.key});
 
@@ -93,163 +110,329 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
       );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return Scaffold(
-      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
-      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: colors.textPrimary),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.flag_rounded, color: AppTheme.seedColor, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              AppLocalizations.of(context)!.challengeMode,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                      child: _ResumenProgreso(
-                        nivelMaximo: _nivelMaximo,
-                        totalEstrellas: _estrellas.values.fold(
-                          0,
-                          (a, b) => a + b,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 96,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.92,
-                        ),
-                        itemCount: _cantidadNiveles,
-                        itemBuilder: (context, i) {
-                          final nivel = i + 1;
-                          final bloqueado = nivel > _nivelMaximo;
-                          return _CeldaNivel(
-                            nivel: nivel,
-                            estrellas: _estrellas[nivel] ?? 0,
-                            bloqueado: bloqueado,
-                            esActual: !bloqueado && nivel == _nivelMaximo,
-                            onTap: () => _tocarNivel(nivel),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  void _abrirRecords() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RecordsScreen()),
     );
   }
-}
 
-/// Tarjeta resumen del progreso: nivel alcanzado y estrellas totales.
-class _ResumenProgreso extends StatelessWidget {
-  final int nivelMaximo;
-  final int totalEstrellas;
-
-  const _ResumenProgreso({
-    required this.nivelMaximo,
-    required this.totalEstrellas,
-  });
+  /// Si el nivel 20 ya tiene estrellas, la campaña terminó. No alcanza con
+  /// `_nivelMaximo == _cantidadNiveles`: eso solo dice que el 20 está
+  /// **desbloqueado**, no ganado, y en esa ventana el aviso del pie mentiría.
+  bool get _campanaCompleta => (_estrellas[_cantidadNiveles] ?? 0) > 0;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // Sin `width: double.infinity`: el `Row` de adentro ya tiene un `Expanded`,
-    // así que ocupa todo el ancho disponible por sí solo.
-    //
-    // La superficie es un panel 9-slice de Kenney, claro en los dos temas: por
-    // eso los textos de adentro usan KenneyInk y no AppColors.
-    return KenneySurface(
-      slice: KenneySlices.flatPanel,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
+    return Scaffold(
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.levelReached,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: KenneyInk.secondary,
-                  ),
+                _CabeceraDesafio(
+                  onVolver: () => Navigator.of(context).pop(),
+                  onRecords: _abrirRecords,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.levelProgress(nivelMaximo),
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: KenneyInk.primary,
-                  ),
+                Expanded(
+                  // La cabecera se pinta siempre: mientras carga, lo único que
+                  // falta es la grilla, y dejar el header evita el salto de
+                  // layout cuando llega el progreso.
+                  child: _cargando
+                      ? const Center(child: CircularProgressIndicator())
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                          child: Column(
+                            children: [
+                              _TarjetaProgreso(
+                                nivelMaximo: _nivelMaximo,
+                                totalNiveles: _cantidadNiveles,
+                                totalEstrellas: _estrellas.values.fold(
+                                  0,
+                                  (a, b) => a + b,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                l10n.selectLevel.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.labelBlue,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Expanded(
+                                child: GridView.builder(
+                                  padding: EdgeInsets.zero,
+                                  // 4 columnas fijas, como el frame, en vez del
+                                  // `maxCrossAxisExtent` de antes: con el ancho
+                                  // del frame caían 4, pero en una pantalla más
+                                  // ancha entraban 5 y la grilla dejaba de
+                                  // parecerse al diseño.
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 4,
+                                    mainAxisSpacing: 10,
+                                    crossAxisSpacing: 10,
+                                    childAspectRatio:
+                                        AppTheme.levelTileAspectRatio,
+                                  ),
+                                  itemCount: _cantidadNiveles,
+                                  itemBuilder: (context, i) {
+                                    final nivel = i + 1;
+                                    final bloqueado = nivel > _nivelMaximo;
+                                    return _CeldaNivel(
+                                      nivel: nivel,
+                                      estrellas: _estrellas[nivel] ?? 0,
+                                      bloqueado: bloqueado,
+                                      esActual:
+                                          !bloqueado && nivel == _nivelMaximo,
+                                      onTap: () => _tocarNivel(nivel),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _AvisoDesbloqueo(
+                                texto: _campanaCompleta
+                                    ? l10n.challengeComplete
+                                    : _nivelMaximo >= _cantidadNiveles
+                                        ? l10n.challengeFinalLevel
+                                        : l10n.unlockNextLevel(_nivelMaximo),
+                              ),
+                            ],
+                          ),
+                        ),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                l10n.stars,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: KenneyInk.secondary,
-                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Header del Modo Desafío: volver, título y récords.
+///
+/// Reemplaza al `AppBar` que tenía la pantalla. El `AppBar` sumaba una altura y
+/// traía un `leading` y un `actions` con su propio layout, cuando el frame ya
+/// define los dos cuadrados y el título centrado —los mismos de `HomeHeader`.
+class _CabeceraDesafio extends StatelessWidget {
+  const _CabeceraDesafio({required this.onVolver, required this.onRecords});
+
+  final VoidCallback onVolver;
+  final VoidCallback onRecords;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            HeaderSquareButton(
+              // El tooltip de volver ya viene traducido por Material.
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onTap: onVolver,
+              child: KenneyIcon(
+                KenneySlices.arrowWest,
+                size: 19,
+                tint: colors.textPrimary,
               ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            // `Expanded` en el medio y botones del mismo ancho a los costados:
+            // así el título queda centrado en la pantalla y no en el espacio
+            // libre. Mismo criterio que `HomeHeader`.
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // El sprite de la estrella es la máscara gris, así que el
-                  // ámbar hay que ponerlo por tinte.
-                  const KenneyIcon(
-                    KenneySlices.star,
-                    size: 20,
-                    tint: Color(0xFFF59E0B),
-                  ),
-                  const SizedBox(width: 4),
                   Text(
-                    l10n.starsProgress(totalEstrellas),
+                    // El título del frame es "DESAFÍO" a secas, no "Modo
+                    // Desafío": el "Desafío Diario" es otra cosa y conviene no
+                    // confundirlos en el header.
+                    l10n.challengeTab.toUpperCase(),
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 17,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    l10n.challengeCircuit.toUpperCase(),
+                    maxLines: 1,
                     style: const TextStyle(
-                      fontSize: 19,
+                      fontSize: 9,
+                      height: 1.2,
                       fontWeight: FontWeight.bold,
-                      color: KenneyInk.primary,
+                      color: AppTheme.accentCyan,
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
+            HeaderSquareButton(
+              tooltip: l10n.viewRecords,
+              onTap: onRecords,
+              child: Icon(
+                Icons.emoji_events_rounded,
+                size: 18,
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta de progreso: bandera, "tu progreso" con la barra, y estrellas.
+///
+/// Va sobre [ArcadePanel] y no sobre un sprite de Kenney: la superficie es navy
+/// oscura y el pack se aplasta con ese tinte (ver `ArcadePanel`). Por lo mismo,
+/// el texto de adentro sale de `AppColors` y no de `KenneyInk`.
+class _TarjetaProgreso extends StatelessWidget {
+  const _TarjetaProgreso({
+    required this.nivelMaximo,
+    required this.totalNiveles,
+    required this.totalEstrellas,
+  });
+
+  final int nivelMaximo;
+  final int totalNiveles;
+  final int totalEstrellas;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
+
+    return ArcadePanel(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      radius: 18,
+      child: SizedBox(
+        height: 72,
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppTheme.challengeBadgeSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.challengeBadgeBorder),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.flag_rounded,
+                  size: 19,
+                  color: AppTheme.accentCyan,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        l10n.challengeProgressLabel.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.labelBlue,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        l10n.levelProgress(nivelMaximo),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.accentCyan,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  _BarraProgreso(
+                    // Sobre los niveles y no sobre las estrellas: el número que
+                    // tiene al lado es `nivelMaximo / 20`, y una barra que
+                    // midiera otra cosa se leería como un error.
+                    //
+                    // El frame la dibuja a 116 px de un track de ~218 (53%) con
+                    // "8 / 20" al lado (40%), así que el mockup no es
+                    // internamente consistente; manda la etiqueta.
+                    progreso: nivelMaximo / totalNiveles,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Row(
+              children: [
+                // El sprite de la estrella es la máscara gris, así que el ámbar
+                // va por tinte.
+                const KenneyIcon(
+                  KenneySlices.star,
+                  size: 15,
+                  tint: AppTheme.podiumGold,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '$totalEstrellas',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Track y valor de la barra de progreso del frame.
+class _BarraProgreso extends StatelessWidget {
+  const _BarraProgreso({required this.progreso});
+
+  final double progreso;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: SizedBox(
+        height: 6,
+        child: ColoredBox(
+          color: AppTheme.challengeTrack,
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progreso.clamp(0.0, 1.0),
+            child: const ColoredBox(color: AppTheme.challengeValue),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -281,84 +464,155 @@ class _CeldaNivel extends StatelessWidget {
       label: bloqueado
           ? l10n.levelLockedSemantics(nivel)
           : l10n.levelStarsSemantics(nivel, estrellas),
-      // La celda es un cuadrado 9-slice de Kenney. El nivel bloqueado se
-      // atenúa entero con `Opacity` en vez de cambiar el color de fondo: el
-      // sprite no se recolorea por tema, y así se lee "apagado" sin tener que
-      // mantener un segundo sprite solo para el estado bloqueado.
+      // La celda es un sprite cuadrado de Kenney **claro** en los dos temas, así
+      // que la tinta de adentro sale de los tokens `levelTileInk*` y no de
+      // `AppColors`.
+      //
+      // El nivel bloqueado se atenúa entero con `Opacity` en vez de cambiar el
+      // color de fondo: el sprite no se recolorea por tema, y así se lee
+      // "apagado" sin tener que mantener un segundo sprite solo para el estado
+      // bloqueado.
       //
       // El `Material` transparente por dentro del sprite es para que la tinta
       // del `InkWell` se pinte encima del fondo en vez de taparlo.
       child: Opacity(
         opacity: bloqueado ? 0.55 : 1,
-        child: KenneySurface(
-          slice: KenneySlices.flatSquare,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: esActual
-                      ? Border.all(color: AppTheme.seedColor, width: 2)
-                      : null,
-                ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (bloqueado)
-                  const Icon(
-                    Icons.lock_outline_rounded,
-                    color: KenneyInk.secondary,
-                    size: 24,
-                  )
-                else
-                  Text(
-                    '$nivel',
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                      color: esActual
-                          ? AppTheme.seedColor
-                          : KenneyInk.primary,
+        child: DecoratedBox(
+          // El halo va en un `DecoratedBox` por fuera del sprite porque
+          // `KenneySurface` no proyecta sombra, y el resplandor cian es la única
+          // señal de "estás acá" que el frame le da al nivel actual.
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.levelTileRadius),
+            boxShadow: esActual
+                ? const [
+                    BoxShadow(
+                      color: AppTheme.levelTileGlow,
+                      blurRadius: 16,
+                      offset: Offset(0, 5),
                     ),
+                  ]
+                : null,
+          ),
+          child: KenneySurface(
+            slice: KenneySlices.flatSquare,
+            tint: esActual ? AppTheme.levelTileCurrent : AppTheme.levelTile,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.levelTileRadius),
+                    border: esActual
+                        ? Border.all(color: AppTheme.accentCyan, width: 2)
+                        : null,
                   ),
-                if (bloqueado)
-                  const SizedBox(height: 6)
-                else
-                  const SizedBox(height: 4),
-                if (bloqueado)
-                  Text(
-                    l10n.locked,
-                    style: const TextStyle(
-                      fontSize: 8,
-                      color: KenneyInk.secondary,
-                    ),
-                  )
-                else
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Estrella ámbar la ganada, contorno gris la pendiente.
-                      // La estrella del pack es la máscara gris, así que el
-                      // ámbar va por tinte; el contorno ya es gris de fábrica.
-                      for (var i = 0; i < 3; i++)
-                        KenneyIcon(
-                          i < estrellas
-                              ? KenneySlices.star
-                              : KenneySlices.starOutline,
-                          size: 16,
-                          tint: i < estrellas ? const Color(0xFFF59E0B) : null,
+                      if (bloqueado)
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          color: AppTheme.levelTileLockedInk,
+                          size: 21,
+                        )
+                      else
+                        Text(
+                          '$nivel',
+                          style: TextStyle(
+                            // 18 y no los 20 del frame, por el ancho de Kenney
+                            // Future. Ver `HomeHeader`.
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: esActual
+                                ? AppTheme.levelTileCurrentInk
+                                : AppTheme.levelTileInk,
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      if (bloqueado)
+                        Text(
+                          l10n.locked.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.levelTileLockedInk,
+                          ),
+                        )
+                      else
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Estrella ámbar la ganada, contorno gris la
+                            // pendiente. La estrella del pack es la máscara
+                            // gris, así que el ámbar va por tinte; el contorno
+                            // ya es gris de fábrica.
+                            for (var i = 0; i < 3; i++)
+                              KenneyIcon(
+                                i < estrellas
+                                    ? KenneySlices.star
+                                    : KenneySlices.starOutline,
+                                size: 15,
+                                tint:
+                                    i < estrellas ? AppTheme.podiumGold : null,
+                              ),
+                          ],
                         ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+/// Aviso del pie: qué falta para desbloquear el nivel siguiente.
+///
+/// Queda fijo abajo mientras la grilla scrollea: con 20 niveles la grilla no
+/// entra, y el aviso es lo último que conviene perder de vista.
+class _AvisoDesbloqueo extends StatelessWidget {
+  const _AvisoDesbloqueo({required this.texto});
+
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return ArcadePanel(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      color: AppTheme.challengeHintSurface,
+      borderColor: AppTheme.challengeHintBorder,
+      radius: 14,
+      // El aviso está apoyado sobre el contenido, no flotando: misma razón por
+      // la que el switch de modo apaga la sombra.
+      shadow: false,
+      child: SizedBox(
+        height: 52,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.lock_open_rounded,
+              size: 17,
+              color: AppTheme.labelBlue,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                texto,
+                style: const TextStyle(
+                  fontSize: 10,
+                  height: 1.4,
+                  color: AppTheme.labelBlue,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

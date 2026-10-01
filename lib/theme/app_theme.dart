@@ -194,6 +194,56 @@ class AppTheme {
   /// contador de movimientos de la tarjeta de récord.
   static const Color accentCyan = Color(0xFF60DEFF);
 
+  // --- Modo Desafío ----------------------------------------------------------
+  //
+  // Los valores salen del frame "Modo desafío" (nodo `4:2689`). El fondo de esa
+  // pantalla ya estaba: el frame "Layered arcade background" es el mismo que usa
+  // el resto de la app, así que ahí no hay nada nuevo (ver `GameBackground`).
+
+  /// Etiqueta azul apagada del frame: "TU PROGRESO", "SELECCIONÁ UN NIVEL" y el
+  /// aviso de desbloqueo del pie.
+  ///
+  /// No se reusa `AppColors.textSecondary` (#94A3B8) aunque estén cerca: este es
+  /// más azul, y sobre el navy del fondo la diferencia se ve.
+  static const Color labelBlue = Color(0xFF94A8D4);
+
+  /// Pastilla del ícono de bandera dentro de la tarjeta de progreso.
+  static const Color challengeBadgeSurface = Color(0x2E536CFF);
+  static const Color challengeBadgeBorder = Color(0x526F87FF);
+
+  /// Track y valor de la barra de progreso.
+  static const Color challengeTrack = Color(0xFF07112A);
+  static const Color challengeValue = Color(0xFF6F75FF);
+
+  /// Tarjetas de nivel. Son **claras** en los dos temas, así que el texto que va
+  /// encima sale de los tokens `levelTileInk*` y no de `AppColors`.
+  static const Color levelTile = Color(0xFFDDE4F2);
+
+  /// La del nivel que se está jugando: un pelo más clara, con borde cian y halo.
+  static const Color levelTileCurrent = Color(0xFFE7ECF8);
+  static const double levelTileRadius = 10;
+
+  /// Tinta del número del nivel y del "BLOQUEADO" sobre la tarjeta clara.
+  static const Color levelTileInk = Color(0xFF17243B);
+  static const Color levelTileLockedInk = Color(0xFF40536E);
+
+  /// Número del nivel actual. Es el mismo violeta que [switchActive] por
+  /// coincidencia de los frames, no por compartir rol: si el switch cambia de
+  /// color, este no tiene por qué seguirlo.
+  static const Color levelTileCurrentInk = Color(0xFF526BFF);
+
+  /// Halo del nivel actual: `0 5 16 rgba(79,224,255,0.4)`.
+  static const Color levelTileGlow = Color(0x664FE0FF);
+
+  /// Barra de aviso de desbloqueo, al pie de la grilla.
+  static const Color challengeHintSurface = Color(0xD90A1531);
+  static const Color challengeHintBorder = Color(0x2154D7FF);
+
+  /// Alto de las tarjetas de la grilla de niveles y proporción del frame
+  /// (82,5 × 112 en el iPhone de 400). Se mantiene la proporción y no el alto:
+  /// el ancho lo reparte la grilla según la pantalla.
+  static const double levelTileAspectRatio = 82.5 / 112;
+
   // --- Colores de dificultad -------------------------------------------------
   //
   // Son los del frame. Tintan el sprite gris del botón por `BlendMode.modulate`

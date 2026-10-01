@@ -110,6 +110,13 @@
   "levelProgress": "{nivel} / 20",
   "stars": "Stars",
   "starsProgress": "{total} / 60",
+  "challengeCircuit": "Arcade circuit",
+  "selectLevel": "Select a level",
+  "challengeProgressLabel": "Your progress",
+  "unlockNextLevel": "Complete level {nivel} to unlock the next one.",
+  "challengeComplete": "You completed all 20 levels!",
+  "challengeFinalLevel": "Final level! Complete it to finish the circuit.",
+
   "locked": "Locked",
   "levelLockedSemantics": "Level {nivel} locked",
   "levelStarsSemantics": "Level {nivel}, {estrellas} of 3 stars",
