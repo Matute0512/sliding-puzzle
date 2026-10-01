@@ -48,6 +48,25 @@
     }
   },
 
+  "photoPuzzle": "Puzzle foto",
+  "photoObjective": "Reconstruí la imagen",
+  "pieces": "Piezas",
+  "piecesProgress": "{colocadas} / {total}",
+  "@piecesProgress": {
+    "description": "Piezas ya en su lugar sobre el total de casillas, ej. '8 / 9' en un 3×3.",
+    "placeholders": {
+      "colocadas": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "boardSizeShort": "{size}×{size}",
+  "@boardSizeShort": {
+    "description": "Solo el tamaño, para la píldora de la consigna del modo foto, ej. '3×3'.",
+    "placeholders": {
+      "size": { "type": "int" }
+    }
+  },
+
   "settingsTitle": "Configuración",
   "privacyTitle": "Privacidad y Datos",
   "privacyTooltip": "Privacidad y datos",

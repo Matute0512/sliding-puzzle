@@ -18,6 +18,12 @@
   "modeDifficulty": "{dificultad} mode",
   "levelLabel": "Level {nivel}",
 
+  "photoPuzzle": "Photo puzzle",
+  "photoObjective": "Rebuild the image",
+  "pieces": "Pieces",
+  "piecesProgress": "{colocadas} / {total}",
+  "boardSizeShort": "{size}×{size}",
+
   "settingsTitle": "Settings",
   "privacyTitle": "Privacy & Data",
   "privacyTooltip": "Privacy & data",

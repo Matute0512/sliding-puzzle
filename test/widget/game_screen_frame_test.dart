@@ -60,4 +60,37 @@ void main() {
     // libre, así que acá tienen que estar las tres.
     expect(find.byType(HudCard), findsNWidgets(3));
   });
+
+  testWidgets('el modo foto muestra el header y la consigna del frame',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(const {});
+    tester.view.physicalSize = const Size(400, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      appLocalizada(home: const GameScreen(size: 3, esDiario: true)),
+    );
+    await tester.pumpAndSettle();
+
+    // La vista previa del día se abre sola al entrar: se cierra para poder
+    // mirar la pantalla de juego.
+    final empezar = find.text('¡Empezar!');
+    if (empezar.evaluate().isNotEmpty) {
+      await tester.tap(empezar);
+      await tester.pumpAndSettle();
+    }
+
+    // El frame del tablero fotográfico no titula con el tamaño sino con el modo;
+    // el tamaño se muda a la píldora de la consigna.
+    expect(find.text('PUZZLE FOTO'), findsOneWidget);
+    expect(find.text('DESAFÍO DIARIO'), findsOneWidget);
+
+    // Tiempo, Movs y Piezas. La tercera es propia del modo foto: en el Diario no
+    // hay récord que mostrar.
+    expect(find.byType(HudCard), findsNWidgets(3));
+    expect(find.text('PIEZAS'), findsOneWidget);
+    expect(find.text('RECONSTRUÍ LA IMAGEN'), findsOneWidget);
+    expect(find.text('3×3'), findsOneWidget);
+  });
 }

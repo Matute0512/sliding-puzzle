@@ -170,15 +170,42 @@ class _GameScreenState extends State<GameScreen> {
         : PuzzleLogic.generarTablero(widget.size);
   }
 
-  /// Bajada del header: el modo en una línea ("Modo Difícil", "Nivel 3", ...).
+  /// Título del header.
+  ///
+  /// En el modo foto el frame no pone el tablero sino "PUZZLE FOTO": el tamaño
+  /// se fue a la píldora de la consigna, así que repetirlo acá sería redundante.
+  String _tituloCabecera(AppLocalizations l10n) =>
+      (widget.esDiario ? l10n.photoPuzzle : l10n.boardSize(widget.size))
+          .toUpperCase();
+
+  /// Cuántas fichas están ya en su lugar.
+  ///
+  /// El criterio es el mismo que usa `PuzzleLogic.estaResuelto` para dar el
+  /// tablero por ganado: la ficha del índice `i` vale `i + 1`. El hueco (0)
+  /// nunca cumple la igualdad —`i + 1` siempre es ≥ 1—, así que no hace falta
+  /// excluirlo a mano.
+  int get _piezasColocadas {
+    var colocadas = 0;
+    for (var i = 0; i < _tablero.length; i++) {
+      if (_tablero[i] == i + 1) colocadas++;
+    }
+    return colocadas;
+  }
+
+  /// Bajada del header: el modo en una línea ("MODO DIFÍCIL", "NIVEL 3", ...).
+  ///
+  /// Va en versalitas porque el frame la pinta así y porque la app las arma en
+  /// el punto de uso —`HomeHeader` y el header del Desafío hacen lo mismo—, no
+  /// por estilo del widget.
   String _subtituloCabecera(AppLocalizations l10n) {
-    if (widget.esDiario) return l10n.dailyChallenge;
+    if (widget.esDiario) return l10n.dailyChallenge.toUpperCase();
     final nivel = widget.nivelDesafio;
-    if (nivel != null) return l10n.levelLabel(nivel);
+    if (nivel != null) return l10n.levelLabel(nivel).toUpperCase();
     final dificultad = Dificultad.paraTamano(widget.size);
-    return dificultad == null
-        ? l10n.boardSize(widget.size)
-        : l10n.modeDifficulty(nombreDificultad(l10n, dificultad));
+    return (dificultad == null
+            ? l10n.boardSize(widget.size)
+            : l10n.modeDifficulty(nombreDificultad(l10n, dificultad)))
+        .toUpperCase();
   }
 
   /// Mejor marca de este tablero para la card "Récord".
@@ -246,32 +273,49 @@ class _GameScreenState extends State<GameScreen> {
             valor: '$_movimientos',
           ),
         ),
-        if (!widget.esDiario) ...[
-          const SizedBox(width: 8),
-          Expanded(
-            child: HudCard(
-              icono: Icons.emoji_events_rounded,
-              label: l10n.record.toUpperCase(),
-              // La marca va en `mm:ss` como la del menú; el cronómetro de al
-              // lado sigue con `secondsShort` ("37s"). Ver `duracionMmSs`.
-              valor: _record == null
-                  ? '--:--'
-                  : duracionMmSs(_record!.tiempoSegundos),
-            ),
-          ),
-        ],
+        const SizedBox(width: 8),
+        Expanded(
+          child: widget.esDiario
+              // En el modo foto la tercera card son las piezas ya colocadas: el
+              // tablero del Diario cambia cada día, así que un récord por tamaño
+              // no diría nada.
+              ? HudCard(
+                  icono: Icons.grid_3x3,
+                  label: l10n.pieces.toUpperCase(),
+                  // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en un
+                  // 3×3.
+                  valor: l10n.piecesProgress(
+                    _piezasColocadas,
+                    widget.size * widget.size,
+                  ),
+                )
+              : HudCard(
+                  icono: Icons.emoji_events_rounded,
+                  label: l10n.record.toUpperCase(),
+                  // La marca va en `mm:ss` como la del menú; el cronómetro de
+                  // al lado sigue con `secondsShort` ("37s"). Ver `duracionMmSs`.
+                  valor: _record == null
+                      ? '--:--'
+                      : duracionMmSs(_record!.tiempoSegundos),
+                ),
+        ),
       ],
     );
   }
 
-  /// Fila de consigna: qué hay que ordenar, y si la partida está corriendo.
+  /// Fila de consigna: qué hay que lograr, y el dato que la acompaña.
+  ///
+  /// La píldora de la derecha dice cosas distintas según el modo, que es lo que
+  /// pide cada frame: en partida numérica el estado en vivo, y en el modo foto
+  /// el tamaño del tablero, o sea en cuántas piezas está partida la imagen.
   Widget _filaObjetivo(AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
           child: Text(
-            l10n
-                .objectiveOrder(widget.size * widget.size - 1)
+            (widget.esDiario
+                    ? l10n.photoObjective
+                    : l10n.objectiveOrder(widget.size * widget.size - 1))
                 .toUpperCase(),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -284,7 +328,20 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ),
         const SizedBox(width: 10),
-        _PildoraEstado(pausado: _pausado),
+        widget.esDiario
+            ? _Pildora(
+                leading: const Icon(
+                  Icons.image_outlined,
+                  size: 11,
+                  color: AppTheme.accentCyan,
+                ),
+                label: l10n.boardSizeShort(widget.size),
+              )
+            : _Pildora(
+                leading: const _Punto(),
+                label: (_pausado ? l10n.livePaused : l10n.livePlaying)
+                    .toUpperCase(),
+              ),
       ],
     );
   }
@@ -1132,7 +1189,7 @@ class _GameScreenState extends State<GameScreen> {
           Column(
             children: [
               GameHeader(
-                titulo: l10n.boardSize(widget.size).toUpperCase(),
+                titulo: _tituloCabecera(l10n),
                 subtitulo: _subtituloCabecera(l10n),
                 // `maybePop` y no `pop`: así pasa por el `PopScope` de arriba,
                 // que es el que guarda la partida antes de salir. Un `pop`
@@ -1259,21 +1316,18 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-/// Píldora de estado en vivo de la partida: punto cian + rótulo.
+/// Píldora de la consigna.
 ///
-/// El frame la llama "Live state" y la dibuja siempre encendida porque muestra
-/// una partida corriendo. Acá el punto no parpadea, pero el rótulo sigue el
-/// estado real: en pausa dice "Pausado", que es la información que el jugador
-/// necesita cuando vuelve a la pantalla.
-class _PildoraEstado extends StatelessWidget {
-  const _PildoraEstado({required this.pausado});
+/// El chrome lo comparten los dos modos de tablero; lo único que cambia es qué
+/// va a la izquierda del rótulo.
+class _Pildora extends StatelessWidget {
+  const _Pildora({required this.leading, required this.label});
 
-  final bool pausado;
+  final Widget leading;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
@@ -1283,17 +1337,10 @@ class _PildoraEstado extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: const BoxDecoration(
-              color: AppTheme.accentCyan,
-              shape: BoxShape.circle,
-            ),
-          ),
+          leading,
           const SizedBox(width: 6),
           Text(
-            (pausado ? l10n.livePaused : l10n.livePlaying).toUpperCase(),
+            label,
             style: const TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.w900,
@@ -1301,6 +1348,28 @@ class _PildoraEstado extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Punto cian de la píldora de estado en vivo.
+///
+/// El frame lo llama "Pulse" y lo dibuja siempre encendido porque muestra una
+/// partida corriendo. Acá no parpadea, pero el rótulo que lo acompaña sí sigue
+/// el estado real: en pausa dice "Pausado", que es lo que el jugador necesita
+/// saber al volver a la pantalla.
+class _Punto extends StatelessWidget {
+  const _Punto();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: const BoxDecoration(
+        color: AppTheme.accentCyan,
+        shape: BoxShape.circle,
       ),
     );
   }
