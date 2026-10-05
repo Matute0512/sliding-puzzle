@@ -1186,93 +1186,102 @@ class _GameScreenState extends State<GameScreen> {
       body: Stack(
         children: [
           // Juego normal
-          Column(
-            children: [
-              GameHeader(
-                titulo: _tituloCabecera(l10n),
-                subtitulo: _subtituloCabecera(l10n),
-                // `maybePop` y no `pop`: así pasa por el `PopScope` de arriba,
-                // que es el que guarda la partida antes de salir. Un `pop`
-                // directo se saltaría el autoguardado.
-                onVolver: () => Navigator.maybePop(context),
-                onAjustes: _abrirAjustes,
-                onAyuda: _mostrarAyuda,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 500),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _filaStats(l10n),
-                            const SizedBox(height: 16),
-                            _filaObjetivo(l10n),
-                            const SizedBox(height: 16),
-                            AspectRatio(
-                              aspectRatio: 1,
-                              // El pozo va acá afuera y no dentro de
-                              // `PuzzleBoard` a propósito: `puzzle_solver.dart`
-                              // deduce la posición de cada ficha del tamaño
-                              // exacto del `PuzzleBoard` (`getSize`) y de que
-                              // las fichas arranquen en (0,0). Si el padding
-                              // viviera adentro, el tablero quedaría corrido
-                              // respecto de esa cuenta y los tests que juegan
-                              // una partida entera fallarían.
-                              child: Container(
-                                padding: const EdgeInsets.all(
-                                  AppTheme.boardPadding,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.boardSurface,
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.boardRadius,
+          // El `SafeArea` es lo que baja el contenido fuera de la barra de
+          // estado y de la barra de gestos: sin él, el header y las tarjetas
+          // del HUD se dibujaban debajo de la hora y la batería. El fondo no
+          // se recorta, porque `GameBackground` vive en `MaterialApp.builder`
+          // y pinta a pantalla completa por detrás de esto. El confetti y el
+          // velo de pausa quedan afuera a propósito: son capas que tienen que
+          // cubrir toda la pantalla.
+          SafeArea(
+            child: Column(
+              children: [
+                GameHeader(
+                  titulo: _tituloCabecera(l10n),
+                  subtitulo: _subtituloCabecera(l10n),
+                  // `maybePop` y no `pop`: así pasa por el `PopScope` de arriba,
+                  // que es el que guarda la partida antes de salir. Un `pop`
+                  // directo se saltaría el autoguardado.
+                  onVolver: () => Navigator.maybePop(context),
+                  onAjustes: _abrirAjustes,
+                  onAyuda: _mostrarAyuda,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _filaStats(l10n),
+                              const SizedBox(height: 16),
+                              _filaObjetivo(l10n),
+                              const SizedBox(height: 16),
+                              AspectRatio(
+                                aspectRatio: 1,
+                                // El pozo va acá afuera y no dentro de
+                                // `PuzzleBoard` a propósito: `puzzle_solver.dart`
+                                // deduce la posición de cada ficha del tamaño
+                                // exacto del `PuzzleBoard` (`getSize`) y de que
+                                // las fichas arranquen en (0,0). Si el padding
+                                // viviera adentro, el tablero quedaría corrido
+                                // respecto de esa cuenta y los tests que juegan
+                                // una partida entera fallarían.
+                                child: Container(
+                                  padding: const EdgeInsets.all(
+                                    AppTheme.boardPadding,
                                   ),
-                                  border: Border.all(
-                                    color: AppTheme.boardBorder,
-                                    width: 2,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: AppTheme.boardGlow,
-                                      blurRadius: 13,
-                                      offset: Offset(0, 16),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.boardSurface,
+                                    borderRadius: BorderRadius.circular(
+                                      AppTheme.boardRadius,
                                     ),
-                                  ],
-                                ),
-                                child: ValueListenableBuilder<ImageProvider?>(
-                                  valueListenable: _imagenDiaria,
-                                  builder: (_, imagen, _) => PuzzleBoard(
-                                    tablero: _tablero,
-                                    size: widget.size,
-                                    onTileTap: _onTapFicha,
-                                    // Solo el diario se arma como imagen; los
-                                    // otros dos modos siguen con fichas
-                                    // numéricas (`imagen` es `null` ahí).
-                                    imagen: imagen,
-                                    imagenRespaldo:
-                                        DailyChallengeService.imagenRespaldo,
+                                    border: Border.all(
+                                      color: AppTheme.boardBorder,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: AppTheme.boardGlow,
+                                        blurRadius: 13,
+                                        offset: Offset(0, 16),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ValueListenableBuilder<ImageProvider?>(
+                                    valueListenable: _imagenDiaria,
+                                    builder: (_, imagen, _) => PuzzleBoard(
+                                      tablero: _tablero,
+                                      size: widget.size,
+                                      onTileTap: _onTapFicha,
+                                      // Solo el diario se arma como imagen; los
+                                      // otros dos modos siguen con fichas
+                                      // numéricas (`imagen` es `null` ahí).
+                                      imagen: imagen,
+                                      imagenRespaldo:
+                                          DailyChallengeService.imagenRespaldo,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            GameControls(
-                              pausado: _pausado,
-                              onReiniciar: _reiniciar,
-                              onPausar: _alternarPausa,
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              GameControls(
+                                pausado: _pausado,
+                                onReiniciar: _reiniciar,
+                                onPausar: _alternarPausa,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           // Confetti encima del juego
           Align(
