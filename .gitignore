@@ -64,3 +64,11 @@ aab/app-release.aab
 # el resto (graph.json/html, labels, caché regenerable) no se commitea.
 /graphify-out/*
 !/graphify-out/GRAPH_REPORT.md
+
+# Assets
+# El UI Pack de Kenney completo (Vector/, Sounds/, Font/ y los ~1000 PNG de
+# todos los colores y estilos) NO se versiona: son 4.2 MB y la app usa un
+# puñado de sprites. Lo que sí se versiona es `assets/ui/kenney/`, el
+# subconjunto curado que declara el pubspec. Si agregás un sprite nuevo,
+# copialo ahí: el pack crudo no viaja en el repo.
+assets/ui/kenney_ui-pack

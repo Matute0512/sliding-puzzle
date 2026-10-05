@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 
 /// Foto del día a la vista, antes de empezar el Desafío Diario.
 ///
@@ -20,6 +20,10 @@ import '../theme/app_theme.dart';
 ///
 /// Sigue el patrón de `DailyVictoryDialog`: la UI vive en su propio widget y se
 /// abre con un `mostrar` estático.
+///
+/// La superficie es un panel 9-slice de Kenney, así que es un `Dialog` pelado y
+/// no un `AlertDialog`: el `AlertDialog` reparte título/contenido/acciones con
+/// su propio padding y no deja envolver todo eso en un solo fondo.
 class DailyPreviewDialog extends StatelessWidget {
   /// Foto del día.
   ///
@@ -55,22 +59,25 @@ class DailyPreviewDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colors = Theme.of(context).extension<AppColors>()!;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        l10n.dailyPreviewTitle,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-      ),
-      content: Column(
+    return KenneyDialog(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            l10n.dailyPreviewTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: KenneyInk.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
           ValueListenableBuilder<ImageProvider?>(
             valueListenable: imagen,
             builder: (_, foto, _) => ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               child: AspectRatio(
                 aspectRatio: 1,
                 // `contain` y no `cover`: acá se muestra la foto entera, tal
@@ -97,31 +104,26 @@ class DailyPreviewDialog extends StatelessWidget {
           Text(
             l10n.dailyPreviewBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: colors.textSecondary),
+            style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: KenneyButton(
+              // Solo cierra el diálogo. Quien lo abre es el dueño de la
+              // navegación, igual que en `DailyVictoryDialog`.
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                l10n.dailyPreviewStart,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: KenneyInk.primary,
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.seedColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            // Solo cierra el diálogo. Quien lo abre es el dueño de la
-            // navegación, igual que en `DailyVictoryDialog`.
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              l10n.dailyPreviewStart,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

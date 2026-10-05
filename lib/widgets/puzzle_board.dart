@@ -57,21 +57,42 @@ class PuzzleBoard extends StatelessWidget {
             // Sockets: el fondo de todas las celdas. Muestran el estilo de
             // ficha vacía (visible el hueco) y dan una base estable sobre
             // la que las fichas deslizan.
-            for (var i = 0; i < n * n; i++)
-              Positioned(
-                left: left(i),
-                top: top(i),
-                width: ladoCelda,
-                height: ladoCelda,
-                child: PuzzleTile(
-                  numero: 0,
-                  size: n,
-                  onTap: () {},
-                  esSocket: true,
+            //
+            // Van todos dentro de un mismo `RepaintBoundary` porque no cambian
+            // nunca: al animarse una ficha el `Stack` se relayouta y se
+            // repinta, y sin esta capa los n² sockets se volverían a dibujar
+            // en cada frame de los 160 ms del deslizamiento.
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (var i = 0; i < n * n; i++)
+                      Positioned(
+                        left: left(i),
+                        top: top(i),
+                        width: ladoCelda,
+                        height: ladoCelda,
+                        child: PuzzleTile(
+                          numero: 0,
+                          size: n,
+                          onTap: () {},
+                          esSocket: true,
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
             // Fichas numeradas: al cambiar su índice, AnimatedPositioned
             // las desliza desde su posición anterior.
+            //
+            // Cada ficha lleva su propio `RepaintBoundary`: mientras el
+            // `Stack` se repinta por el cambio de `left`/`top`, las demás
+            // fichas se recomponen desde su capa cacheada en vez de volver a
+            // dibujar el sprite 9-slice con su borde y sus sombras en cada
+            // frame. El `key` queda en el `AnimatedPositioned`, que es de
+            // donde `test/helpers/puzzle_solver.dart` lee el tablero.
             for (var i = 0; i < tablero.length; i++)
               if (tablero[i] != 0)
                 AnimatedPositioned(
@@ -82,14 +103,16 @@ class PuzzleBoard extends StatelessWidget {
                   top: top(i),
                   width: ladoCelda,
                   height: ladoCelda,
-                  child: PuzzleTile(
-                    numero: tablero[i],
-                    size: n,
-                    imagen: imagen,
-                    imagenRespaldo: imagenRespaldo,
-                    activa: movibles.contains(i),
-                    onTap: () => onTileTap(i),
-                    onSwipe: (direccion) => _deslizarFicha(i, direccion),
+                  child: RepaintBoundary(
+                    child: PuzzleTile(
+                      numero: tablero[i],
+                      size: n,
+                      imagen: imagen,
+                      imagenRespaldo: imagenRespaldo,
+                      activa: movibles.contains(i),
+                      onTap: () => onTileTap(i),
+                      onSwipe: (direccion) => _deslizarFicha(i, direccion),
+                    ),
                   ),
                 ),
           ],

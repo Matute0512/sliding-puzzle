@@ -29,7 +29,7 @@ Widget appLocalizada({
     navigatorKey: navigatorKey,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: localesSoportados,
-    theme: AppTheme.light,
+    theme: AppTheme.game,
     home: home,
   );
 }

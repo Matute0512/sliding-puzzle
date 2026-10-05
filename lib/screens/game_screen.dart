@@ -3,7 +3,10 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
+import '../logic/dificultad.dart';
+import '../logic/duracion.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/best_run_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
@@ -11,11 +14,16 @@ import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import '../widgets/alias_dialog.dart';
 import '../widgets/daily_preview_dialog.dart';
 import '../widgets/daily_victory_dialog.dart';
+import '../widgets/difficulty_button.dart';
+import '../widgets/game_controls.dart';
+import '../widgets/game_header.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_board.dart';
+import 'settings_screen.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
 class GameScreen extends StatefulWidget {
@@ -71,6 +79,12 @@ class _GameScreenState extends State<GameScreen> {
   late List<int> _tablero;
   late final int _objetivo;
   int _movimientos = 0;
+
+  /// Mejor marca del tablero que se está jugando, para la card "Récord".
+  ///
+  /// `null` mientras carga, o si nunca completó este tablero —ahí la card queda
+  /// en `--:--`, igual que la del menú—. Solo se usa en partida libre.
+  MejorPartida? _record;
   // El tiempo se aísla en un ValueNotifier: cada segundo solo se re-construye
   // la tarjeta del HUD, no todo el tablero.
   final ValueNotifier<int> _segundos = ValueNotifier<int>(0);
@@ -156,6 +170,190 @@ class _GameScreenState extends State<GameScreen> {
         : PuzzleLogic.generarTablero(widget.size);
   }
 
+  /// Título del header.
+  ///
+  /// En el modo foto el frame no pone el tablero sino "PUZZLE FOTO": el tamaño
+  /// se fue a la píldora de la consigna, así que repetirlo acá sería redundante.
+  String _tituloCabecera(AppLocalizations l10n) =>
+      (widget.esDiario ? l10n.photoPuzzle : l10n.boardSize(widget.size))
+          .toUpperCase();
+
+  /// Cuántas fichas están ya en su lugar.
+  ///
+  /// El criterio es el mismo que usa `PuzzleLogic.estaResuelto` para dar el
+  /// tablero por ganado: la ficha del índice `i` vale `i + 1`. El hueco (0)
+  /// nunca cumple la igualdad —`i + 1` siempre es ≥ 1—, así que no hace falta
+  /// excluirlo a mano.
+  int get _piezasColocadas {
+    var colocadas = 0;
+    for (var i = 0; i < _tablero.length; i++) {
+      if (_tablero[i] == i + 1) colocadas++;
+    }
+    return colocadas;
+  }
+
+  /// Bajada del header: el modo en una línea ("MODO DIFÍCIL", "NIVEL 3", ...).
+  ///
+  /// Va en versalitas porque el frame la pinta así y porque la app las arma en
+  /// el punto de uso —`HomeHeader` y el header del Desafío hacen lo mismo—, no
+  /// por estilo del widget.
+  String _subtituloCabecera(AppLocalizations l10n) {
+    if (widget.esDiario) return l10n.dailyChallenge.toUpperCase();
+    final nivel = widget.nivelDesafio;
+    if (nivel != null) return l10n.levelLabel(nivel).toUpperCase();
+    final dificultad = Dificultad.paraTamano(widget.size);
+    return (dificultad == null
+            ? l10n.boardSize(widget.size)
+            : l10n.modeDifficulty(nombreDificultad(l10n, dificultad)))
+        .toUpperCase();
+  }
+
+  /// Mejor marca de este tablero para la card "Récord".
+  ///
+  /// Best-effort: si falla, la card se queda en `--:--` como la del menú.
+  Future<void> _cargarRecord() async {
+    final record = await BestRunService.obtenerPorTablero(widget.size);
+    if (!mounted) return;
+    setState(() => _record = record);
+  }
+
+  void _abrirAjustes() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  /// Fila de stats.
+  ///
+  /// El frame muestra tres —Tiempo, Movs y Récord—, pero Récord solo tiene
+  /// sentido en partida libre: en el Desafío esa card la ocupa el objetivo, y en
+  /// el Diario el tablero cambia cada día, así que una marca por tamaño no
+  /// diría nada.
+  Widget _filaStats(AppLocalizations l10n) {
+    if (_esDesafio) {
+      return Row(
+        children: [
+          Expanded(
+            child: HudCard(
+              icono: Icons.sports_esports,
+              label: l10n.movesColumn.toUpperCase(),
+              valor: '$_movimientos',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: HudCard(
+              icono: Icons.flag_rounded,
+              label: l10n.goal.toUpperCase(),
+              valor: l10n.goalMoves(_objetivo),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          // `RepaintBoundary` propio para el cronómetro: publicar en
+          // `_segundos` no dispara `setState` (el rebuild ya está acotado a
+          // esta card), pero al cambiar el `Text` el `RenderParagraph`
+          // relayouta y, sin esta capa, la invalidación de pintado subía hasta
+          // el boundary de la ruta y repintaba la pantalla entera —header, HUD
+          // y tablero— una vez por segundo.
+          child: RepaintBoundary(
+            child: ValueListenableBuilder<int>(
+              valueListenable: _segundos,
+              builder: (context, segundos, _) => HudCard(
+                icono: Icons.timer,
+                label: l10n.time.toUpperCase(),
+                valor: l10n.secondsShort(segundos),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: HudCard(
+            icono: Icons.sports_esports,
+            label: l10n.movesColumn.toUpperCase(),
+            valor: '$_movimientos',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: widget.esDiario
+              // En el modo foto la tercera card son las piezas ya colocadas: el
+              // tablero del Diario cambia cada día, así que un récord por tamaño
+              // no diría nada.
+              ? HudCard(
+                  icono: Icons.grid_3x3,
+                  label: l10n.pieces.toUpperCase(),
+                  // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en un
+                  // 3×3.
+                  valor: l10n.piecesProgress(
+                    _piezasColocadas,
+                    widget.size * widget.size,
+                  ),
+                )
+              : HudCard(
+                  icono: Icons.emoji_events_rounded,
+                  label: l10n.record.toUpperCase(),
+                  // La marca va en `mm:ss` como la del menú; el cronómetro de
+                  // al lado sigue con `secondsShort` ("37s"). Ver `duracionMmSs`.
+                  valor: _record == null
+                      ? '--:--'
+                      : duracionMmSs(_record!.tiempoSegundos),
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// Fila de consigna: qué hay que lograr, y el dato que la acompaña.
+  ///
+  /// La píldora de la derecha dice cosas distintas según el modo, que es lo que
+  /// pide cada frame: en partida numérica el estado en vivo, y en el modo foto
+  /// el tamaño del tablero, o sea en cuántas piezas está partida la imagen.
+  Widget _filaObjetivo(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            (widget.esDiario
+                    ? l10n.photoObjective
+                    : l10n.objectiveOrder(widget.size * widget.size - 1))
+                .toUpperCase(),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.labelBlue,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        widget.esDiario
+            ? _Pildora(
+                leading: const Icon(
+                  Icons.image_outlined,
+                  size: 11,
+                  color: AppTheme.accentCyan,
+                ),
+                label: l10n.boardSizeShort(widget.size),
+              )
+            : _Pildora(
+                leading: const _Punto(),
+                label: (_pausado ? l10n.livePaused : l10n.livePlaying)
+                    .toUpperCase(),
+              ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -178,6 +376,7 @@ class _GameScreenState extends State<GameScreen> {
     _objetivo = _esDesafio
         ? PuzzleLogic.configuracionNivel(widget.nivelDesafio!).objetivo
         : 0;
+    if (!widget.esDiario && !_esDesafio) unawaited(_cargarRecord());
     final guardada = widget.partidaInicial;
     if (guardada != null) {
       // Partida retomada: tablero, movimientos y tiempo vienen del disco. El
@@ -439,6 +638,21 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
+    // La marca del menú se guarda acá y **no** dentro de `_registrarPuntajeLibre`,
+    // que vuelve temprano si no hay red o no hay sesión: ése es justo el caso en
+    // que la tarjeta "Mejor partida" tiene que seguir funcionando. Va sin
+    // `await` para no meterle a la celebración la latencia de un disco.
+    unawaited(
+      BestRunService.registrarPartida(
+        MejorPartida(
+          tiempoSegundos: _segundos.value,
+          movimientos: _movimientos,
+          tamano: widget.size,
+          fecha: DateTime.now(),
+        ),
+      ),
+    );
+
     // El modal sale al instante y el ranking global se resuelve por detrás:
     // esperar la red acá retrasaba toda la celebración un round-trip.
     _celebrar();
@@ -452,23 +666,25 @@ class _GameScreenState extends State<GameScreen> {
       builder: (_) => Stack(
         alignment: Alignment.topCenter,
         children: [
-          AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            // El título y el aviso reaccionan al resultado del ranking, que
-            // puede llegar después de que el modal ya esté en pantalla.
-            title: ValueListenableBuilder<String?>(
-              valueListenable: _avisoTop,
-              builder: (_, aviso, _) => Text(
-                aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            content: Column(
+          KenneyDialog(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // El título y el aviso reaccionan al resultado del ranking, que
+                // puede llegar después de que el modal ya esté en pantalla.
+                ValueListenableBuilder<String?>(
+                  valueListenable: _avisoTop,
+                  builder: (_, aviso, _) => Text(
+                    aviso != null ? l10n.victoryTop5 : l10n.victoryWon,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: KenneyInk.primary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _FilaResultado(
                   icono: Icons.timer,
                   label: l10n.time,
@@ -497,48 +713,38 @@ class _GameScreenState extends State<GameScreen> {
                     );
                   },
                 ),
+                const SizedBox(height: 20),
+                KenneyButton(
+                  tint: AppTheme.seedColor,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _reiniciar();
+                  },
+                  child: Text(
+                    l10n.playAgain,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.seedColor,
+                  ),
+                  // Un único `popUntil`: cierra el diálogo Y el juego de una
+                  // pasada, en vez de encadenar dos navegaciones en el mismo
+                  // frame (dos animaciones de salida superpuestas).
+                  onPressed: () => unawaited(_volverAlMenu()),
+                  icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                  label: Text(
+                    l10n.backToMenu,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
               ],
             ),
-            actions: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.seedColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _reiniciar();
-                    },
-                    child: Text(
-                      l10n.playAgain,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.seedColor,
-                    ),
-                    // Un único `popUntil`: cierra el diálogo Y el juego de una
-                    // pasada, en vez de encadenar dos navegaciones en el mismo
-                    // frame (dos animaciones de salida superpuestas).
-                    onPressed: () => unawaited(_volverAlMenu()),
-                    icon: const Icon(Icons.exit_to_app_rounded, size: 18),
-                    label: Text(
-                      l10n.backToMenu,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
           // Confetti encima del dialog
           ConfettiWidget(
@@ -948,7 +1154,7 @@ class _GameScreenState extends State<GameScreen> {
                           : '${fila * n + col + 1}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: n == 3 ? 18 : n == 4 ? 16 : 14,
+                        fontSize: n == 3 ? 15 : n == 4 ? 14 : 12,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.seedColor,
                       ),
@@ -983,110 +1189,106 @@ class _GameScreenState extends State<GameScreen> {
         navigator.pop();
       },
       child: Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: colors.textPrimary),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.help_outline, color: colors.textPrimary),
-            onPressed: _mostrarAyuda,
-          ),
-          IconButton(
-            tooltip: _pausado ? l10n.resume : l10n.pause,
-            icon: Icon(
-              _pausado ? Icons.play_arrow : Icons.pause,
-              color: colors.textPrimary,
-            ),
-            onPressed: _alternarPausa,
-          ),
-          IconButton(
-            icon: Icon(Icons.refresh, color: colors.textPrimary),
-            onPressed: _reiniciar,
-          ),
-        ],
-      ),
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       body: Stack(
         children: [
           // Juego normal
-          SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_esDesafio)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: HudCard(
-                                icono: Icons.sports_esports,
-                                label: l10n.moves,
-                                valor: '$_movimientos',
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: HudCard(
-                                icono: Icons.flag_rounded,
-                                label: l10n.goal,
-                                valor: l10n.goalMoves(_objetivo),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: _segundos,
-                                builder: (context, segundos, _) => HudCard(
-                                  icono: Icons.timer,
-                                  label: l10n.time,
-                                  valor: l10n.secondsShort(segundos),
+          // El `SafeArea` es lo que baja el contenido fuera de la barra de
+          // estado y de la barra de gestos: sin él, el header y las tarjetas
+          // del HUD se dibujaban debajo de la hora y la batería. El fondo no
+          // se recorta, porque `GameBackground` vive en `MaterialApp.builder`
+          // y pinta a pantalla completa por detrás de esto. El confetti y el
+          // velo de pausa quedan afuera a propósito: son capas que tienen que
+          // cubrir toda la pantalla.
+          SafeArea(
+            child: Column(
+              children: [
+                GameHeader(
+                  titulo: _tituloCabecera(l10n),
+                  subtitulo: _subtituloCabecera(l10n),
+                  // `maybePop` y no `pop`: así pasa por el `PopScope` de arriba,
+                  // que es el que guarda la partida antes de salir. Un `pop`
+                  // directo se saltaría el autoguardado.
+                  onVolver: () => Navigator.maybePop(context),
+                  onAjustes: _abrirAjustes,
+                  onAyuda: _mostrarAyuda,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _filaStats(l10n),
+                              const SizedBox(height: 16),
+                              _filaObjetivo(l10n),
+                              const SizedBox(height: 16),
+                              AspectRatio(
+                                aspectRatio: 1,
+                                // El pozo va acá afuera y no dentro de
+                                // `PuzzleBoard` a propósito: `puzzle_solver.dart`
+                                // deduce la posición de cada ficha del tamaño
+                                // exacto del `PuzzleBoard` (`getSize`) y de que
+                                // las fichas arranquen en (0,0). Si el padding
+                                // viviera adentro, el tablero quedaría corrido
+                                // respecto de esa cuenta y los tests que juegan
+                                // una partida entera fallarían.
+                                child: Container(
+                                  padding: const EdgeInsets.all(
+                                    AppTheme.boardPadding,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.boardSurface,
+                                    borderRadius: BorderRadius.circular(
+                                      AppTheme.boardRadius,
+                                    ),
+                                    border: Border.all(
+                                      color: AppTheme.boardBorder,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: AppTheme.boardGlow,
+                                        blurRadius: 13,
+                                        offset: Offset(0, 16),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ValueListenableBuilder<ImageProvider?>(
+                                    valueListenable: _imagenDiaria,
+                                    builder: (_, imagen, _) => PuzzleBoard(
+                                      tablero: _tablero,
+                                      size: widget.size,
+                                      onTileTap: _onTapFicha,
+                                      // Solo el diario se arma como imagen; los
+                                      // otros dos modos siguen con fichas
+                                      // numéricas (`imagen` es `null` ahí).
+                                      imagen: imagen,
+                                      imagenRespaldo:
+                                          DailyChallengeService.imagenRespaldo,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: HudCard(
-                                icono: Icons.sports_esports,
-                                label: l10n.moves,
-                                valor: '$_movimientos',
+                              const SizedBox(height: 16),
+                              GameControls(
+                                pausado: _pausado,
+                                onReiniciar: _reiniciar,
+                                onPausar: _alternarPausa,
                               ),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 32),
-                      AspectRatio(
-                        aspectRatio: 1,
-                        child: ValueListenableBuilder<ImageProvider?>(
-                          valueListenable: _imagenDiaria,
-                          builder: (_, imagen, _) => PuzzleBoard(
-                            tablero: _tablero,
-                            size: widget.size,
-                            onTileTap: _onTapFicha,
-                            // Solo el diario se arma como imagen; los otros dos
-                            // modos siguen con fichas numéricas (`imagen` es
-                            // `null` ahí).
-                            imagen: imagen,
-                            imagenRespaldo:
-                                DailyChallengeService.imagenRespaldo,
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
           // Confetti encima del juego
@@ -1126,6 +1328,65 @@ class _GameScreenState extends State<GameScreen> {
             ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+/// Píldora de la consigna.
+///
+/// El chrome lo comparten los dos modos de tablero; lo único que cambia es qué
+/// va a la izquierda del rótulo.
+class _Pildora extends StatelessWidget {
+  const _Pildora({required this.leading, required this.label});
+
+  final Widget leading;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppTheme.livePillSurface,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          leading,
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.accentCyan,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Punto cian de la píldora de estado en vivo.
+///
+/// El frame lo llama "Pulse" y lo dibuja siempre encendido porque muestra una
+/// partida corriendo. Acá no parpadea, pero el rótulo que lo acompaña sí sigue
+/// el estado real: en pausa dice "Pausado", que es lo que el jugador necesita
+/// saber al volver a la pantalla.
+class _Punto extends StatelessWidget {
+  const _Punto();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: const BoxDecoration(
+        color: AppTheme.accentCyan,
+        shape: BoxShape.circle,
       ),
     );
   }
@@ -1211,13 +1472,13 @@ class _ItemAyuda extends StatelessWidget {
         children: [
           const Text(
             '• ',
-            style: TextStyle(color: AppTheme.seedColor, fontSize: 16),
+            style: TextStyle(color: AppTheme.seedColor, fontSize: 14),
           ),
           Expanded(
             child: Text(
               texto,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 color: colors.textPrimary,
               ),
             ),

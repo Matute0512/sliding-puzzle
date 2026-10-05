@@ -1,5 +1,5 @@
 name: sliding_puzzle
-description: "Sliding Puzzle clásico con tableros 3x3, 4x4 y 5x5, modo oscuro, efectos de sonido y récords locales."
+description: "Sliding Puzzle Edición Arcade: tableros 3x3, 4x4 y 5x5, Modo Desafío, Desafío Diario con fotos, Top 5 global y récords locales."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.3.1+12
+version: 3.0.0+13
 
 environment:
   sdk: ^3.12.1
@@ -34,9 +34,6 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.5
   confetti: ^0.8.0
   provider: ^6.1.5+1
@@ -86,8 +83,29 @@ flutter:
     - assets/sounds/
     # Imágenes del rompecabezas con fotos (Desafío Diario).
     - assets/images/
+    # Sprites del UI Pack de Kenney (CC0), usados como superficies 9-slice.
+    # Es el subconjunto curado, no el pack entero: ver .gitignore.
+    - assets/ui/kenney/
 
   fonts:
+    # Tipografía arcade del UI Pack de Kenney (CC0). Es la fuente por defecto de
+    # toda la app (ver AppTheme.game). Verificado: tiene cobertura completa del
+    # español (á é í ó ú ü ñ ¡ ¿ en minúscula y mayúscula), así que no aparecen
+    # cuadraditos en los textos traducidos.
+    - family: Kenney Future
+      fonts:
+        - asset: assets/fonts/KenneyFuture-Regular.ttf
+
+    # Ojo: la variante "Kenney Future Narrow" del pack NO se registra. Medida
+    # contra la regular da el mismo ancho promedio (+38% vs Poppins las dos): lo
+    # que hace es redistribuir, achicando las letras anchas (W: 1.082 -> 0.949)
+    # y ensanchando las finas (i: 0.332 -> 0.449). Para bajar el ancho hay que
+    # tocar los fontSize, no cambiar de familia.
+
+    # Poppins quedó sin uso al pasar Kenney Future a fuente global. Se deja
+    # registrada para poder volver atrás con un cambio de una línea en
+    # AppTheme; si se confirma el rediseño, se puede borrar la familia y los
+    # tres .ttf (son ~475 KB de bundle).
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
