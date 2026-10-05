@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 import 'image_tile.dart';
 
 /// Ficha individual del tablero del puzzle.
@@ -46,7 +47,6 @@ class PuzzleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esVacio = numero == 0;
-    final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = AppLocalizations.of(context)!;
     final conImagen = imagen != null && !esVacio;
 
@@ -58,22 +58,36 @@ class PuzzleTile extends StatelessWidget {
     // movibles y se verían costuras—. En `foregroundDecoration` se pinta encima
     // sin tocar el layout, así que todas las celdas miden lo mismo.
     final borde = esVacio
-        // La ficha vacía lleva un contorno sutil: en tema claro #E2E8F0 sobre
-        // el fondo casi no se distingue (~1.14:1).
-        ? Border.all(
-            color: colors.textSecondary.withValues(alpha: 0.4),
-            width: 1.5,
-          )
+        // El hueco lleva un contorno claro, pero **por debajo** del blanco pleno
+        // que marca las movibles: si el hueco también fuera blanco, la ayuda
+        // ("las fichas con borde blanco son las que podés mover") dejaría de ser
+        // cierta. El frame los pinta igual de claros; acá se separan a propósito.
+        ? Border.all(color: AppTheme.emptySlotBorder, width: 1)
         : activa
-        ? Border.all(color: Colors.white.withValues(alpha: 0.9), width: 2.5)
-        : null;
+        ? const Border.fromBorderSide(
+            BorderSide(color: Colors.white, width: 2),
+          )
+        // La ficha en reposo también lleva borde en el frame: es lo que la
+        // despega de sus vecinas, porque el degradado del sprite es casi el
+        // mismo en todas.
+        : Border.all(color: AppTheme.tileBorder, width: 1);
     final radio = BorderRadius.circular(_radioFicha);
+
+    // El fondo de la ficha es un sprite 9-slice: la celda vacía usa el cuadrado
+    // plano (se lee como hueco) y la ocupada el cuadrado con bisel, tintado con
+    // el color de la app.
+    //
+    // Sin `borderRadius` en la decoración a propósito: el sprite ya trae sus
+    // esquinas redondeadas dibujadas, y recortarlo además con el radio de
+    // `_radioFicha` (12) le comería el borde, porque la esquina del sprite mide
+    // 8px lógicos y no escala con la celda. `_radioFicha` se sigue usando para
+    // el anillo de "movible" y para el recorte de `ImageTile`.
+    final fondo = (esVacio ? KenneySlices.flatSquare : KenneySlices.primarySquare)
+        .decoration(tint: esVacio ? null : AppTheme.seedColor);
 
     final contenido = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
-      decoration: BoxDecoration(
-        color: esVacio ? colors.emptyTile : AppTheme.seedColor,
-        borderRadius: radio,
+      decoration: fondo.copyWith(
         boxShadow: esVacio
             ? [
                 BoxShadow(
@@ -95,9 +109,7 @@ class PuzzleTile extends StatelessWidget {
                 ),
               ],
       ),
-      foregroundDecoration: borde == null
-          ? null
-          : BoxDecoration(border: borde, borderRadius: radio),
+      foregroundDecoration: BoxDecoration(border: borde, borderRadius: radio),
       // La imagen va sin `Center` ni padding: ocupa la celda entera. El número,
       // en cambio, se centra con un margen para que respire.
       child: conImagen
@@ -122,10 +134,10 @@ class PuzzleTile extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: size == 3
-                                ? 28
+                                ? 24
                                 : size == 4
-                                ? 22
-                                : 16,
+                                ? 19
+                                : 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -171,4 +183,7 @@ const _velocidadMinima = 50.0;
 /// Radio de las esquinas de la ficha. Lo comparten el contenedor y el recorte
 /// de [ImageTile] para que las esquinas de la imagen coincidan con las del
 /// fondo en vez de quedar cuadradas por dentro de un borde redondeado.
-const _radioFicha = 12.0;
+///
+/// 8 es la esquina del sprite del pack y la del frame: al coincidir, el anillo
+/// de "movible" calza justo sobre el canto del sprite en vez de cortarlo.
+const _radioFicha = 8.0;

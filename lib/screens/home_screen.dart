@@ -3,18 +3,30 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../app_info.dart';
 import '../l10n/app_localizations.dart';
+import '../logic/dificultad.dart';
 import '../logic/puzzle_logic.dart';
 import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
+import '../services/best_run_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
+import '../widgets/arcade_button.dart';
+import '../widgets/best_run_card.dart';
 import '../widgets/daily_results_dialog.dart';
 import '../widgets/difficulty_button.dart';
+import '../widgets/home_header.dart';
+import '../widgets/mode_switch.dart';
+
+/// Violeta del Desafío Diario. Está acá y no en `AppTheme` porque es el único
+/// lugar que lo usa; el frame no incluye este botón, así que el color es el que
+/// ya tenía la pantalla.
+const Color _tinteDiario = Color(0xFF8B5CF6);
 
 /// Pantalla de inicio con selección de dificultad.
 class HomeScreen extends StatefulWidget {
@@ -33,6 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Si el jugador ya completó el Desafío Diario de hoy (según la fecha UTC).
   /// Arranca en `false` y se corrige apenas se lee el disco.
   bool _jugoDiarioHoy = false;
+
+  /// La mejor partida del tablero vigente, para la tarjeta del menú. `null`
+  /// mientras el jugador no haya completado ninguna partida libre.
+  MejorPartida? _mejorPartida;
 
   @override
   void initState() {
@@ -53,6 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _cargarPartidaGuardada();
     _cargarEstadoDiario();
+    _cargarMejorPartida();
+    _refrescarMejorPartidaDesdeFirestore();
 
     // Esperamos la primera frame para no mostrar el modal durante el arranque.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,6 +91,26 @@ class _HomeScreenState extends State<HomeScreen> {
     final partida = await SavedGameService.obtener();
     if (!mounted) return;
     setState(() => _partidaGuardada = partida);
+  }
+
+  /// Relee la marca local del menú. Igual que la partida guardada, se refresca
+  /// al volver del juego porque ahí es donde pudo haberse superado —o donde pudo
+  /// haber cambiado el tablero vigente, que es lo que decide cuál se muestra.
+  Future<void> _cargarMejorPartida() async {
+    final marca = await BestRunService.obtenerVigente();
+    if (!mounted) return;
+    setState(() => _mejorPartida = marca);
+  }
+
+  /// Pide a Firestore una marca mejor que la local.
+  ///
+  /// Corre por detrás y sin bloquear el primer pintado: la tarjeta se dibuja ya
+  /// con lo que haya en disco, y si la red trae algo mejor se actualiza sola.
+  /// Nunca lanza, así que no hace falta proteger la llamada.
+  Future<void> _refrescarMejorPartidaDesdeFirestore() async {
+    final marca = await BestRunService.refrescarDesdeFirestore();
+    if (!mounted || marca == null) return;
+    setState(() => _mejorPartida = marca);
   }
 
   @override
@@ -118,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 l10n.rateBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   color: colors.textSecondary,
                 ),
               ),
@@ -221,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
             l10n.privacyBody,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               color: colors.textSecondary,
             ),
           ),
@@ -249,6 +287,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _abrirAjustes() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  void _abrirRecords() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RecordsScreen()),
+    );
+  }
+
   void _navegarAJuego(BuildContext context, int size) async {
     // Pausamos la música del menú antes de entrar al juego.
     await SoundService.pausarMusica();
@@ -259,9 +311,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Al volver del juego, reanudamos la música del menú y releemos la partida
     // guardada: salir con el botón Atrás deja una partida pendiente que debe
-    // aparecer como "Continuar Partida".
+    // aparecer como "Continuar Partida". La marca del menú también se relee,
+    // porque ganar la acaba de actualizar en disco.
     SoundService.reanudarMusica();
     await _cargarPartidaGuardada();
+    await _cargarMejorPartida();
   }
 
   /// Retoma la partida guardada donde quedó.
@@ -282,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     SoundService.reanudarMusica();
     await _cargarPartidaGuardada();
+    await _cargarMejorPartida();
   }
 
   /// Descarta la partida guardada sin entrar al juego.
@@ -345,158 +400,116 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: l10n.privacyTooltip,
-            icon: Icon(Icons.privacy_tip_outlined, color: colors.textPrimary),
-            onPressed: _mostrarPrivacidad,
-          ),
-          IconButton(
-            tooltip: l10n.settingsTitle,
-            icon: Icon(Icons.settings_outlined, color: colors.textPrimary),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      // Scroll + minHeight: mantiene el contenido centrado cuando entra en
-      // pantalla y permite scrollear en pantallas cortas / landscape.
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 24,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.extension_rounded,
-                          size: 64,
-                          color: AppTheme.seedColor,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Sliding Puzzle',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: colors.textPrimary,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
+      body: SafeArea(
+        // El `AppBar` se fue con el rediseño: el header lo dibuja la pantalla y
+        // el `SafeArea` es lo que evita que se meta bajo la barra de estado.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Padding(
+                      // Los márgenes del frame: 20 a los costados y 30 abajo.
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+                      child: Column(
+                        // Arriba, como el frame: el contenido no se centra en la
+                        // pantalla, así queda a la vista la grilla del fondo.
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          HomeHeader(
+                            onAjustes: _abrirAjustes,
+                            onPrivacidad: _mostrarPrivacidad,
+                            onRecords: _abrirRecords,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Partida pendiente: se ofrece retomarla antes de las
-                        // dificultades, que arrancan una partida nueva.
-                        if (_partidaGuardada case final partida?) ...[
-                          const SizedBox(height: 8),
-                          _BotonContinuar(
-                            partida: partida,
-                            onTap: () => _continuarPartida(partida),
-                            onDescartar: _descartarPartidaGuardada,
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                        Text(
-                          l10n.chooseDifficulty,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        DifficultyButton(
-                          label: l10n.difficultyEasy,
-                          descripcion: l10n.boardSize(3),
-                          color: const Color(0xFF10B981),
-                          onTap: () => _navegarAJuego(context, 3),
-                        ),
-                        const SizedBox(height: 16),
-                        DifficultyButton(
-                          label: l10n.difficultyMedium,
-                          descripcion: l10n.boardSize(4),
-                          color: const Color(0xFFF59E0B),
-                          onTap: () => _navegarAJuego(context, 4),
-                        ),
-                        const SizedBox(height: 16),
-                        DifficultyButton(
-                          label: l10n.difficultyHard,
-                          descripcion: l10n.boardSize(5),
-                          color: const Color(0xFFEF4444),
-                          onTap: () => _navegarAJuego(context, 5),
-                        ),
-                        const SizedBox(height: 48),
-                        DifficultyButton(
-                          label: l10n.challengeMode,
-                          descripcion: l10n.challengeModeSubtitle,
-                          color: AppTheme.seedColor,
-                          foregroundColor: Colors.white,
-                          onTap: () => _navegarADesafio(context),
-                        ),
-                        const SizedBox(height: 16),
-                        // Violeta para diferenciarlo del seedColor del Modo
-                        // Desafío y de los tres colores de dificultad.
-                        DifficultyButton(
-                          label: _jugoDiarioHoy
-                              ? l10n.dailyChallengePlayed
-                              : l10n.dailyChallenge,
-                          descripcion: _jugoDiarioHoy
-                              ? l10n.dailyChallengePlayedSubtitle
-                              : l10n.dailyChallengeSubtitle,
-                          color: const Color(0xFF8B5CF6),
-                          foregroundColor: Colors.white,
-                          onTap: _onTapDiario,
-                        ),
-                        const SizedBox(height: 32),
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RecordsScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.emoji_events,
-                            color: AppTheme.seedColor,
-                          ),
-                          label: Text(
-                            l10n.viewRecords,
-                            style: const TextStyle(
-                              color: AppTheme.seedColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(height: 18),
+                          // La partida pendiente va primero: retomar es lo más
+                          // probable para alguien que vuelve al menú.
+                          if (_partidaGuardada case final partida?) ...[
+                            _BotonContinuar(
+                              partida: partida,
+                              onTap: () => _continuarPartida(partida),
+                              onDescartar: _descartarPartidaGuardada,
                             ),
+                            const SizedBox(height: 12),
+                          ],
+                          BestRunCard(marca: _mejorPartida),
+                          const SizedBox(height: 18),
+                          _IntroDificultad(l10n: l10n),
+                          const SizedBox(height: 12),
+                          for (final dificultad in Dificultad.jugables) ...[
+                            DifficultyButton(
+                              dificultad: dificultad,
+                              onTap: () =>
+                                  _navegarAJuego(context, dificultad.tamano),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          const SizedBox(height: 6),
+                          ModeSwitch(
+                            onDesafio: () => _navegarADesafio(context),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          ArcadeButton(
+                            onTap: _onTapDiario,
+                            tint: _tinteDiario,
+                            icono: Icons.calendar_month_rounded,
+                            titulo: _jugoDiarioHoy
+                                ? l10n.dailyChallengePlayed
+                                : l10n.dailyChallenge,
+                            subtitulo: _jugoDiarioHoy
+                                ? l10n.dailyChallengePlayedSubtitle
+                                : l10n.dailyChallengeSubtitle,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+/// Título y bajada de la selección de dificultad.
+class _IntroDificultad extends StatelessWidget {
+  const _IntroDificultad({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Column(
+      children: [
+        Text(
+          l10n.chooseDifficulty.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          l10n.difficultyIntro,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: colors.textMuted),
+        ),
+      ],
     );
   }
 }
@@ -533,16 +546,19 @@ class _BotonContinuar extends StatelessWidget {
     return Semantics(
       button: true,
       label: l10n.continueGameSemantics(detalle),
-      child: Material(
-        color: AppTheme.seedColor,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-            child: Row(
-              children: [
+      // El `Material` va transparente y por dentro del sprite: así la tinta del
+      // `InkWell` se pinta arriba del fondo en vez de taparlo.
+      child: KenneySurface(
+        slice: KenneySlices.primaryButton,
+        tint: AppTheme.seedColor,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+              child: Row(
+                children: [
                 const Icon(
                   Icons.play_circle_fill_rounded,
                   color: Colors.white,
@@ -554,10 +570,10 @@ class _BotonContinuar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.continueGame,
+                        l10n.continueGame.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -566,7 +582,7 @@ class _BotonContinuar extends StatelessWidget {
                         detalle,
                         style: const TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -580,7 +596,8 @@ class _BotonContinuar extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
