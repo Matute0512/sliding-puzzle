@@ -22,9 +22,53 @@
     }
   },
 
+  "restart": "Reiniciar",
+  "record": "Récord",
+  "livePlaying": "En juego",
+  "livePaused": "Pausado",
+  "objectiveOrder": "Ordená del 1 al {total}",
+  "@objectiveOrder": {
+    "description": "Consigna de la partida. El total es size×size menos el hueco, ej. 24 en un tablero 5×5.",
+    "placeholders": {
+      "total": { "type": "int" }
+    }
+  },
+  "modeDifficulty": "Modo {dificultad}",
+  "@modeDifficulty": {
+    "description": "Bajada del header en partida libre, ej. 'Modo Difícil'. La dificultad ya viene capitalizada.",
+    "placeholders": {
+      "dificultad": { "type": "String" }
+    }
+  },
+  "levelLabel": "Nivel {nivel}",
+  "@levelLabel": {
+    "description": "Bajada del header al jugar un nivel del Desafío.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+
+  "photoPuzzle": "Puzzle foto",
+  "photoObjective": "Reconstruí la imagen",
+  "pieces": "Piezas",
+  "piecesProgress": "{colocadas} / {total}",
+  "@piecesProgress": {
+    "description": "Piezas ya en su lugar sobre el total de casillas, ej. '8 / 9' en un 3×3.",
+    "placeholders": {
+      "colocadas": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "boardSizeShort": "{size}×{size}",
+  "@boardSizeShort": {
+    "description": "Solo el tamaño, para la píldora de la consigna del modo foto, ej. '3×3'.",
+    "placeholders": {
+      "size": { "type": "int" }
+    }
+  },
+
   "settingsTitle": "Configuración",
   "privacyTitle": "Privacidad y Datos",
-  "privacyTooltip": "Privacidad y datos",
   "privacyBody": "Para el Top 5 Global, el juego guarda únicamente tu Alias y tu mejor puntuación de forma anónima.\n\nNo solicitamos correos, contraseñas ni datos de tu dispositivo. Podés participar con total tranquilidad.",
 
   "rateTitle": "¿Te gusta Sliding Puzzle?",
@@ -33,9 +77,11 @@
   "playStoreError": "No se pudo abrir Google Play",
 
   "chooseDifficulty": "Elegí una dificultad",
+  "difficultyIntro": "Cada tablero aumenta el ritmo y la precisión.",
   "difficultyEasy": "Fácil",
   "difficultyMedium": "Medio",
   "difficultyHard": "Difícil",
+  "difficultyExpert": "Experto",
   "boardSize": "Tablero {size}×{size}",
   "@boardSize": {
     "description": "Descripción de la dificultad clásica, ej. 'Tablero 4×4'.",
@@ -43,9 +89,28 @@
       "size": { "type": "int" }
     }
   },
-  "challengeMode": "Modo Desafío",
-  "challengeModeSubtitle": "20 niveles · ganá 3 estrellas",
+  "classicMode": "Clásico",
+  "challengeTab": "Desafío",
   "viewRecords": "Ver récords",
+
+  "arcadeEdition": "Edición arcade",
+
+  "bestRun": "Mejor partida",
+  "bestRunMoves": "{movs} movs",
+  "@bestRunMoves": {
+    "description": "Contador de movimientos de la tarjeta de mejor partida del menú.",
+    "placeholders": {
+      "movs": { "type": "int" }
+    }
+  },
+  "bestRunEmpty": "Todavía no terminaste ninguna partida",
+  "bestRunRecordOn": "Récord en {size}×{size}",
+  "@bestRunRecordOn": {
+    "description": "Indica en qué tablero es el récord que muestra la tarjeta del menú.",
+    "placeholders": {
+      "size": { "type": "int" }
+    }
+  },
 
   "dailyChallenge": "Desafío Diario",
   "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",
@@ -122,11 +187,6 @@
   "movesColumn": "Movs",
   "timeColumn": "Tiempo",
 
-  "appearance": "Apariencia",
-  "theme": "Tema",
-  "themeLight": "Claro",
-  "themeDark": "Oscuro",
-  "themeSystem": "Sistema",
   "sound": "Sonido",
   "soundEffects": "Efectos de sonido",
   "soundEffectsDesc": "Click al mover fichas y victoria",
@@ -134,7 +194,6 @@
   "backgroundMusicDesc": "Música durante el menú y el juego",
 
   "levelLocked": "Completá el nivel anterior para desbloquear",
-  "levelReached": "Nivel alcanzado",
   "levelProgress": "{nivel} / 20",
   "@levelProgress": {
     "description": "Progreso sobre el total de niveles del Desafío.",
@@ -142,7 +201,6 @@
       "nivel": { "type": "int" }
     }
   },
-  "stars": "Estrellas",
   "starsProgress": "{total} / 60",
   "@starsProgress": {
     "description": "Estrellas ganadas sobre el total posible (20 niveles x 3).",
@@ -150,6 +208,19 @@
       "total": { "type": "int" }
     }
   },
+  "challengeCircuit": "Circuito arcade",
+  "selectLevel": "Seleccioná un nivel",
+  "challengeProgressLabel": "Tu progreso",
+  "unlockNextLevel": "Completá el nivel {nivel} para desbloquear el siguiente.",
+  "@unlockNextLevel": {
+    "description": "Aviso al pie de la grilla del Modo Desafío. Dice 'el siguiente' y no 'la siguiente fila' porque el Desafío desbloquea de a un nivel.",
+    "placeholders": {
+      "nivel": { "type": "int" }
+    }
+  },
+  "challengeComplete": "¡Completaste los 20 niveles!",
+  "challengeFinalLevel": "¡Último nivel! Completalo para terminar el circuito.",
+
   "locked": "Bloqueado",
   "levelLockedSemantics": "Nivel {nivel} bloqueado",
   "@levelLockedSemantics": {

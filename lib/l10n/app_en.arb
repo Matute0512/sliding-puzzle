@@ -10,9 +10,22 @@
   "secondsShort": "{segundos}s",
   "goalMoves": "{objetivo} moves",
 
+  "restart": "Restart",
+  "record": "Record",
+  "livePlaying": "Playing",
+  "livePaused": "Paused",
+  "objectiveOrder": "Order from 1 to {total}",
+  "modeDifficulty": "{dificultad} mode",
+  "levelLabel": "Level {nivel}",
+
+  "photoPuzzle": "Photo puzzle",
+  "photoObjective": "Rebuild the image",
+  "pieces": "Pieces",
+  "piecesProgress": "{colocadas} / {total}",
+  "boardSizeShort": "{size}×{size}",
+
   "settingsTitle": "Settings",
   "privacyTitle": "Privacy & Data",
-  "privacyTooltip": "Privacy & data",
   "privacyBody": "For the Global Top 5, the game only stores your Alias and your best score anonymously.\n\nWe don't ask for emails, passwords, or any device data. You can take part with complete peace of mind.",
 
   "rateTitle": "Enjoying Sliding Puzzle?",
@@ -21,13 +34,22 @@
   "playStoreError": "Couldn't open Google Play",
 
   "chooseDifficulty": "Pick a difficulty",
+  "difficultyIntro": "Each board raises the pace and the precision.",
   "difficultyEasy": "Easy",
   "difficultyMedium": "Medium",
   "difficultyHard": "Hard",
+  "difficultyExpert": "Expert",
   "boardSize": "Board {size}×{size}",
-  "challengeMode": "Challenge Mode",
-  "challengeModeSubtitle": "20 levels · earn 3 stars",
+  "classicMode": "Classic",
+  "challengeTab": "Challenge",
   "viewRecords": "View records",
+
+  "arcadeEdition": "Arcade edition",
+
+  "bestRun": "Best run",
+  "bestRunMoves": "{movs} moves",
+  "bestRunEmpty": "You haven't finished a game yet",
+  "bestRunRecordOn": "Record on {size}×{size}",
 
   "dailyChallenge": "Daily Challenge",
   "dailyChallengeSubtitle": "One board a day · everyone plays the same",
@@ -83,11 +105,6 @@
   "movesColumn": "Moves",
   "timeColumn": "Time",
 
-  "appearance": "Appearance",
-  "theme": "Theme",
-  "themeLight": "Light",
-  "themeDark": "Dark",
-  "themeSystem": "System",
   "sound": "Sound",
   "soundEffects": "Sound effects",
   "soundEffectsDesc": "Click when moving tiles, plus victory",
@@ -95,10 +112,15 @@
   "backgroundMusicDesc": "Music during the menu and gameplay",
 
   "levelLocked": "Complete the previous level to unlock",
-  "levelReached": "Level reached",
   "levelProgress": "{nivel} / 20",
-  "stars": "Stars",
   "starsProgress": "{total} / 60",
+  "challengeCircuit": "Arcade circuit",
+  "selectLevel": "Select a level",
+  "challengeProgressLabel": "Your progress",
+  "unlockNextLevel": "Complete level {nivel} to unlock the next one.",
+  "challengeComplete": "You completed all 20 levels!",
+  "challengeFinalLevel": "Final level! Complete it to finish the circuit.",
+
   "locked": "Locked",
   "levelLockedSemantics": "Level {nivel} locked",
   "levelStarsSemantics": "Level {nivel}, {estrellas} of 3 stars",

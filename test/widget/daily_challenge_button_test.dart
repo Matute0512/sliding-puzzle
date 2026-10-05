@@ -26,9 +26,11 @@ void main() {
     montarHome();
     await renderHome(tester);
 
-    expect(find.text('Desafío Diario'), findsOneWidget);
+    // El botón del diario es un `ArcadeButton`, que pinta su título en
+    // versalitas; el subtítulo va tal cual.
+    expect(find.text('DESAFÍO DIARIO'), findsOneWidget);
     expect(find.text('Un tablero por día · todos juegan el mismo'), findsOneWidget);
-    expect(find.text('Ver Resultados del Día'), findsNothing);
+    expect(find.text('VER RESULTADOS DEL DÍA'), findsNothing);
   });
 
   testWidgets('si ya jugó hoy, el botón pasa a Ver Resultados del Día', (
@@ -39,9 +41,9 @@ void main() {
 
     await renderHome(tester);
 
-    expect(find.text('Ver Resultados del Día'), findsOneWidget);
+    expect(find.text('VER RESULTADOS DEL DÍA'), findsOneWidget);
     expect(find.text('Ya jugaste el de hoy · volvé mañana'), findsOneWidget);
-    expect(find.text('Desafío Diario'), findsNothing);
+    expect(find.text('DESAFÍO DIARIO'), findsNothing);
   });
 
   testWidgets('al cruzarse la medianoche UTC el botón vuelve a habilitarse', (
@@ -58,8 +60,8 @@ void main() {
     // más fácil se rompe: basta con guardar un booleano en vez de la fecha.
     await renderHome(tester);
 
-    expect(find.text('Desafío Diario'), findsOneWidget);
-    expect(find.text('Ver Resultados del Día'), findsNothing);
+    expect(find.text('DESAFÍO DIARIO'), findsOneWidget);
+    expect(find.text('VER RESULTADOS DEL DÍA'), findsNothing);
   });
 
   testWidgets('tocar el botón abre los resultados del día', (tester) async {
@@ -69,7 +71,7 @@ void main() {
 
     // El Home es scrolleable y el botón queda debajo del fold en el viewport
     // por defecto (800x600): sin esto el tap no acierta y no pasa nada.
-    final boton = find.text('Ver Resultados del Día');
+    final boton = find.text('VER RESULTADOS DEL DÍA');
     await tester.ensureVisible(boton);
     await tester.pumpAndSettle();
 

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 
 /// Diálogo para elegir el alias del Top 5 Global (máx. 5 letras mayúsculas).
 ///
@@ -15,6 +16,9 @@ import '../theme/app_theme.dart';
 /// Atándolo al `State`, el controlador se libera en el mismo frame en que se
 /// desmonta el campo, sin ventana de riesgo y sin importar por dónde salga el
 /// usuario (Publicar, "Ahora no" o el botón Atrás del sistema).
+///
+/// Los colores del texto van fijos (ver [KenneyInk]): el panel de Kenney es
+/// claro en los dos temas, así que el texto de encima va oscuro siempre.
 class AliasDialog extends StatefulWidget {
   const AliasDialog({super.key});
 
@@ -50,26 +54,30 @@ class _AliasDialogState extends State<AliasDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = AppLocalizations.of(context)!;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        l10n.aliasDialogTitle,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-      ),
+    return KenneyDialog(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       // Scrolleable: con el teclado abierto los insets recortan el alto
       // disponible del diálogo, y un Column fijo desborda en pantallas chicas.
-      content: SingleChildScrollView(
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
+              l10n.aliasDialogTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: KenneyInk.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
               l10n.aliasDialogBody,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: colors.textSecondary),
+              style: const TextStyle(fontSize: 12, color: KenneyInk.secondary),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -80,14 +88,17 @@ class _AliasDialogState extends State<AliasDialog> {
               maxLength: 5,
               inputFormatters: [LengthLimitingTextInputFormatter(5)],
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 19,
                 fontWeight: FontWeight.bold,
+                color: KenneyInk.primary,
               ),
               decoration: InputDecoration(
                 hintText: l10n.aliasHint,
                 counterText: '',
                 filled: true,
-                fillColor: colors.cardBackground,
+                // Claro y fijo, como el resto de la superficie: el campo vive
+                // sobre el sprite, no sobre el fondo del tema.
+                fillColor: const Color(0xFFF1F5F9),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -95,28 +106,15 @@ class _AliasDialogState extends State<AliasDialog> {
               ),
               onSubmitted: (_) => _publicar(),
             ),
-          ],
-        ),
-      ),
-      actions: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.seedColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _publicar,
-                child: Text(
-                  l10n.publish,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+            const SizedBox(height: 20),
+            KenneyButton(
+              tint: AppTheme.seedColor,
+              onPressed: _publicar,
+              child: Text(
+                l10n.publish,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -125,12 +123,12 @@ class _AliasDialogState extends State<AliasDialog> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 l10n.notNow,
-                style: TextStyle(color: colors.textSecondary),
+                style: const TextStyle(color: KenneyInk.secondary),
               ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

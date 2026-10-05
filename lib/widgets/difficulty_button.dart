@@ -1,56 +1,70 @@
 import 'package:flutter/material.dart';
 
-/// Botón reutilizable para cada nivel de dificultad.
+import '../l10n/app_localizations.dart';
+import '../logic/dificultad.dart';
+import '../theme/app_theme.dart';
+import 'arcade_button.dart';
+
+/// Botón de una dificultad de la partida libre.
+///
+/// Resuelve sola el color, el ícono y los textos a partir de [dificultad], así
+/// que la pantalla de inicio solo tiene que preocuparse por el `onTap`. La
+/// presentación vive acá y no en el enum a propósito: `Dificultad` es dominio y
+/// no debería saber de `Color` ni de `IconData`, igual que `AppTheme.podiumColor`
+/// traduce un puesto del ranking a un color sin que el ranking lo sepa.
 class DifficultyButton extends StatelessWidget {
-  final String label;
-  final String descripcion;
-  final Color color;
-  final VoidCallback onTap;
-
-  /// Color del texto del botón. Por defecto oscuro (#0B1220), que es el que
-  /// pasa WCAG AA sobre verde/naranja/rojo. Permite pasar blanco para fondos
-  /// oscuros como el `seedColor` (Modo Desafío).
-  final Color? foregroundColor;
-
   const DifficultyButton({
     super.key,
-    required this.label,
-    required this.descripcion,
-    required this.color,
+    required this.dificultad,
     required this.onTap,
-    this.foregroundColor,
   });
+
+  final Dificultad dificultad;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          // Texto oscuro: el blanco sobre verde/naranja falla WCAG AA
-          // (~2.5:1 y ~2.2:1). #0B1220 da ~7:1 y ~8:1 respectivamente.
-          foregroundColor: foregroundColor ?? const Color(0xFF0B1220),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 3,
-        ),
-        onPressed: onTap,
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(descripcion, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-      ),
+    final l10n = AppLocalizations.of(context)!;
+    final (color, icono) = _estilo(dificultad);
+    final tablero = l10n.boardSize(dificultad.tamano);
+
+    return ArcadeButton(
+      onTap: onTap,
+      tint: color,
+      icono: icono,
+      titulo: nombreDificultad(l10n, dificultad),
+      subtitulo: tablero,
+      semantica: '${nombreDificultad(l10n, dificultad)}. $tablero',
     );
   }
 }
+
+/// Color e ícono de cada dificultad.
+///
+/// Los tres primeros son los del frame. [Dificultad.experto] todavía no tiene
+/// botón (ver `Dificultad.jugables`), pero el `switch` tiene que ser exhaustivo,
+/// así que lleva el violeta provisional de `AppTheme`.
+(Color, IconData) _estilo(Dificultad dificultad) => switch (dificultad) {
+      Dificultad.facil => (AppTheme.difficultyEasy, Icons.auto_awesome_rounded),
+      Dificultad.medio => (AppTheme.difficultyMedium, Icons.bolt_rounded),
+      Dificultad.dificil => (
+        AppTheme.difficultyHard,
+        Icons.local_fire_department_rounded,
+      ),
+      Dificultad.experto => (
+        AppTheme.difficultyExpert,
+        Icons.workspace_premium_rounded,
+      ),
+    };
+
+/// Nombre de la dificultad para mostrar.
+///
+/// Lo comparten el botón del menú y la bajada del header de la partida, que
+/// recibe un `int size` y necesita el nombre para armar "Modo Difícil".
+String nombreDificultad(AppLocalizations l10n, Dificultad dificultad) =>
+    switch (dificultad) {
+      Dificultad.facil => l10n.difficultyEasy,
+      Dificultad.medio => l10n.difficultyMedium,
+      Dificultad.dificil => l10n.difficultyHard,
+      Dificultad.experto => l10n.difficultyExpert,
+    };

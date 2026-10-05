@@ -62,10 +62,14 @@ void main() {
       await tester.pumpWidget(appLocalizada(home: const HomeScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Elegí una dificultad'), findsOneWidget);
-      expect(find.text('Modo Desafío'), findsOneWidget);
+      // El menú pinta estas etiquetas en versalitas por estilo (ver
+      // `ArcadeButton` y `_IntroDificultad`), así que lo que se busca es la
+      // forma **renderizada**, no la del catálogo. Los subtítulos, en cambio,
+      // van tal cual.
+      expect(find.text('ELEGÍ UNA DIFICULTAD'), findsOneWidget);
+      expect(find.text('DESAFÍO'), findsOneWidget);
       expect(find.text('Tablero 3×3'), findsOneWidget);
-      expect(find.text('Ver récords'), findsOneWidget);
+      expect(find.text('MEJOR PARTIDA'), findsOneWidget);
     });
 
     testWidgets('el menú usa inglés con locale en', (tester) async {
@@ -74,13 +78,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Pick a difficulty'), findsOneWidget);
-      expect(find.text('Challenge Mode'), findsOneWidget);
+      expect(find.text('PICK A DIFFICULTY'), findsOneWidget);
+      expect(find.text('CHALLENGE'), findsOneWidget);
       expect(find.text('Board 3×3'), findsOneWidget);
-      expect(find.text('View records'), findsOneWidget);
+      expect(find.text('BEST RUN'), findsOneWidget);
 
       // Y no se filtró texto en español.
-      expect(find.text('Elegí una dificultad'), findsNothing);
+      expect(find.text('ELEGÍ UNA DIFICULTAD'), findsNothing);
     });
   });
 
@@ -106,7 +110,7 @@ void main() {
         (tester) async {
       await montarApp(tester, const [Locale('en')]);
 
-      expect(find.text('Pick a difficulty'), findsOneWidget);
+      expect(find.text('PICK A DIFFICULTY'), findsOneWidget);
     });
 
     testWidgets('un idioma no soportado cae a español, no a inglés',
@@ -118,7 +122,7 @@ void main() {
         await montarApp(tester, [Locale(idioma)]);
 
         expect(
-          find.text('Elegí una dificultad'),
+          find.text('ELEGÍ UNA DIFICULTAD'),
           findsOneWidget,
           reason: 'el respaldo para "$idioma" debe ser español',
         );

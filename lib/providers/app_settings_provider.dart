@@ -3,19 +3,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/sound_service.dart';
 
 /// Maneja el estado global de configuración de la app:
-/// tema, efectos de sonido y música de fondo.
+/// efectos de sonido y música de fondo.
 ///
 /// Persiste todas las preferencias via shared_preferences.
+///
+/// Ya no maneja el tema: el juego tiene un único aspecto (`AppTheme.game`) y no
+/// sigue el modo claro/oscuro del sistema. La clave `theme_mode` que quedó
+/// guardada en instalaciones viejas se ignora; no se borra porque no molesta y
+/// así no hay que tocarla en la migración.
 class AppSettingsProvider extends ChangeNotifier {
-  static const String _claveTema = 'theme_mode';
   static const String _claveSonido = 'sonido_activado';
   static const String _claveMusica = 'musica_activada';
 
-  ThemeMode _themeMode = ThemeMode.system;
   bool _sonidoActivado = true;
   bool _musicaActivada = true;
 
-  ThemeMode get themeMode => _themeMode;
   bool get sonidoActivado => _sonidoActivado;
   bool get musicaActivada => _musicaActivada;
 
@@ -23,13 +25,6 @@ class AppSettingsProvider extends ChangeNotifier {
   /// Llamar una sola vez antes de runApp() o al iniciar el widget raíz.
   Future<void> inicializar() async {
     final prefs = await SharedPreferences.getInstance();
-
-    final valorTema = prefs.getString(_claveTema);
-    _themeMode = switch (valorTema) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
 
     _sonidoActivado = prefs.getBool(_claveSonido) ?? true;
     _musicaActivada = prefs.getBool(_claveMusica) ?? true;
@@ -40,14 +35,6 @@ class AppSettingsProvider extends ChangeNotifier {
 
     // ¡CRÍTICO!: Notificar a la UI para que aplique el tema y configuraciones reales guardadas
     notifyListeners();
-  }
-
-  Future<void> cambiarTema(ThemeMode modo) async {
-    _themeMode = modo;
-    notifyListeners(); // Notificación inmediata a la UI
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_claveTema, modo.name);
   }
 
   Future<void> alternarSonido() async {
