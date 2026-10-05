@@ -26,19 +26,25 @@ void main() {
         );
         await tester.pump();
 
-        final stack = tester.widget<Stack>(
+        // El tablero tiene dos `Stack`: el exterior (sockets + fichas) y el
+        // de los sockets, anidado para poder aislarlos en su propia capa de
+        // repintado. Los dos tienen que dejar ver el desborde de las sombras.
+        final stacks = tester.widgetList<Stack>(
           find.descendant(
             of: find.byType(PuzzleBoard),
             matching: find.byType(Stack),
           ),
         );
-        expect(
-          stack.clipBehavior,
-          Clip.none,
-          reason:
-              'el tablero debe dejar visible la sombra de la fila inferior '
-              '(size=$size)',
-        );
+        expect(stacks, isNotEmpty);
+        for (final stack in stacks) {
+          expect(
+            stack.clipBehavior,
+            Clip.none,
+            reason:
+                'el tablero debe dejar visible la sombra de la fila inferior '
+                '(size=$size)',
+          );
+        }
 
         await tester.pumpWidget(const SizedBox.shrink());
       }
@@ -61,13 +67,16 @@ void main() {
           );
           await tester.pump();
 
-          final stack = tester.widget<Stack>(
+          final stacks = tester.widgetList<Stack>(
             find.descendant(
               of: find.byType(PuzzleBoard),
               matching: find.byType(Stack),
             ),
           );
-          expect(stack.clipBehavior, Clip.none);
+          expect(stacks, isNotEmpty);
+          for (final stack in stacks) {
+            expect(stack.clipBehavior, Clip.none);
+          }
 
           // Extensión máxima de sombra hacia abajo entre todas las fichas
           // (offset.dy + blurRadius), tomada de la decoración real.

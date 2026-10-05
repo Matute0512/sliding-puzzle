@@ -256,12 +256,20 @@ class _GameScreenState extends State<GameScreen> {
     return Row(
       children: [
         Expanded(
-          child: ValueListenableBuilder<int>(
-            valueListenable: _segundos,
-            builder: (context, segundos, _) => HudCard(
-              icono: Icons.timer,
-              label: l10n.time.toUpperCase(),
-              valor: l10n.secondsShort(segundos),
+          // `RepaintBoundary` propio para el cronómetro: publicar en
+          // `_segundos` no dispara `setState` (el rebuild ya está acotado a
+          // esta card), pero al cambiar el `Text` el `RenderParagraph`
+          // relayouta y, sin esta capa, la invalidación de pintado subía hasta
+          // el boundary de la ruta y repintaba la pantalla entera —header, HUD
+          // y tablero— una vez por segundo.
+          child: RepaintBoundary(
+            child: ValueListenableBuilder<int>(
+              valueListenable: _segundos,
+              builder: (context, segundos, _) => HudCard(
+                icono: Icons.timer,
+                label: l10n.time.toUpperCase(),
+                valor: l10n.secondsShort(segundos),
+              ),
             ),
           ),
         ),
