@@ -26,7 +26,6 @@
 
   "settingsTitle": "Settings",
   "privacyTitle": "Privacy & Data",
-  "privacyTooltip": "Privacy & data",
   "privacyBody": "For the Global Top 5, the game only stores your Alias and your best score anonymously.\n\nWe don't ask for emails, passwords, or any device data. You can take part with complete peace of mind.",
 
   "rateTitle": "Enjoying Sliding Puzzle?",
@@ -41,8 +40,6 @@
   "difficultyHard": "Hard",
   "difficultyExpert": "Expert",
   "boardSize": "Board {size}×{size}",
-  "challengeMode": "Challenge Mode",
-  "challengeModeSubtitle": "20 levels · earn 3 stars",
   "classicMode": "Classic",
   "challengeTab": "Challenge",
   "viewRecords": "View records",
@@ -108,11 +105,6 @@
   "movesColumn": "Moves",
   "timeColumn": "Time",
 
-  "appearance": "Appearance",
-  "theme": "Theme",
-  "themeLight": "Light",
-  "themeDark": "Dark",
-  "themeSystem": "System",
   "sound": "Sound",
   "soundEffects": "Sound effects",
   "soundEffectsDesc": "Click when moving tiles, plus victory",
@@ -120,9 +112,7 @@
   "backgroundMusicDesc": "Music during the menu and gameplay",
 
   "levelLocked": "Complete the previous level to unlock",
-  "levelReached": "Level reached",
   "levelProgress": "{nivel} / 20",
-  "stars": "Stars",
   "starsProgress": "{total} / 60",
   "challengeCircuit": "Arcade circuit",
   "selectLevel": "Select a level",

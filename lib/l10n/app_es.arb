@@ -69,7 +69,6 @@
 
   "settingsTitle": "Configuración",
   "privacyTitle": "Privacidad y Datos",
-  "privacyTooltip": "Privacidad y datos",
   "privacyBody": "Para el Top 5 Global, el juego guarda únicamente tu Alias y tu mejor puntuación de forma anónima.\n\nNo solicitamos correos, contraseñas ni datos de tu dispositivo. Podés participar con total tranquilidad.",
 
   "rateTitle": "¿Te gusta Sliding Puzzle?",
@@ -90,8 +89,6 @@
       "size": { "type": "int" }
     }
   },
-  "challengeMode": "Modo Desafío",
-  "challengeModeSubtitle": "20 niveles · ganá 3 estrellas",
   "classicMode": "Clásico",
   "challengeTab": "Desafío",
   "viewRecords": "Ver récords",
@@ -190,11 +187,6 @@
   "movesColumn": "Movs",
   "timeColumn": "Tiempo",
 
-  "appearance": "Apariencia",
-  "theme": "Tema",
-  "themeLight": "Claro",
-  "themeDark": "Oscuro",
-  "themeSystem": "Sistema",
   "sound": "Sonido",
   "soundEffects": "Efectos de sonido",
   "soundEffectsDesc": "Click al mover fichas y victoria",
@@ -202,7 +194,6 @@
   "backgroundMusicDesc": "Música durante el menú y el juego",
 
   "levelLocked": "Completá el nivel anterior para desbloquear",
-  "levelReached": "Nivel alcanzado",
   "levelProgress": "{nivel} / 20",
   "@levelProgress": {
     "description": "Progreso sobre el total de niveles del Desafío.",
@@ -210,7 +201,6 @@
       "nivel": { "type": "int" }
     }
   },
-  "stars": "Estrellas",
   "starsProgress": "{total} / 60",
   "@starsProgress": {
     "description": "Estrellas ganadas sobre el total posible (20 niveles x 3).",
