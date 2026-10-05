@@ -6,6 +6,15 @@
 GeneratedPluginRegistrant.java
 .cxx/
 
+# Salidas de build de Gradle. `/build` (sin `app/` delante) cubre tanto
+# android/build —los reportes de problemas y los intermedios— como
+# android/app/build si alguna vez se genera. Quedaba sin ignorar: el repo raíz
+# solo tiene `/build/`, que es el directorio de Flutter, no el de acá.
+/build
+
+# Caché de compilación del plugin de Kotlin, regenerable.
+/.kotlin
+
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore
 key.properties
