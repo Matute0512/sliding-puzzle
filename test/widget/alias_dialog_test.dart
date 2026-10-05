@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sliding_puzzle/theme/kenney_ui.dart';
 import 'package:sliding_puzzle/widgets/alias_dialog.dart';
 
 import '../helpers/localized_app.dart';
@@ -130,9 +131,12 @@ void main() {
 
       // Con el teclado insets abajo, el contenido debe poder desplazarse en vez
       // de desbordar (era el "RenderFlex overflowed" del reporte).
+      // La superficie del diálogo pasó de `AlertDialog` a `KenneyDialog` (el
+      // fondo es un sprite 9-slice). Lo que el test cuida sigue siendo lo
+      // mismo: que el contenido sea scrolleable y no desborde.
       expect(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(KenneyDialog),
           matching: find.byType(SingleChildScrollView),
         ),
         findsOneWidget,

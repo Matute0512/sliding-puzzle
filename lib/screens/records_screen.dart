@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 
 /// Pantalla del Top 5 Global por tamaño de tablero (3x3, 4x4 y 5x5).
 ///
@@ -88,7 +89,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -140,24 +142,27 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   l10n.top5Error,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton.icon(
+                KenneyButton(
+                  tint: AppTheme.seedColor,
                   onPressed: _cargarTops,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.seedColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.refresh),
-                  label: Text(
-                    l10n.retry,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.retry,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -209,21 +214,11 @@ class _SeccionTop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return Container(
+    // La superficie es un panel 9-slice de Kenney, claro en los dos temas: por
+    // eso los textos de adentro usan KenneyInk y no AppColors.
+    return KenneySurface(
+      slice: KenneySlices.flatPanel,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -238,18 +233,18 @@ class _SeccionTop extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 18,
+                style: const TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: colors.textPrimary,
+                  color: KenneyInk.primary,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 descripcion,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colors.textSecondary,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: KenneyInk.secondary,
                 ),
               ),
             ],
@@ -259,9 +254,9 @@ class _SeccionTop extends StatelessWidget {
           if (top.isEmpty)
             Text(
               l10n.top5Empty,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 13,
+              style: const TextStyle(
+                color: KenneyInk.secondary,
+                fontSize: 11,
               ),
             )
           else
@@ -272,24 +267,24 @@ class _SeccionTop extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 28,
                         child: Text(
                           '#',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: colors.textSecondary,
+                            color: KenneyInk.secondary,
                           ),
                         ),
                       ),
                       Expanded(
                         child: Text(
                           l10n.aliasColumn,
-                          style: TextStyle(
-                            fontSize: 12,
+                          style: const TextStyle(
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: colors.textSecondary,
+                            color: KenneyInk.secondary,
                           ),
                         ),
                       ),
@@ -297,18 +292,18 @@ class _SeccionTop extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.sports_esports,
                               size: 14,
-                              color: colors.textSecondary,
+                              color: KenneyInk.secondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               l10n.movesColumn,
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: const TextStyle(
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: colors.textSecondary,
+                                color: KenneyInk.secondary,
                               ),
                             ),
                           ],
@@ -318,18 +313,18 @@ class _SeccionTop extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.timer,
                               size: 14,
-                              color: colors.textSecondary,
+                              color: KenneyInk.secondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               l10n.timeColumn,
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: const TextStyle(
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: colors.textSecondary,
+                                color: KenneyInk.secondary,
                               ),
                             ),
                           ],
@@ -343,6 +338,7 @@ class _SeccionTop extends StatelessWidget {
                   final puesto = entry.key + 1;
                   final puntaje = entry.value;
                   final esPrimero = puesto == 1;
+                  final colorPodio = AppTheme.podiumColor(puesto);
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -350,16 +346,26 @@ class _SeccionTop extends StatelessWidget {
                       children: [
                         SizedBox(
                           width: 28,
-                          child: Text(
-                            '$puesto',
-                            style: TextStyle(
-                              fontSize: esPrimero ? 16 : 13,
-                              fontWeight: FontWeight.bold,
-                              color: esPrimero
-                                  ? const Color(0xFFF59E0B)
-                                  : colors.textSecondary,
-                            ),
-                          ),
+                          // Los tres primeros puestos van con estrella de podio
+                          // (oro, plata y bronce); del 4º en adelante, el número
+                          // pelado, que no necesita destacarse.
+                          child: colorPodio != null
+                              ? KenneyIcon(
+                                  KenneySlices.star,
+                                  size: 20,
+                                  tint: colorPodio,
+                                  // El número desaparece de la vista, así que
+                                  // el puesto tiene que quedar en la semántica.
+                                  semanticLabel: '$puesto',
+                                )
+                              : Text(
+                                  '$puesto',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: KenneyInk.secondary,
+                                  ),
+                                ),
                         ),
                         Expanded(
                           child: Text(
@@ -367,11 +373,11 @@ class _SeccionTop extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,
-                              color: colors.textPrimary,
+                              color: KenneyInk.primary,
                             ),
                           ),
                         ),
@@ -380,11 +386,11 @@ class _SeccionTop extends StatelessWidget {
                             '${puntaje.movimientos}',
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,
-                              color: colors.textPrimary,
+                              color: KenneyInk.primary,
                             ),
                           ),
                         ),
@@ -393,11 +399,11 @@ class _SeccionTop extends StatelessWidget {
                             l10n.secondsShort(puntaje.tiempoSegundos),
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: esPrimero
                                   ? FontWeight.bold
                                   : FontWeight.normal,
-                              color: colors.textPrimary,
+                              color: KenneyInk.primary,
                             ),
                           ),
                         ),

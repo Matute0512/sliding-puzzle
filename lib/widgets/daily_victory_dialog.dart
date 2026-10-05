@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/kenney_ui.dart';
 
 /// ⚠️ DIÁLOGO TEMPORAL — reemplazar por la pantalla de resultados del día.
 ///
@@ -12,6 +13,10 @@ import '../theme/app_theme.dart';
 /// Sigue el patrón de `AliasDialog`: la UI vive en su propio widget y se abre
 /// con un `mostrar` estático. El `ConfettiController` llega desde afuera porque
 /// es del `State` del juego (se libera con él, no con el diálogo).
+///
+/// Los colores del texto van fijos (ver [KenneyInk]) y no salen de `AppColors`:
+/// el panel de Kenney es claro en los dos temas, así que el texto que va encima
+/// tiene que ser oscuro siempre.
 class DailyVictoryDialog extends StatelessWidget {
   final int movimientos;
   final int segundos;
@@ -48,23 +53,24 @@ class DailyVictoryDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colors = Theme.of(context).extension<AppColors>()!;
 
     return Stack(
       alignment: Alignment.topCenter,
       children: [
-        AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            l10n.dailyVictoryTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          content: Column(
+        KenneyDialog(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                l10n.dailyVictoryTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: KenneyInk.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
               _FilaResultado(
                 icono: Icons.timer,
                 label: l10n.time,
@@ -80,31 +86,27 @@ class DailyVictoryDialog extends StatelessWidget {
               Text(
                 l10n.dailyVictoryBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: colors.textSecondary),
+                style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: KenneyButton(
+                  // Solo cierra el diálogo. Quien lo abre se encarga de volver
+                  // al menú, así el diálogo no necesita saber de navegación.
+                  onPressed: () => Navigator.pop(context),
+                  tint: AppTheme.seedColor,
+                  child: Text(
+                    l10n.backToMenu,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.seedColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                // Solo cierra el diálogo. Quien lo abre se encarga de volver al
-                // menú, así el diálogo no necesita saber de navegación.
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  l10n.backToMenu,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
         ),
         ConfettiWidget(
           confettiController: confetti,
@@ -140,8 +142,6 @@ class _FilaResultado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
     return Row(
       children: [
         Icon(icono, size: 20, color: AppTheme.seedColor),
@@ -149,15 +149,15 @@ class _FilaResultado extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: colors.textSecondary),
+            style: const TextStyle(fontSize: 13, color: KenneyInk.secondary),
           ),
         ),
         Text(
           valor,
-          style: TextStyle(
-            fontSize: 17,
+          style: const TextStyle(
+            fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: colors.textPrimary,
+            color: KenneyInk.primary,
           ),
         ),
       ],

@@ -17,7 +17,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Modo Desafío'), findsOneWidget);
+    // El modo Desafío ya no es un botón propio: es el segmento derecho del
+    // switch del menú, que renderiza su etiqueta en versalitas.
+    expect(find.text('DESAFÍO'), findsOneWidget);
   });
 
   testWidgets('ChallengeLevelsScreen muestra el resumen y niveles bloqueados',
@@ -27,13 +29,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Sin progreso: nivel alcanzado 1 y estrellas 0.
-    expect(find.text('Nivel alcanzado'), findsOneWidget);
+    // El header es el del frame: título y bajada propios del Modo Desafío, en
+    // vez del nombre genérico que ponía el AppBar.
+    expect(find.text('DESAFÍO'), findsOneWidget);
+    expect(find.text('CIRCUITO ARCADE'), findsOneWidget);
+
+    // Sin progreso: nivel alcanzado 1 y 0 estrellas. El rótulo y el total son
+    // los del frame — "TU PROGRESO" y el número pelado, sin "/ 60".
+    expect(find.text('TU PROGRESO'), findsOneWidget);
     expect(find.text('1 / 20'), findsOneWidget);
-    expect(find.text('0 / 60'), findsOneWidget);
+    expect(find.text('0'), findsOneWidget);
 
     // Los niveles posteriores al 1 están bloqueados.
-    expect(find.text('Bloqueado'), findsWidgets);
+    expect(find.text('BLOQUEADO'), findsWidgets);
+
+    // El aviso del pie nombra el nivel que hay que completar para avanzar.
+    expect(
+      find.text('Completá el nivel 1 para desbloquear el siguiente.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('GameScreen en desafío muestra el HUD Objetivo y no el Tiempo',
@@ -43,9 +57,10 @@ void main() {
     );
     await tester.pump();
 
-    // Nivel 1 → tablero 3x3 con objetivo de 3 movimientos.
-    expect(find.text('Objetivo'), findsOneWidget);
+    // Nivel 1 → tablero 3x3 con objetivo de 3 movimientos. Los rótulos del HUD
+    // se pintan en versalitas, así que se busca la forma renderizada.
+    expect(find.text('OBJETIVO'), findsOneWidget);
     expect(find.text('3 movs'), findsOneWidget);
-    expect(find.text('Tiempo'), findsNothing);
+    expect(find.text('TIEMPO'), findsNothing);
   });
 }
