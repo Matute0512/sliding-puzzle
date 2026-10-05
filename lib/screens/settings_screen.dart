@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +5,6 @@ import '../l10n/app_localizations.dart';
 import '../providers/app_settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
-import 'image_puzzle_test_screen.dart';
 
 /// Pantalla de configuración: tema, sonido y música.
 class SettingsScreen extends StatelessWidget {
@@ -69,41 +67,6 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // ⚠️ TEMPORAL: acceso a la pantalla de prueba del puzzle con
-              // imagen. Se borra junto con `image_puzzle_test_screen.dart`.
-              // `kDebugMode` garantiza que no llegue a un build de release, así
-              // que no hace falta traducir estos textos.
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _SeccionTitulo(titulo: 'DEBUG', colors: colors),
-                const SizedBox(height: 12),
-                _CardConfiguracion(
-                  // El Material propio sigue siendo obligatorio: la superficie
-                  // es un `DecoratedBox` con un sprite de fondo, y un ListTile
-                  // ahí adentro dispara una assertion ("background color or ink
-                  // splashes may be invisible") porque pintaría sus efectos en
-                  // el Material del Scaffold, por debajo de la tarjeta.
-                  child: Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(
-                        Icons.image_outlined,
-                        color: AppTheme.seedColor,
-                      ),
-                      title: const Text(
-                        'Puzzle con imagen',
-                        style: TextStyle(color: KenneyInk.primary),
-                      ),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ImagePuzzleTestScreen(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
