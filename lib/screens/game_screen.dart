@@ -76,9 +76,22 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late List<int> _tablero;
+  /// Tablero en juego.
+  ///
+  /// Va en un `ValueNotifier` —y no en un campo que se publique con
+  /// `setState`— porque es el dato que cambia en **cada movimiento**: el
+  /// `setState` reconstruía el árbol entero de la pantalla (header, HUD,
+  /// consigna y botonera: ~1000 elementos en 5×5) cada vez que se tocaba una
+  /// ficha. Con el notifier, el único que reacciona es el `PuzzleBoard`.
+  final ValueNotifier<List<int>> _tablero = ValueNotifier<List<int>>(
+    const <int>[],
+  );
+
   late final int _objetivo;
-  int _movimientos = 0;
+
+  /// Movimientos de la partida. Mismo motivo que [_tablero]: la tarjeta que lo
+  /// muestra es la única que tiene que reaccionar a cada jugada.
+  final ValueNotifier<int> _movimientos = ValueNotifier<int>(0);
 
   /// Mejor marca del tablero que se está jugando, para la card "Récord".
   ///
@@ -184,10 +197,14 @@ class _GameScreenState extends State<GameScreen> {
   /// tablero por ganado: la ficha del índice `i` vale `i + 1`. El hueco (0)
   /// nunca cumple la igualdad —`i + 1` siempre es ≥ 1—, así que no hace falta
   /// excluirlo a mano.
-  int get _piezasColocadas {
+  ///
+  /// Recibe el tablero en vez de leerlo del estado porque su consumidor (la
+  /// tarjeta de "piezas" del Diario) vive dentro de un `ValueListenableBuilder`
+  /// y tiene que calcular sobre el valor que le llega, no sobre el actual.
+  int _piezasColocadas(List<int> tablero) {
     var colocadas = 0;
-    for (var i = 0; i < _tablero.length; i++) {
-      if (_tablero[i] == i + 1) colocadas++;
+    for (var i = 0; i < tablero.length; i++) {
+      if (tablero[i] == i + 1) colocadas++;
     }
     return colocadas;
   }
@@ -224,6 +241,23 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Tarjeta de movimientos, aislada en su propio `ValueListenableBuilder`.
+  ///
+  /// Es la única parte del HUD que cambia en cada jugada: con el contador en un
+  /// `ValueNotifier`, el rebuild se queda acá adentro y no arrastra al resto de
+  /// la pantalla. Comparten esta tarjeta la partida libre y el Modo Desafío, así
+  /// que la receta vive en un solo lugar.
+  Widget _tarjetaMovimientos(AppLocalizations l10n) {
+    return ValueListenableBuilder<int>(
+      valueListenable: _movimientos,
+      builder: (context, movimientos, _) => HudCard(
+        icono: Icons.sports_esports,
+        label: l10n.movesColumn.toUpperCase(),
+        valor: '$movimientos',
+      ),
+    );
+  }
+
   /// Fila de stats.
   ///
   /// El frame muestra tres —Tiempo, Movs y Récord—, pero Récord solo tiene
@@ -234,13 +268,7 @@ class _GameScreenState extends State<GameScreen> {
     if (_esDesafio) {
       return Row(
         children: [
-          Expanded(
-            child: HudCard(
-              icono: Icons.sports_esports,
-              label: l10n.movesColumn.toUpperCase(),
-              valor: '$_movimientos',
-            ),
-          ),
+          Expanded(child: _tarjetaMovimientos(l10n)),
           const SizedBox(width: 8),
           Expanded(
             child: HudCard(
@@ -260,8 +288,8 @@ class _GameScreenState extends State<GameScreen> {
           // `_segundos` no dispara `setState` (el rebuild ya está acotado a
           // esta card), pero al cambiar el `Text` el `RenderParagraph`
           // relayouta y, sin esta capa, la invalidación de pintado subía hasta
-          // el boundary de la ruta y repintaba la pantalla entera —header, HUD
-          // y tablero— una vez por segundo.
+          // el viewport del `SingleChildScrollView` y repintaba todo su
+          // contenido —HUD, consigna, pozo y botonera— una vez por segundo.
           child: RepaintBoundary(
             child: ValueListenableBuilder<int>(
               valueListenable: _segundos,
@@ -274,27 +302,28 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: HudCard(
-            icono: Icons.sports_esports,
-            label: l10n.movesColumn.toUpperCase(),
-            valor: '$_movimientos',
-          ),
-        ),
+        Expanded(child: _tarjetaMovimientos(l10n)),
         const SizedBox(width: 8),
         Expanded(
           child: widget.esDiario
               // En el modo foto la tercera card son las piezas ya colocadas: el
               // tablero del Diario cambia cada día, así que un récord por tamaño
               // no diría nada.
-              ? HudCard(
-                  icono: Icons.grid_3x3,
-                  label: l10n.pieces.toUpperCase(),
-                  // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en un
-                  // 3×3.
-                  valor: l10n.piecesProgress(
-                    _piezasColocadas,
-                    widget.size * widget.size,
+              //
+              // Escucha a [_tablero] porque las piezas colocadas son una
+              // función del tablero: sin esto, la card se quedaría con el valor
+              // de la última vez que se reconstruyó el resto de la pantalla.
+              ? ValueListenableBuilder<List<int>>(
+                  valueListenable: _tablero,
+                  builder: (context, tablero, _) => HudCard(
+                    icono: Icons.grid_3x3,
+                    label: l10n.pieces.toUpperCase(),
+                    // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en
+                    // un 3×3.
+                    valor: l10n.piecesProgress(
+                      _piezasColocadas(tablero),
+                      widget.size * widget.size,
+                    ),
                   ),
                 )
               : HudCard(
@@ -382,13 +411,13 @@ class _GameScreenState extends State<GameScreen> {
       // Partida retomada: tablero, movimientos y tiempo vienen del disco. El
       // cronómetro sigue detenido hasta el próximo movimiento, así que el
       // jugador no pierde tiempo mientras mira el tablero.
-      _tablero = List<int>.from(guardada.tablero);
-      _movimientos = guardada.movimientos;
+      _tablero.value = List<int>.from(guardada.tablero);
+      _movimientos.value = guardada.movimientos;
       _segundosAcumulados = guardada.segundos;
       _segundos.value = guardada.segundos;
       _juegoIniciado = true;
     } else {
-      _tablero = _nuevoTablero();
+      _tablero.value = _nuevoTablero();
     }
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 4),
@@ -409,6 +438,8 @@ class _GameScreenState extends State<GameScreen> {
     _segundos.dispose();
     _avisoTop.dispose();
     _imagenDiaria.dispose();
+    _tablero.dispose();
+    _movimientos.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -445,8 +476,8 @@ class _GameScreenState extends State<GameScreen> {
         esDesafio: _esDesafio,
         size: widget.size,
         nivel: widget.nivelDesafio,
-        tablero: _tablero,
-        movimientos: _movimientos,
+        tablero: _tablero.value,
+        movimientos: _movimientos.value,
         segundos: _segundosTotales,
       ),
     );
@@ -535,13 +566,14 @@ class _GameScreenState extends State<GameScreen> {
     final hoy = DailyChallengeService.semillaHoy;
     if (hoy == _semillaDiaria) return;
 
-    setState(() {
-      _semillaDiaria = hoy;
-      _tablero = _nuevoTablero();
-      // La foto del día anterior no sirve para el tablero nuevo: se vuelve a la
-      // de respaldo hasta que llegue la de hoy, igual que al entrar.
-      _imagenDiaria.value = DailyChallengeService.imagenRespaldo;
-    });
+    // Sin `setState`: falta después del primer movimiento, y todo lo que cambia
+    // acá (el tablero y la foto) se publica por sus propios notifiers, que son
+    // los que tienen consumidores escuchando.
+    _semillaDiaria = hoy;
+    _tablero.value = _nuevoTablero();
+    // La foto del día anterior no sirve para el tablero nuevo: se vuelve a la
+    // de respaldo hasta que llegue la de hoy, igual que al entrar.
+    _imagenDiaria.value = DailyChallengeService.imagenRespaldo;
     unawaited(_cargarImagenDiaria());
 
     // Es otra foto y el jugador todavía no vio ninguna: si la vista previa ya
@@ -575,7 +607,7 @@ class _GameScreenState extends State<GameScreen> {
   void _onTapFicha(int indice) {
     if (_pausado || _juegoTerminado) return;
 
-    if (!PuzzleLogic.puedeMover(_tablero, indice, widget.size)) {
+    if (!PuzzleLogic.puedeMover(_tablero.value, indice, widget.size)) {
       // Feedback para un tap inválido (antes era un no-op silencioso).
       HapticFeedback.selectionClick();
       return;
@@ -589,12 +621,14 @@ class _GameScreenState extends State<GameScreen> {
 
     SoundService.reproducirClick();
 
-    setState(() {
-      _tablero = PuzzleLogic.mover(_tablero, indice, widget.size);
-      _movimientos++;
-    });
+    // Sin `setState`: el tablero y el contador se publican por sus notifiers, y
+    // sus dos consumidores (`PuzzleBoard` y la tarjeta de movimientos) son los
+    // únicos que tienen que reaccionar. Un `setState` acá reconstruía la
+    // pantalla entera —header, HUD, consigna y botonera— en cada jugada.
+    _tablero.value = PuzzleLogic.mover(_tablero.value, indice, widget.size);
+    _movimientos.value++;
 
-    if (PuzzleLogic.estaResuelto(_tablero)) {
+    if (PuzzleLogic.estaResuelto(_tablero.value)) {
       // Se marca terminada ANTES de detener el reloj: a partir de acá ninguna
       // otra ruta (pausa, reanudar, ciclo de vida) puede volver a arrancarlo.
       _juegoTerminado = true;
@@ -646,7 +680,7 @@ class _GameScreenState extends State<GameScreen> {
       BestRunService.registrarPartida(
         MejorPartida(
           tiempoSegundos: _segundos.value,
-          movimientos: _movimientos,
+          movimientos: _movimientos.value,
           tamano: widget.size,
           fecha: DateTime.now(),
         ),
@@ -694,7 +728,7 @@ class _GameScreenState extends State<GameScreen> {
                 _FilaResultado(
                   icono: Icons.sports_esports,
                   label: l10n.moves,
-                  valor: '$_movimientos',
+                  valor: '${_movimientos.value}',
                 ),
                 ValueListenableBuilder<String?>(
                   valueListenable: _avisoTop,
@@ -775,7 +809,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _mostrarVictoriaDiario() async {
     // La semilla del día que se jugó, capturada al arrancar la partida.
     final semilla = _semillaDiaria!;
-    final movimientos = _movimientos;
+    final movimientos = _movimientos.value;
     final segundos = _segundos.value;
 
     // El candado se cierra ANTES de mostrar el diálogo: si el sistema mata la
@@ -870,7 +904,7 @@ class _GameScreenState extends State<GameScreen> {
     // y _reiniciar() pone _movimientos y _segundos en cero: releerlos después
     // de un await publicaría un puntaje falso (0 movimientos) en el ranking
     // global, imposible de superar.
-    final movimientos = _movimientos;
+    final movimientos = _movimientos.value;
     final tiempoSegundos = _segundos.value;
 
     final puestoPosible = await FirebaseService.posicionActualPuntaje(
@@ -918,10 +952,10 @@ class _GameScreenState extends State<GameScreen> {
     // conoce sin esperar a la persistencia. Se guarda el progreso (local, sin
     // red) antes de mostrar el modal para que el desbloqueo del siguiente nivel
     // esté escrito cuando el jugador toque "Siguiente Nivel".
-    final estrellas = PuzzleLogic.estrellasPara(_movimientos, _objetivo);
+    final estrellas = PuzzleLogic.estrellasPara(_movimientos.value, _objetivo);
     await RecordsService.registrarVictoriaDesafio(
       nivel: nivel,
-      movimientos: _movimientos,
+      movimientos: _movimientos.value,
       objetivo: _objetivo,
     );
     if (!mounted) return;
@@ -954,7 +988,7 @@ class _GameScreenState extends State<GameScreen> {
                   _FilaResultado(
                     icono: Icons.sports_esports,
                     label: l10n.moves,
-                    valor: '$_movimientos',
+                    valor: '${_movimientos.value}',
                   ),
                   const SizedBox(height: 8),
                   _FilaResultado(
@@ -1059,7 +1093,6 @@ class _GameScreenState extends State<GameScreen> {
     // retomó ya no existe.
     _segundosAcumulados = 0;
     _segundos.value = 0;
-    _pausado = false;
     // Partida nueva: se limpia el estado de "terminada" y se invalida cualquier
     // respuesta de red que siga pendiente de la partida anterior.
     _juegoTerminado = false;
@@ -1068,11 +1101,13 @@ class _GameScreenState extends State<GameScreen> {
     // Reiniciar abandona la partida en curso: no queda nada que continuar.
     unawaited(SavedGameService.borrar());
     SoundService.reanudarMusica();
-    setState(() {
-      _tablero = _nuevoTablero();
-      _movimientos = 0;
-      _juegoIniciado = false;
-    });
+    // El tablero y el contador se publican por sus notifiers; el `setState`
+    // queda reservado para el velo de pausa, que sí cambia la estructura de la
+    // pantalla.
+    _tablero.value = _nuevoTablero();
+    _movimientos.value = 0;
+    _juegoIniciado = false;
+    if (_pausado) setState(() => _pausado = false);
   }
 
   void _mostrarAyuda() {
@@ -1259,18 +1294,27 @@ class _GameScreenState extends State<GameScreen> {
                                       ),
                                     ],
                                   ),
+                                  // La foto va por fuera y el tablero por dentro:
+                                  // el tablero cambia en cada jugada, así que
+                                  // su builder es el que tiene que quedar más
+                                  // pegado a `PuzzleBoard` (el de la imagen
+                                  // sólo reacciona cuando llega la del día).
                                   child: ValueListenableBuilder<ImageProvider?>(
                                     valueListenable: _imagenDiaria,
-                                    builder: (_, imagen, _) => PuzzleBoard(
-                                      tablero: _tablero,
-                                      size: widget.size,
-                                      onTileTap: _onTapFicha,
-                                      // Solo el diario se arma como imagen; los
-                                      // otros dos modos siguen con fichas
-                                      // numéricas (`imagen` es `null` ahí).
-                                      imagen: imagen,
-                                      imagenRespaldo:
-                                          DailyChallengeService.imagenRespaldo,
+                                    builder: (_, imagen, _) =>
+                                        ValueListenableBuilder<List<int>>(
+                                      valueListenable: _tablero,
+                                      builder: (_, tablero, _) => PuzzleBoard(
+                                        tablero: tablero,
+                                        size: widget.size,
+                                        onTileTap: _onTapFicha,
+                                        // Solo el diario se arma como imagen;
+                                        // los otros dos modos siguen con fichas
+                                        // numéricas (`imagen` es `null` ahí).
+                                        imagen: imagen,
+                                        imagenRespaldo: DailyChallengeService
+                                            .imagenRespaldo,
+                                      ),
                                     ),
                                   ),
                                 ),
