@@ -6,6 +6,7 @@ import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/services/daily_challenge_service.dart';
 import 'package:sliding_puzzle/services/saved_game_service.dart';
 import 'package:sliding_puzzle/widgets/daily_preview_dialog.dart';
+import 'package:sliding_puzzle/widgets/hud_card.dart';
 import 'package:sliding_puzzle/widgets/image_tile.dart';
 
 import '../helpers/localized_app.dart';
@@ -123,6 +124,28 @@ void main() {
       await DailyChallengeService.yaJugoHoy(),
       isTrue,
       reason: 'el intento del día tiene que quedar consumido',
+    );
+  });
+
+  testWidgets('la tarjeta de piezas sigue al tablero, no al rebuild del Chrome', (
+    tester,
+  ) async {
+    await montarDiario(tester);
+
+    // El Diario nunca arranca resuelto. Si la tarjeta escuchara al rebuild de la
+    // pantalla en vez de al notifier del tablero, se quedaría con el conteo del
+    // momento en que se construyó el resto del Chrome —una jugada ya no
+    // reconstruye la pantalla— y al resolverlo no llegaría nunca a 8 / 9.
+    // (8 y no 9: el hueco no cuenta como pieza colocada.)
+    await resolverYEsperarVictoria(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(HudCard),
+        matching: find.text('${n * n - 1} / ${n * n}'),
+      ),
+      findsOneWidget,
+      reason: 'la tarjeta de piezas del Diario no siguió al tablero',
     );
   });
 
