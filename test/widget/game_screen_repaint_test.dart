@@ -25,9 +25,9 @@ RenderObject? _capaDeRepintado(RenderObject nodo) {
   return capa;
 }
 
-/// Guardas de los tres invariantes de rendimiento del gameplay.
+/// Guardas de los cuatro invariantes de rendimiento del gameplay.
 ///
-/// Los tres se rompen sin que ningún test funcional se entere: la pantalla se
+/// Los cuatro se rompen sin que ningún test funcional se entere: la pantalla se
 /// sigue viendo igual, sólo se pinta de más. Ver `README.md`, sección de
 /// rendimiento, y `AUDITORIA_TRANSICIONES_Y_GAMEPLAY.md`.
 void main() {
@@ -171,6 +171,42 @@ void main() {
         capaDelRelayout!.paintBounds.size,
         stack.paintBounds.size,
         reason: 'la capa del tablero no mide lo que mide el tablero',
+      );
+    },
+  );
+
+  testWidgets(
+    'la tarjeta de movimientos se repinta en su propia capa, no en el viewport',
+    (tester) async {
+      await tester.pumpWidget(appLocalizada(home: const GameScreen(size: 5)));
+      await tester.pump();
+
+      // La tarjeta de movimientos es la del ícono del joystick. Se la busca por
+      // el ícono y no por el rótulo, que depende del idioma.
+      final tarjeta = find.byWidgetPredicate(
+        (w) => w is HudCard && w.icono == Icons.sports_esports,
+      );
+
+      // Es la única tarjeta del HUD que cambia en cada jugada. Acotar el
+      // *rebuild* a su `ValueListenableBuilder` no alcanza: publicar en
+      // `_movimientos` rehace su `Text` y, sin capa propia, la invalidación de
+      // pintado sube hasta el viewport del `SingleChildScrollView`
+      // (`_RenderSingleChildViewport` es repaint boundary), que repinta todo su
+      // contenido —HUD, consigna, pozo con su halo y botonera— una vez por
+      // jugada. El cronómetro ya tenía la suya; ésta era la última sin sellar.
+      final capa = _capaDeRepintado(tester.renderObject(tarjeta));
+
+      expect(
+        capa,
+        isA<RenderRepaintBoundary>(),
+        reason: 'la tarjeta de movimientos perdió su capa de repintado: cada '
+            'jugada vuelve a repintar todo el contenido del scroll',
+      );
+      expect(
+        capa!.paintBounds.size,
+        tester.getSize(tarjeta),
+        reason: 'la capa de la tarjeta de movimientos no es la de la tarjeta: '
+            'quedó una capa más arriba',
       );
     },
   );
