@@ -339,6 +339,56 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       textTheme: ThemeData.dark().textTheme.apply(fontFamily: fontFamily),
       extensions: const [AppColors.game],
+      pageTransitionsTheme: PageTransitionsTheme(builders: _transiciones),
     );
   }
+
+  /// Transición entre rutas, por plataforma.
+  ///
+  /// En Android el default del framework es `PredictiveBackPageTransitionsBuilder`,
+  /// que para navegación **programática** (un `Navigator.push` en un `onTap`,
+  /// que es todo lo que hace esta app) delega en `FadeForwardsPageTransitionsBuilder`:
+  /// 450 ms de `FadeTransition` + `SlideTransition` sobre el subárbol real. Dos
+  /// detalles de esa receta son caros justo acá:
+  ///
+  /// * `RenderAnimatedOpacity` resuelve a una `OpacityLayer`, o sea un composite
+  ///   fuera de pantalla con alfa de la ruta entera, en cada frame mientras el
+  ///   alfa esté entre 1 y 254 — unos 337 de los 450 ms, por el `Interval(0.0,
+  ///   0.75)` del fade.
+  /// * `RenderFractionalTranslation` **no** mete una capa de transformación:
+  ///   pinta a los hijos en `offset + translation * size`, un desplazamiento
+  ///   sub-píxel que cambia en cada frame y derrota cualquier caché de raster.
+  ///
+  /// Sobre la pantalla más pesada de la app (el tablero 5×5: ~1000 elementos, 49
+  /// sombras difuminadas y 49 sprites 9-slice) eso son ~27 frames de rasterizado
+  /// completo de pantalla. Es el "tirón" que reportaron los testers al abrir una
+  /// dificultad.
+  ///
+  /// `ZoomPageTransitionsBuilder` cambia el perfil de ese costo: reemplaza el
+  /// subárbol por un *snapshot* (`SnapshotWidget`) y anima la textura, así que se
+  /// paga una rasterización y el resto de los frames son composición barata. A
+  /// cambio, esa rasterización es **sincrónica** (`Layer.toImageSync`, en el
+  /// primer frame de la transición) y la página entrante queda congelada mientras
+  /// el snapshot está activo.
+  ///
+  /// **Sin validar en dispositivo.** El cambio se apoya en la mecánica medida
+  /// (ver `AUDITORIA_TRANSICIONES_Y_GAMEPLAY.md`, §1), no en un perfil: cuál de
+  /// los dos perfiles gana en un gama baja sólo lo dice un `--profile`. Si el
+  /// primer frame de la transición resultara un congelamiento largo, el ajuste a
+  /// probar es `ZoomPageTransitionsBuilder(allowEnterRouteSnapshotting: false)`,
+  /// que deja sin snapshotear a la ruta entrante.
+  ///
+  /// Efecto lateral deliberado: en Android U o superior se pierde el gesto de
+  /// *predictive back* que trae el default.
+  ///
+  /// Se parte de los defaults del framework y se cambia **sólo** Android: el
+  /// constructor de `PageTransitionsTheme` reemplaza el mapa entero, y una
+  /// plataforma ausente cae al fallback del framework (`ZoomPageTransitionsBuilder`,
+  /// ver `PageTransitionsTheme.buildTransitions`). Listar sólo Android
+  /// cambiaría iOS y macOS de `CupertinoPageTransitionsBuilder` a Zoom sin
+  /// querer, así que se diffea contra `const PageTransitionsTheme().builders`.
+  static Map<TargetPlatform, PageTransitionsBuilder> get _transiciones => {
+    ...const PageTransitionsTheme().builders,
+    TargetPlatform.android: const ZoomPageTransitionsBuilder(),
+  };
 }

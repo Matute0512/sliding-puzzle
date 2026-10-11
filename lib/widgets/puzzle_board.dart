@@ -45,31 +45,45 @@ class PuzzleBoard extends StatelessWidget {
     final n = size;
     final movibles = PuzzleLogic.movibles(tablero, size).toSet();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final ladoCelda = (constraints.maxWidth - (n - 1) * espaciado) / n;
-        double left(int i) => (i % n) * (ladoCelda + espaciado);
-        double top(int i) => (i ~/ n) * (ladoCelda + espaciado);
+    // La capa de repintado va **por fuera del `LayoutBuilder`**, y ése es el
+    // detalle que decide si el deslizamiento repinta sólo el tablero o la
+    // pantalla entera.
+    //
+    // El `LayoutBuilder` es el boundary de *relayout* del tablero, y el
+    // framework cierra todo layout con `markNeedsPaint()` (`RenderObject.layout`
+    // y `_layoutWithoutResize`, ver `rendering/object.dart`): al cambiar el
+    // `left`/`top` de una ficha, la invalidación de pintado nace en el
+    // `LayoutBuilder` y sube hasta la primera capa de repintado que encuentre.
+    // Con el `RepaintBoundary` **adentro** del `LayoutBuilder` esa capa es el
+    // viewport del `SingleChildScrollView` de `GameScreen`
+    // (`_RenderSingleChildViewport` es repaint boundary), que envuelve el HUD,
+    // la consigna, el pozo con su halo y la botonera: todo eso se volvía a
+    // registrar y a rasterizar en cada uno de los ~10 frames de los 160 ms del
+    // deslizamiento. Con la capa acá, la propagación se corta antes de salir
+    // del tablero. Los boundaries de las fichas y de los sockets siguen
+    // *adentro* y hacen lo suyo: mientras el `Stack` se repinta, esas celdas se
+    // recomponen desde su capa en vez de volver a dibujar el sprite.
+    //
+    // El pozo y su halo quedan afuera a propósito (su decoración vive en
+    // `GameScreen`), así que tampoco se re-rasterizan.
+    //
+    // `RenderRepaintBoundary` es un `RenderProxyBox`: no recorta ni cambia el
+    // layout, así que la sombra de la fila inferior sigue desbordando
+    // (`Clip.none`) y la geometría que lee `test/helpers/puzzle_solver.dart` no
+    // se corre.
+    //
+    // Lo vigila `test/widget/game_screen_repaint_test.dart`: no alcanza con que
+    // la capa exista y mida lo que mide el tablero, también tiene que quedar
+    // *por encima* del `LayoutBuilder`. Si vuelve a meterse adentro, el
+    // deslizamiento repinta otra vez el HUD, el pozo y la botonera.
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final ladoCelda = (constraints.maxWidth - (n - 1) * espaciado) / n;
+          double left(int i) => (i % n) * (ladoCelda + espaciado);
+          double top(int i) => (i ~/ n) * (ladoCelda + espaciado);
 
-        // El `RepaintBoundary` va **por fuera** del `Stack`, y ésa es la pieza
-        // que faltaba: los boundaries de las fichas y de los sockets son
-        // *hijos* del `Stack`, así que cuando `AnimatedPositioned` cambia
-        // `left`/`top` la invalidación de pintado sube igual hasta el ancestro
-        // más cercano. Sin esta capa, ese ancestro es el viewport del
-        // `SingleChildScrollView` de `GameScreen` (`_RenderSingleChildViewport`
-        // es repaint boundary), que envuelve el HUD, la consigna, el pozo con
-        // su halo y la botonera: todo eso se volvía a registrar y a rasterizar
-        // en cada frame de los 160 ms del deslizamiento. Con la capa acá, la
-        // propagación se corta en el borde del tablero y el resto de la
-        // pantalla no se entera. El pozo y su halo quedan afuera a propósito
-        // (su decoración vive en `GameScreen`), así que tampoco se re-rasterizan.
-        //
-        // `RenderRepaintBoundary` es un `RenderProxyBox`: no recorta ni cambia
-        // el layout, así que la sombra de la fila inferior sigue desbordando
-        // (`Clip.none`) y la geometría que lee `test/helpers/puzzle_solver.dart`
-        // no se corre.
-        return RepaintBoundary(
-          child: Stack(
+          return Stack(
             clipBehavior: Clip.none,
             children: [
               // Sockets: el fondo de todas las celdas. Muestran el estilo de
@@ -134,9 +148,9 @@ class PuzzleBoard extends StatelessWidget {
                     ),
                   ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
