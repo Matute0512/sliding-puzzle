@@ -247,13 +247,23 @@ class _GameScreenState extends State<GameScreen> {
   /// `ValueNotifier`, el rebuild se queda acá adentro y no arrastra al resto de
   /// la pantalla. Comparten esta tarjeta la partida libre y el Modo Desafío, así
   /// que la receta vive en un solo lugar.
+  ///
+  /// El `RepaintBoundary` va por el mismo motivo que el del cronómetro, y acotar
+  /// el *rebuild* no alcanzaba: publicar en `_movimientos` rehace el `Text` de la
+  /// card y, sin capa propia, esa invalidación de pintado subía hasta el viewport
+  /// del `SingleChildScrollView` (`_RenderSingleChildViewport` es repaint
+  /// boundary) y repintaba todo su contenido —HUD, consigna, pozo con su halo y
+  /// botonera— **una vez por jugada**. El cronómetro ya tenía la suya; ésta era
+  /// la última tarjeta del HUD que quedaba sin sellar.
   Widget _tarjetaMovimientos(AppLocalizations l10n) {
-    return ValueListenableBuilder<int>(
-      valueListenable: _movimientos,
-      builder: (context, movimientos, _) => HudCard(
-        icono: Icons.sports_esports,
-        label: l10n.movesColumn.toUpperCase(),
-        valor: '$movimientos',
+    return RepaintBoundary(
+      child: ValueListenableBuilder<int>(
+        valueListenable: _movimientos,
+        builder: (context, movimientos, _) => HudCard(
+          icono: Icons.sports_esports,
+          label: l10n.movesColumn.toUpperCase(),
+          valor: '$movimientos',
+        ),
       ),
     );
   }
@@ -313,16 +323,23 @@ class _GameScreenState extends State<GameScreen> {
               // Escucha a [_tablero] porque las piezas colocadas son una
               // función del tablero: sin esto, la card se quedaría con el valor
               // de la última vez que se reconstruyó el resto de la pantalla.
-              ? ValueListenableBuilder<List<int>>(
-                  valueListenable: _tablero,
-                  builder: (context, tablero, _) => HudCard(
-                    icono: Icons.grid_3x3,
-                    label: l10n.pieces.toUpperCase(),
-                    // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en
-                    // un 3×3.
-                    valor: l10n.piecesProgress(
-                      _piezasColocadas(tablero),
-                      widget.size * widget.size,
+              //
+              // Y lleva `RepaintBoundary` propio por lo mismo que la tarjeta de
+              // movimientos: en el Diario el tablero cambia en cada jugada, así
+              // que el `Text` se rehace y sin capa propia la invalidación
+              // llegaría hasta el viewport del scroll.
+              ? RepaintBoundary(
+                  child: ValueListenableBuilder<List<int>>(
+                    valueListenable: _tablero,
+                    builder: (context, tablero, _) => HudCard(
+                      icono: Icons.grid_3x3,
+                      label: l10n.pieces.toUpperCase(),
+                      // Sobre `size²` y no `size²−1`: el frame muestra "8 / 9" en
+                      // un 3×3.
+                      valor: l10n.piecesProgress(
+                        _piezasColocadas(tablero),
+                        widget.size * widget.size,
+                      ),
                     ),
                   ),
                 )

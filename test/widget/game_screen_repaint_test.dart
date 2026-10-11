@@ -11,11 +11,25 @@ import 'package:sliding_puzzle/widgets/puzzle_board.dart';
 import '../helpers/localized_app.dart';
 import '../helpers/puzzle_solver.dart';
 
-/// Guardas de los dos invariantes de rendimiento del gameplay.
+/// Primera capa de repintado hacia arriba desde [nodo].
 ///
-/// Los dos se rompen sin que ningún test funcional se entere: la pantalla se
+/// `markNeedsPaint` propaga hacia arriba y se frena en el primer ancestro que
+/// sea capa de repintado, así que esto responde "¿qué capa se lleva el
+/// repintado que origine [nodo]?".
+RenderObject? _capaDeRepintado(RenderObject nodo) {
+  RenderObject? capa = nodo.parent;
+  while (capa != null && !capa.isRepaintBoundary) {
+    final padre = capa.parent;
+    capa = padre is RenderObject ? padre : null;
+  }
+  return capa;
+}
+
+/// Guardas de los cuatro invariantes de rendimiento del gameplay.
+///
+/// Los cuatro se rompen sin que ningún test funcional se entere: la pantalla se
 /// sigue viendo igual, sólo se pinta de más. Ver `README.md`, sección de
-/// rendimiento.
+/// rendimiento, y `AUDITORIA_TRANSICIONES_Y_GAMEPLAY.md`.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(const {}));
 
@@ -35,11 +49,7 @@ void main() {
             .first,
       );
 
-      RenderObject? capa = stack.parent;
-      while (capa != null && !capa.isRepaintBoundary) {
-        final padre = capa.parent;
-        capa = padre is RenderObject ? padre : null;
-      }
+      final capa = _capaDeRepintado(stack);
 
       // Sin la capa del tablero, el boundary más cercano hacia arriba es el
       // viewport del `SingleChildScrollView` (`_RenderSingleChildViewport`),
@@ -101,6 +111,103 @@ void main() {
       // La pantalla se desmonta a mano para que `dispose` detenga el cronómetro
       // que arrancó el primer movimiento.
       await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'la capa del tablero queda por encima del LayoutBuilder: la invalidación '
+    'no escapa al viewport del scroll',
+    (tester) async {
+      await tester.pumpWidget(appLocalizada(home: const GameScreen(size: 5)));
+      await tester.pump();
+
+      // El `LayoutBuilder` de `PuzzleBoard` es el boundary de *relayout* del
+      // tablero, y el framework cierra todo layout con `markNeedsPaint()`
+      // (`RenderObject.layout` y `_layoutWithoutResize`). Por eso la
+      // invalidación que dispara mover una ficha **nace en el `LayoutBuilder`**,
+      // no en el `Stack`, y sube hasta la primera capa de repintado que
+      // encuentre. Si el `RepaintBoundary` volviera a quedar adentro, esa capa
+      // sería el viewport del `SingleChildScrollView`
+      // (`_RenderSingleChildViewport` es repaint boundary) y cada uno de los
+      // ~10 frames de los 160 ms del deslizamiento volvería a registrar y
+      // rasterizar el HUD, la consigna, el pozo con su halo y la botonera.
+      final layoutBuilder = tester.renderObject(
+        find
+            .descendant(
+              of: find.byType(PuzzleBoard),
+              matching: find.byType(LayoutBuilder),
+            )
+            .first,
+      );
+      final capaDelRelayout = _capaDeRepintado(layoutBuilder);
+
+      expect(
+        capaDelRelayout,
+        isA<RenderRepaintBoundary>(),
+        reason: 'el RepaintBoundary volvió a quedar adentro del LayoutBuilder: '
+            'la invalidación de relayout del tablero escapa hasta el viewport '
+            'del scroll y el deslizamiento repinta el HUD, el pozo con su halo '
+            'y la botonera',
+      );
+
+      // Y es **la misma** capa que la del `Stack`: el tablero entero comparte
+      // una sola capa de repintado, así que la invalidación por relayout y la
+      // de pintado caen juntas y no arrastran al resto de la pantalla.
+      final stack = tester.renderObject(
+        find
+            .descendant(
+              of: find.byType(PuzzleBoard),
+              matching: find.byType(Stack),
+            )
+            .first,
+      );
+      expect(
+        identical(capaDelRelayout, _capaDeRepintado(stack)),
+        isTrue,
+        reason: 'el relayout y el pintado del tablero están cayendo en capas '
+            'distintas: hay más de un RepaintBoundary en el camino',
+      );
+      expect(
+        capaDelRelayout!.paintBounds.size,
+        stack.paintBounds.size,
+        reason: 'la capa del tablero no mide lo que mide el tablero',
+      );
+    },
+  );
+
+  testWidgets(
+    'la tarjeta de movimientos se repinta en su propia capa, no en el viewport',
+    (tester) async {
+      await tester.pumpWidget(appLocalizada(home: const GameScreen(size: 5)));
+      await tester.pump();
+
+      // La tarjeta de movimientos es la del ícono del joystick. Se la busca por
+      // el ícono y no por el rótulo, que depende del idioma.
+      final tarjeta = find.byWidgetPredicate(
+        (w) => w is HudCard && w.icono == Icons.sports_esports,
+      );
+
+      // Es la única tarjeta del HUD que cambia en cada jugada. Acotar el
+      // *rebuild* a su `ValueListenableBuilder` no alcanza: publicar en
+      // `_movimientos` rehace su `Text` y, sin capa propia, la invalidación de
+      // pintado sube hasta el viewport del `SingleChildScrollView`
+      // (`_RenderSingleChildViewport` es repaint boundary), que repinta todo su
+      // contenido —HUD, consigna, pozo con su halo y botonera— una vez por
+      // jugada. El cronómetro ya tenía la suya; ésta era la última sin sellar.
+      final capa = _capaDeRepintado(tester.renderObject(tarjeta));
+
+      expect(
+        capa,
+        isA<RenderRepaintBoundary>(),
+        reason: 'la tarjeta de movimientos perdió su capa de repintado: cada '
+            'jugada vuelve a repintar todo el contenido del scroll',
+      );
+      expect(
+        capa!.paintBounds.size,
+        tester.getSize(tarjeta),
+        reason: 'la capa de la tarjeta de movimientos no es la de la tarjeta: '
+            'quedó una capa más arriba',
+      );
     },
   );
 }
