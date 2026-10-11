@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-11 · **Alcance:** el "lag" que siguen reportando los testers en dispositivo
 real, en los dos momentos marcados: la transición al abrir un puzzle y el deslizamiento de
-fichas · **Estado:** dos arreglos estructurales aplicados; **falta la validación en dispositivo**
+fichas · **Estado:** tres arreglos estructurales aplicados; **falta la validación en dispositivo**
 (ver §5). Complementa a `AUDITORIA_RENDIMIENTO_GAMEPLAY.md`, que cubrió el ciclo anterior.
 
 Entorno medido: **Flutter 3.44.2** (rev `c9a6c48423`), Dart 3.12.2, **Impeller** (default de
@@ -124,19 +124,23 @@ O sea: el `LayoutBuilder` **es** el boundary de relayout y se re-layoutea en cad
 relayout en sí es barato; lo que costaba era que su `markNeedsPaint()` se llevara puesto a todo el
 contenido del scroll.
 
-### 3.1. Un costo que queda (no lo toca este arreglo)
+### 3.1. El segundo escape: la tarjeta de movimientos (sellada en el mismo ciclo)
 
-En el **frame de la jugada** (el instante del toque, no los 10 frames siguientes) el viewport se
-sigue repintando una vez, y la causa es otra: la tarjeta de **movimientos** del HUD no tiene
-`RepaintBoundary` propio, mientras que la del **cronómetro** sí (`game_screen.dart`). Cambiar
-`_movimientos` repinta esa tarjeta, y al no tener capa propia la invalidación llega al viewport.
+Cerrada la fuga del `LayoutBuilder`, quedaba un escape propio, de otra causa y de otra magnitud: en
+el **frame de la jugada** (el instante del toque, no los 10 frames siguientes) el viewport se seguía
+repintando una vez. La causa: la tarjeta de **movimientos** del HUD no tenía `RepaintBoundary` propio,
+mientras que la del **cronómetro** sí (`game_screen.dart`). Acotar el *rebuild* a su
+`ValueListenableBuilder` no alcanzaba: publicar en `_movimientos` rehace su `Text`, y sin capa propia
+esa invalidación sube hasta el viewport. En el Diario pasaba lo mismo con la tarjeta de **piezas**,
+que escucha a `_tablero` y por lo tanto cambia en cada jugada.
 
-```
-frame de la jugada:  [_RenderSingleChildViewport×1  RenderRepaintBoundary×1]
-```
+| frame de la jugada (5×5) | capas repintadas |
+|---|---|
+| antes | `_RenderSingleChildViewport`×1 + `RenderRepaintBoundary`×1 |
+| **después** | `RenderRepaintBoundary`×2 (el tablero + la tarjeta) |
 
-Es **un** frame por jugada, no el churn sostenido de los 160 ms. Queda como candidato trivial
-(espejar el boundary del cronómetro), fuera del alcance de este cambio.
+Era **un** frame por jugada, no el churn sostenido de los 160 ms, pero es el frame en el que el
+usuario toca la ficha.
 
 ---
 
@@ -167,15 +171,27 @@ probar es `ZoomPageTransitionsBuilder(allowEnterRouteSnapshotting: false)`.
 Efecto lateral deliberado: en Android U o superior se pierde el gesto de *predictive back* del
 default.
 
+**F3 — El HUD queda sellado** (`lib/screens/game_screen.dart`)
+
+`RepaintBoundary` alrededor del `ValueListenableBuilder` de la tarjeta de movimientos (dentro de
+`_tarjetaMovimientos`, así que cubre los dos modos que la comparten) y alrededor del de la tarjeta de
+piezas del Diario. Es el mismo tratamiento que ya tenía el cronómetro. Cierra el escape de §3.1.
+
 **Guardas** (`test/widget/game_screen_repaint_test.dart`)
 
-Tercer invariante: **la primera capa de repintado hacia arriba desde el `LayoutBuilder` tiene que
-ser un `RenderRepaintBoundary`**, y tiene que ser *la misma* capa que la del `Stack` — así el
-relayout y el pintado del tablero no pueden separarse en dos capas y arrastrar a la pantalla.
+Dos invariantes nuevos:
+
+- **La primera capa de repintado hacia arriba desde el `LayoutBuilder` tiene que ser un
+  `RenderRepaintBoundary`**, y tiene que ser *la misma* capa que la del `Stack` — así el relayout y
+  el pintado del tablero no pueden separarse en dos capas y arrastrar a la pantalla.
+- **La tarjeta de movimientos tiene que tener capa propia** (se la busca por el ícono del joystick,
+  no por el rótulo, que depende del idioma).
+
 Además del test, se extrajo `_capaDeRepintado(RenderObject)` para no repetir el ascenso a mano.
 
-Sensibilidad verificada rompiéndola a mano (con el boundary adentro, el guardián nuevo falla y el
-viejo pasa). `flutter analyze` sin issues y `flutter test` con **212/212** en verde.
+Las dos se verificaron rompiéndolas a mano: sin el arreglo, cada una falla con
+`Actual: _RenderSingleChildViewport`. La guarda vieja del ciclo anterior, en cambio, pasaba con el
+bug presente. `flutter analyze` sin issues y `flutter test` con **213/213** en verde.
 
 ---
 
@@ -194,8 +210,6 @@ viejo pasa). `flutter analyze` sin issues y `flutter test` con **212/212** en ve
   - **Zoom vs FadeForwards:** comparar el mismo push con y sin el `pageTransitionsTheme`. Si el
     primer frame con Zoom resulta un congelamiento perceptible, aplicar el ajuste de
     `allowEnterRouteSnapshotting`.
-- **F3 — La tarjeta de movimientos sin capa propia** (§3.1). Un frame por jugada. Espejar el
-  `RepaintBoundary` que ya tiene el cronómetro.
 - **F4 — `AnimatedContainer` por celda.** 49 `StatefulElement` + 49 `AnimationController` para
   animar un borde de 2 px, y **3-5 de ellos animan en cada jugada** (el anillo de "movible" cambia
   en las fichas vecinas al hueco). Medido: 8-12 rebuilds por frame de deslizamiento, de los cuales
