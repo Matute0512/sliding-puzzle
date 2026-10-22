@@ -389,6 +389,8 @@ class AppTheme {
   /// querer, así que se diffea contra `const PageTransitionsTheme().builders`.
   static Map<TargetPlatform, PageTransitionsBuilder> get _transiciones => {
     ...const PageTransitionsTheme().builders,
-    TargetPlatform.android: const ZoomPageTransitionsBuilder(),
+    TargetPlatform.android: const ZoomPageTransitionsBuilder(
+      allowEnterRouteSnapshotting: false,
+    ),
   };
 }

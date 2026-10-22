@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -50,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
   /// mientras el jugador no haya completado ninguna partida libre.
   MejorPartida? _mejorPartida;
 
+  bool _assetsPrecargados = false;
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +80,36 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verificarCalificacion();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_assetsPrecargados) return;
+    _assetsPrecargados = true;
+    // Precarga los sprites del tablero y la foto de respaldo en `ImageCache`
+    // mientras el jugador está en el menú: así el primer frame de `GameScreen`
+    // (y el snapshot sincrónico de la transición Zoom) no encuentran imágenes
+    // pendientes de decodificar ni repintan las fichas un frame después.
+    for (final slice in const [
+      KenneySlices.flatSquare,
+      KenneySlices.primarySquareSeed,
+      KenneySlices.primarySquare,
+      KenneySlices.primaryButton,
+      KenneySlices.flatPanel,
+      KenneySlices.outlineButton,
+    ]) {
+      unawaited(
+        precacheImage(AssetImage(slice.asset), context, onError: (_, _) {}),
+      );
+    }
+    unawaited(
+      precacheImage(
+        DailyChallengeService.imagenRespaldo,
+        context,
+        onError: (_, _) {},
+      ),
+    );
   }
 
   /// Relee si el Desafío Diario de hoy ya fue completado.

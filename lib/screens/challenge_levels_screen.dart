@@ -37,6 +37,12 @@ class ChallengeLevelsScreen extends StatefulWidget {
   State<ChallengeLevelsScreen> createState() => _ChallengeLevelsScreenState();
 }
 
+/// Color pre-atenuado para las celdas bloqueadas (`AppTheme.levelTile` al 55 %
+/// sobre el fondo navy). Evita envolver cada una de las 19 celdas bloqueadas en
+/// un widget `Opacity`, que bajo Impeller fuerza un `saveLayer` (buffer
+/// offscreen en GPU) por celda en cada frame de la transición y del scroll.
+const Color _tinteNivelBloqueado = Color(0xFF7C8396);
+
 class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
   static const int _cantidadNiveles = 20;
 
@@ -47,7 +53,25 @@ class _ChallengeLevelsScreenState extends State<ChallengeLevelsScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarProgreso();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cargarProgresoAlTerminarTransicion();
+    });
+  }
+
+  void _cargarProgresoAlTerminarTransicion() {
+    if (!mounted) return;
+    final anim = ModalRoute.of(context)?.animation;
+    if (anim == null || anim.isCompleted) {
+      _cargarProgreso();
+      return;
+    }
+    void listener(AnimationStatus status) {
+      if (status != AnimationStatus.completed) return;
+      anim.removeStatusListener(listener);
+      if (mounted) _cargarProgreso();
+    }
+
+    anim.addStatusListener(listener);
   }
 
   Future<void> _cargarProgreso() async {
@@ -475,8 +499,7 @@ class _CeldaNivel extends StatelessWidget {
       //
       // El `Material` transparente por dentro del sprite es para que la tinta
       // del `InkWell` se pinte encima del fondo en vez de taparlo.
-      child: Opacity(
-        opacity: bloqueado ? 0.55 : 1,
+      child: RepaintBoundary(
         child: DecoratedBox(
           // El halo va en un `DecoratedBox` por fuera del sprite porque
           // `KenneySurface` no proyecta sombra, y el resplandor cian es la única
@@ -487,15 +510,19 @@ class _CeldaNivel extends StatelessWidget {
                 ? const [
                     BoxShadow(
                       color: AppTheme.levelTileGlow,
-                      blurRadius: 16,
-                      offset: Offset(0, 5),
+                      blurRadius: 0,
+                      offset: Offset(0, 4),
                     ),
                   ]
                 : null,
           ),
           child: KenneySurface(
             slice: KenneySlices.flatSquare,
-            tint: esActual ? AppTheme.levelTileCurrent : AppTheme.levelTile,
+            tint: bloqueado
+                ? _tinteNivelBloqueado
+                : esActual
+                ? AppTheme.levelTileCurrent
+                : AppTheme.levelTile,
             child: Material(
               color: Colors.transparent,
               child: InkWell(

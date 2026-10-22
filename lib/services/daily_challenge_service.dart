@@ -183,9 +183,17 @@ class DailyChallengeService {
       final url = await FirebaseStorage.instance
           .ref(rutaImagen(semilla))
           .getDownloadURL();
-      return CachedNetworkImageProvider(
-        url,
-        cacheKey: claveCacheImagen(semilla, url),
+      // Se decodifica a un máximo de 1024 px de lado (~340 dp a DPR 3) para no
+      // subir a GPU una textura a resolución nativa de cámara. `ResizeImage`
+      // compone su clave sobre la del `CachedNetworkImageProvider`, así que
+      // `claveCacheImagen(semilla, url)` sigue gobernando el caché.
+      return ResizeImage(
+        CachedNetworkImageProvider(
+          url,
+          cacheKey: claveCacheImagen(semilla, url),
+        ),
+        width: 1024,
+        policy: ResizeImagePolicy.fit,
       );
     } catch (e) {
       debugPrint(

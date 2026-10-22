@@ -4,7 +4,7 @@ Un juego moderno de puzzle deslizante desarrollado con Flutter y Dart. Disponibl
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.44.2-02569B?style=flat&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat&logo=dart)
-![Version](https://img.shields.io/badge/versión-3.0.3-success)
+![Version](https://img.shields.io/badge/versión-3.0.4-success)
 ![License](https://img.shields.io/badge/licencia-MIT-blue)
 [![CI](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml/badge.svg)](https://github.com/Matute0512/sliding-puzzle/actions/workflows/ci.yml)
 
@@ -49,15 +49,15 @@ El rediseño además sacó los `AppBar`. Como consecuencia, cada pantalla es res
 
 ### Blindaje de rendimiento
 
-El rediseño se auditó antes de publicarse y se corrigieron sus dos puntos calientes de pintado. En `lib/` **no había ni un solo `RepaintBoundary`**, así que cualquier invalidación de pintado subía hasta la primera capa que encontrara. La auditoría de rendimiento del 2026-10-09 (`AUDITORIA_RENDIMIENTO_GAMEPLAY.md`) encontró que esa capa no era la de la ruta —como se asumió entonces— sino la del `SingleChildScrollView` que envuelve al tablero, y agregó la que faltaba.
+El rediseño se auditó y optimizó en tres ciclos documentados en [`AUDITORIA_RENDIMIENTO.md`](AUDITORIA_RENDIMIENTO.md), combinando aislamiento del árbol en el hilo UI con reducción del costo de rasterización en GPU bajo **Impeller** (que no posee el *raster cache* de capas de Skia):
 
-- **Fichas del tablero** — cada ficha va en su propio `RepaintBoundary`, y los n² sockets —que no cambian nunca— comparten **una sola** capa. Al deslizarse una ficha el `Stack` se relayouta y se repinta, pero las demás se recomponen desde su capa cacheada en vez de volver a dibujar el sprite 9-slice con borde y sombras en cada frame de la animación.
-- **Tablero completo** — el `Stack` del tablero va además dentro de su propia capa. Los boundaries de las fichas son *hijos* del nodo que anima, no ancestros, así que no podían frenar la propagación hacia arriba: sin esta capa, cada frame de los 160 ms del deslizamiento volvía a registrar y a rasterizar todo el contenido del scroll —el HUD, la consigna, el pozo con su halo y la botonera—. Con ella la propagación se corta en el borde del tablero; el pozo y su halo quedan afuera a propósito, así que tampoco se re-rasterizan.
-- **Cronómetro** — la tarjeta del tiempo lleva su propio `RepaintBoundary`. El rebuild ya estaba acotado a esa card; lo que **no** lo estaba era el pintado, así que el tick de 1 Hz repintaba header, HUD y tablero una vez por segundo.
-- **HUD y estado de la partida** — el tablero y el contador de movimientos se publican por `ValueNotifier` (mismo patrón que el cronómetro), con sus consumidores en `ValueListenableBuilder`. Antes cada jugada llamaba `setState` y reconstruía el `Scaffold` entero —alrededor de 1000 elementos en un 5×5, header y botonera incluidos—; ahora sólo se reconstruyen el tablero y la tarjeta que muestra el contador.
-- **Fondo** — los `CustomPainter` de la grilla y los glows devuelven `false` en `shouldRepaint`: son estáticos y su única entrada real es el tamaño, que ya fuerza repintado por layout. Además viven fuera de la capa de la ruta, así que ninguna invalidación de la partida los alcanza.
+- **Fichas y sockets del tablero** — cada ficha usa `DecoratedBox` estático (sin `AnimatedContainer`), un sprite pre-tintado offline (`primarySquareSeed`, generado con `tool/tint_sprite.py`) para evitar `ColorFilter` en GPU, y reemplaza los blurs gaussianos por la sombra dura 3D (`blurRadius: 0`), eliminando 50 blurs y 24 filtros de color por frame. Los $n^2$ sockets estáticos se hornean una sola vez en una única textura GPU (`_CapaSockets` → `ui.Image`) y `PuzzleBoard` memoiza las instancias de `PuzzleTile` por `(numero, activa)`, reduciendo el rebuild por jugada a sólo las 3-5 fichas cuyo estado cambia. En el Desafío Diario, `ImageTile` hornea cada porción redondeada en una textura `ui.Image` del tamaño de la celda (0 clips de stencil y 0 overdraw por frame).
+- **Tablero completo** — el `Stack` del tablero va además dentro de su propia capa, ubicada **por fuera** del `LayoutBuilder`. Los boundaries de las fichas son *hijos* del nodo que anima, no ancestros, así que no podían frenar la propagación hacia arriba: sin esta capa, cada frame de los 160 ms del deslizamiento volvía a registrar y a rasterizar todo el contenido del scroll —el HUD, la consigna, el pozo con su halo y la botonera—. Con ella la propagación se corta en el borde del tablero; el pozo y su halo quedan afuera a propósito, así que tampoco se re-rasterizan.
+- **Cronómetro y HUD** — las tarjetas de tiempo, movimientos, piezas y récord llevan su propio `RepaintBoundary` y su propio `ValueListenableBuilder`. Publicar el tablero, el contador o el récord leído de disco nunca dispara `setState` en `GameScreen` (ni siquiera durante la transición de entrada).
+- **Transición y precarga** — `HomeScreen` precarga los sprites del tablero y la foto de respaldo en `ImageCache`, y la vista previa del Desafío Diario espera a que termine la animación de la ruta antes de abrir su diálogo.
+- **Fondo** — la grilla y los glows están unificados en un único `CustomPainter` (`_FondoArcade`) con `RepaintBoundary` propio y `shouldRepaint => false`: son estáticos y viven fuera de la capa de la ruta, así que ninguna invalidación de la partida los alcanza.
 
-`RenderRepaintBoundary` es un `RenderProxyBox` sin lógica de clip, así que el desborde de las sombras de las fichas sigue visible. Hay un test que le exige `Clip.none` a todos los `Stack` del tablero para que siga siendo así, y dos guardas más que verifican que la capa del tablero siga en su lugar y que una jugada no reconstruya el header (`test/widget/game_screen_repaint_test.dart`).
+`RenderRepaintBoundary` es un `RenderProxyBox` sin lógica de clip, así que el desborde de las sombras de las fichas sigue visible. `test/widget/game_screen_repaint_test.dart` vigila la jerarquía de capas, la ausencia de blurs/filtros de color en las celdas y la reutilización de instancias de `PuzzleTile` en cada jugada.
 
 ---
 

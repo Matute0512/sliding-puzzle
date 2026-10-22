@@ -97,7 +97,14 @@ class _GameScreenState extends State<GameScreen> {
   ///
   /// `null` mientras carga, o si nunca completó este tablero —ahí la card queda
   /// en `--:--`, igual que la del menú—. Solo se usa en partida libre.
-  MejorPartida? _record;
+  ///
+  /// Va en un `ValueNotifier` —y no en un campo que dispare `setState`— porque
+  /// `_cargarRecord` resuelve pocos milisegundos después de `initState`, en
+  /// plena transición de entrada de la ruta: un `setState` ahí reconstruía la
+  /// pantalla entera (~1000 elementos en 5×5) a mitad del push.
+  final ValueNotifier<MejorPartida?> _record = ValueNotifier<MejorPartida?>(
+    null,
+  );
   // El tiempo se aísla en un ValueNotifier: cada segundo solo se re-construye
   // la tarjeta del HUD, no todo el tablero.
   final ValueNotifier<int> _segundos = ValueNotifier<int>(0);
@@ -231,7 +238,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _cargarRecord() async {
     final record = await BestRunService.obtenerPorTablero(widget.size);
     if (!mounted) return;
-    setState(() => _record = record);
+    _record.value = record;
   }
 
   void _abrirAjustes() {
@@ -343,14 +350,19 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 )
-              : HudCard(
-                  icono: Icons.emoji_events_rounded,
-                  label: l10n.record.toUpperCase(),
-                  // La marca va en `mm:ss` como la del menú; el cronómetro de
-                  // al lado sigue con `secondsShort` ("37s"). Ver `duracionMmSs`.
-                  valor: _record == null
-                      ? '--:--'
-                      : duracionMmSs(_record!.tiempoSegundos),
+              : RepaintBoundary(
+                  child: ValueListenableBuilder<MejorPartida?>(
+                    valueListenable: _record,
+                    builder: (context, record, _) => HudCard(
+                      icono: Icons.emoji_events_rounded,
+                      label: l10n.record.toUpperCase(),
+                      // La marca va en `mm:ss` como la del menú; el cronómetro de
+                      // al lado sigue con `secondsShort` ("37s"). Ver `duracionMmSs`.
+                      valor: record == null
+                          ? '--:--'
+                          : duracionMmSs(record.tiempoSegundos),
+                    ),
+                  ),
                 ),
         ),
       ],
@@ -411,12 +423,13 @@ class _GameScreenState extends State<GameScreen> {
       // justo al entrar.
       _imagenDiaria.value = DailyChallengeService.imagenRespaldo;
       unawaited(_cargarImagenDiaria());
-      // La vista previa sale apenas hay un frame que mostrar. Esperar a la
-      // descarga para abrirla dejaría al jugador mirando un tablero desarmado
-      // sin saber qué foto tiene que armar, que es justo lo que viene a
-      // resolver.
+      // La vista previa espera a que termine la transición de entrada de la
+      // ruta para no superponer la animación del diálogo (barrera + fade/scale)
+      // con el snapshot/push de navegación. Si no hay transición en curso (por
+      // ejemplo en tests que montan `GameScreen` directo), se abre en el primer
+      // frame.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_mostrarPreviewDiario());
+        _mostrarPreviewAlTerminarTransicion();
       });
     }
     _objetivo = _esDesafio
@@ -453,6 +466,7 @@ class _GameScreenState extends State<GameScreen> {
     _confettiController.dispose();
     _lifecycleListener.dispose();
     _segundos.dispose();
+    _record.dispose();
     _avisoTop.dispose();
     _imagenDiaria.dispose();
     _tablero.dispose();
@@ -527,6 +541,24 @@ class _GameScreenState extends State<GameScreen> {
     } finally {
       _previewDiarioAbierta = false;
     }
+  }
+
+  /// Abre la vista previa del Diario apenas termina la animación de entrada de
+  /// la ruta, o de inmediato si la ruta ya está asentada.
+  void _mostrarPreviewAlTerminarTransicion() {
+    if (!mounted) return;
+    final anim = ModalRoute.of(context)?.animation;
+    if (anim == null || anim.isCompleted) {
+      unawaited(_mostrarPreviewDiario());
+      return;
+    }
+    void listener(AnimationStatus status) {
+      if (status != AnimationStatus.completed) return;
+      anim.removeStatusListener(listener);
+      if (mounted) unawaited(_mostrarPreviewDiario());
+    }
+
+    anim.addStatusListener(listener);
   }
 
   /// Sale al menú principal limpiando la pila de navegación.
@@ -1306,8 +1338,8 @@ class _GameScreenState extends State<GameScreen> {
                                     boxShadow: const [
                                       BoxShadow(
                                         color: AppTheme.boardGlow,
-                                        blurRadius: 13,
-                                        offset: Offset(0, 16),
+                                        blurRadius: 0,
+                                        offset: Offset(0, 6),
                                       ),
                                     ],
                                   ),

@@ -7,6 +7,7 @@ import 'package:sliding_puzzle/screens/game_screen.dart';
 import 'package:sliding_puzzle/widgets/game_header.dart';
 import 'package:sliding_puzzle/widgets/hud_card.dart';
 import 'package:sliding_puzzle/widgets/puzzle_board.dart';
+import 'package:sliding_puzzle/widgets/puzzle_tile.dart';
 
 import '../helpers/localized_app.dart';
 import '../helpers/puzzle_solver.dart';
@@ -208,6 +209,100 @@ void main() {
         reason: 'la capa de la tarjeta de movimientos no es la de la tarjeta: '
             'quedó una capa más arriba',
       );
+    },
+  );
+
+  testWidgets(
+    'las celdas del tablero no usan blurs gaussianos ni filtros de color en GPU',
+    (tester) async {
+      await tester.pumpWidget(appLocalizada(home: const GameScreen(size: 5)));
+      await tester.pump();
+
+      // Bajo Impeller no hay caché de rasterizado de capas: las display lists
+      // retenidas por los `RepaintBoundary` de las fichas se vuelven a ejecutar
+      // en la GPU en cada frame del deslizamiento. Un `BoxShadow` con
+      // `blurRadius > 0` o un `ColorFilter` en las 49 celdas del 5×5 multiplica
+      // el tiempo del hilo Raster por n².
+      final decorados = tester.widgetList<DecoratedBox>(
+        find.descendant(
+          of: find.byType(PuzzleBoard),
+          matching: find.byType(DecoratedBox),
+        ),
+      );
+      expect(decorados, isNotEmpty);
+
+      for (final caja in decorados) {
+        final deco = caja.decoration;
+        if (deco is! BoxDecoration) continue;
+
+        for (final sombra in deco.boxShadow ?? const <BoxShadow>[]) {
+          expect(
+            sombra.blurRadius,
+            0,
+            reason: 'una celda del tablero volvió a introducir un BoxShadow '
+                'difuminado (blurRadius=${sombra.blurRadius}): bajo Impeller '
+                'se rasteriza en cada frame del deslizamiento',
+          );
+        }
+
+        expect(
+          deco.image?.colorFilter,
+          isNull,
+          reason: 'una celda del tablero volvió a aplicar ColorFilter en GPU '
+              'en vez de usar el sprite pre-tintado (primarySquareSeed)',
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    'mover una ficha reutiliza las instancias de PuzzleTile que no cambian',
+    (tester) async {
+      await tester.pumpWidget(appLocalizada(home: const GameScreen(size: 5)));
+      await tester.pumpAndSettle();
+
+      final fichasAntes = {
+        for (final tile in tester.widgetList<PuzzleTile>(
+          find.descendant(
+            of: find.byType(PuzzleBoard),
+            matching: find.byType(PuzzleTile),
+          ),
+        ))
+          if (!tile.esSocket) tile.numero: tile,
+      };
+      expect(fichasAntes.length, 24);
+
+      final tableroAntes = leerTablero(tester, 5);
+      final movible = PuzzleLogic.movibles(tableroAntes, 5).first;
+      await tester.tap(
+        find.byKey(ValueKey(tableroAntes[movible])),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+
+      var reutilizadas = 0;
+      for (final tile in tester.widgetList<PuzzleTile>(
+        find.descendant(
+          of: find.byType(PuzzleBoard),
+          matching: find.byType(PuzzleTile),
+        ),
+      )) {
+        if (tile.esSocket) continue;
+        if (identical(tile, fichasAntes[tile.numero])) {
+          reutilizadas++;
+        }
+      }
+
+      // En 5×5 a lo sumo 4 fichas eran movibles antes y 4 después: al menos 16
+      // fichas no cambiaron su estado `activa` y deben reutilizar la misma
+      // instancia de `Widget` para cortar el rebuild de su subárbol.
+      expect(
+        reutilizadas,
+        greaterThanOrEqualTo(16),
+        reason: 'PuzzleBoard volvió a recrear todas las fichas en cada jugada',
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
     },
   );
 }

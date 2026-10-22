@@ -50,9 +50,10 @@ class ArcadePanel extends StatelessWidget {
   }
 }
 
-/// La sombra del frame: `0 16 34 rgba(0,0,0,0.44)`. El negro al 44% es `0x70`.
+/// Sombra dura estilo arcade (sin blur gaussiano): evita pagar un blur de
+/// radio 34 sobre paneles grandes durante las transiciones de ruta en Impeller.
 const BoxShadow _sombra = BoxShadow(
   color: Color(0x70000000),
-  blurRadius: 34,
-  offset: Offset(0, 16),
+  blurRadius: 0,
+  offset: Offset(0, 6),
 );
