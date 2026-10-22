@@ -17,6 +17,7 @@ const Map<String, KenneySlice> _slices = {
   'insetWell': KenneySlices.insetWell,
   'insetWellOutline': KenneySlices.insetWellOutline,
   'primarySquare': KenneySlices.primarySquare,
+  'primarySquareSeed': KenneySlices.primarySquareSeed,
   'flatSquare': KenneySlices.flatSquare,
   'outlineSquare': KenneySlices.outlineSquare,
 };

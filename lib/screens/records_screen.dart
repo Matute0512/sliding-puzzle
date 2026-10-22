@@ -29,7 +29,30 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarTops();
+    // Espera a que termine la animación de entrada de la ruta antes de disparar
+    // las 3 consultas a Firestore en paralelo: así el tráfico de plataforma y
+    // el `setState` con las 3 tablas no caen en medio de los frames del push.
+    // En tests que montan `RecordsScreen` directo (`anim.isCompleted`), corre
+    // en el primer frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cargarTopsAlTerminarTransicion();
+    });
+  }
+
+  void _cargarTopsAlTerminarTransicion() {
+    if (!mounted) return;
+    final anim = ModalRoute.of(context)?.animation;
+    if (anim == null || anim.isCompleted) {
+      _cargarTops();
+      return;
+    }
+    void listener(AnimationStatus status) {
+      if (status != AnimationStatus.completed) return;
+      anim.removeStatusListener(listener);
+      if (mounted) _cargarTops();
+    }
+
+    anim.addStatusListener(listener);
   }
 
   Future<void> _cargarTops() async {

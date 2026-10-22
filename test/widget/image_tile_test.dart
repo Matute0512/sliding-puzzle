@@ -56,30 +56,79 @@ void main() {
       // 3x3 -> columnas 0, 1/2, 1
       expect(ImageTile.alineacionDe(2, 3), const FractionalOffset(1 / 2, 0));
       expect(ImageTile.alineacionDe(4, 3), const FractionalOffset(0, 1 / 2));
-      expect(ImageTile.alineacionDe(5, 3), const FractionalOffset(1 / 2, 1 / 2));
+      expect(
+        ImageTile.alineacionDe(5, 3),
+        const FractionalOffset(1 / 2, 1 / 2),
+      );
       // 4x4 -> columnas 0, 1/3, 2/3, 1
       expect(ImageTile.alineacionDe(2, 4), const FractionalOffset(1 / 3, 0));
       expect(ImageTile.alineacionDe(3, 4), const FractionalOffset(2 / 3, 0));
-      expect(ImageTile.alineacionDe(6, 4), const FractionalOffset(1 / 3, 1 / 3));
+      expect(
+        ImageTile.alineacionDe(6, 4),
+        const FractionalOffset(1 / 3, 1 / 3),
+      );
     });
 
-    test('la alineación depende solo del número, no de dónde esté la ficha',
-        () {
-      // Es la propiedad que hace que el puzzle funcione: la pieza lleva su
-      // recorte consigo. Si esto cambiara, la imagen se armaría mal.
-      for (final n in [3, 4, 5]) {
-        for (var k = 1; k < n * n; k++) {
-          final a = ImageTile.alineacionDe(k, n);
-          expect(a.dx, inInclusiveRange(0, 1), reason: 'dx fuera de rango (k=$k, n=$n)');
-          expect(a.dy, inInclusiveRange(0, 1), reason: 'dy fuera de rango (k=$k, n=$n)');
+    test(
+      'la alineación depende solo del número, no de dónde esté la ficha',
+      () {
+        for (final n in [3, 4, 5]) {
+          for (var k = 1; k < n * n; k++) {
+            final a = ImageTile.alineacionDe(k, n);
+            expect(
+              a.dx,
+              inInclusiveRange(0, 1),
+              reason: 'dx fuera de rango (k=$k, n=$n)',
+            );
+            expect(
+              a.dy,
+              inInclusiveRange(0, 1),
+              reason: 'dy fuera de rango (k=$k, n=$n)',
+            );
+          }
         }
-      }
+      },
+    );
+  });
+
+  group('recorteDe', () {
+    test('divide una imagen cuadrada en n×n porciones exactas', () {
+      const tamano = Size(300, 300);
+      expect(
+        ImageTile.recorteDe(1, 3, tamano),
+        const Rect.fromLTWH(0, 0, 100, 100),
+      );
+      expect(
+        ImageTile.recorteDe(2, 3, tamano),
+        const Rect.fromLTWH(100, 0, 100, 100),
+      );
+      expect(
+        ImageTile.recorteDe(5, 3, tamano),
+        const Rect.fromLTWH(100, 100, 100, 100),
+      );
+      expect(
+        ImageTile.recorteDe(9, 3, tamano),
+        const Rect.fromLTWH(200, 200, 100, 100),
+      );
+    });
+
+    test('centra el recorte cuadrado (BoxFit.cover) si la imagen no es 1:1', () {
+      // 400x300 -> cuadrado central de 300x300 desplazado 50 px en X.
+      const apaisada = Size(400, 300);
+      expect(
+        ImageTile.recorteDe(1, 3, apaisada),
+        const Rect.fromLTWH(50, 0, 100, 100),
+      );
+      expect(
+        ImageTile.recorteDe(9, 3, apaisada),
+        const Rect.fromLTWH(250, 200, 100, 100),
+      );
     });
   });
 
   group('respaldo', () {
     /// Bytes que no son una imagen válida: la decodificación falla y dispara el
-    /// `errorBuilder`, que es el camino que se quiere probar.
+    /// fallback a `respaldo`.
     final rota = MemoryImage(base64Decode('aW52YWxpZG8='));
 
     Widget montarConRespaldo(ImageProvider? respaldo) => appLocalizada(
@@ -99,20 +148,18 @@ void main() {
           ),
         );
 
-    testWidgets('si la foto del día no carga, aparece la de respaldo', (
+    testWidgets('si la foto del día no carga, cae a la de respaldo', (
       tester,
     ) async {
       await tester.pumpWidget(montarConRespaldo(_imagenPrueba));
-      // Unos cuantos frames para que la decodificación falle y el
-      // `errorBuilder` reconstruya.
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
 
-      final imagenes = tester.widgetList<Image>(find.byType(Image));
+      final state = tester.state<ImageTileState>(find.byType(ImageTile));
       expect(
-        imagenes.any((i) => i.image == _imagenPrueba),
-        isTrue,
+        state.proveedorActivo,
+        same(_imagenPrueba),
         reason:
             'sin red o sin foto subida el tablero tiene que caer a la foto '
             'empaquetada, no quedar en blanco',
@@ -120,15 +167,9 @@ void main() {
     });
 
     testWidgets('sin respaldo, la ficha no rompe', (tester) async {
-      // El fallo se reporta como error de imagen; sin `respaldo` no hay
-      // `errorBuilder` y Flutter lo propaga. Que el test lo capture es la
-      // prueba de que efectivamente se intentó cargar y falló, en vez de que
-      // la aserción pasara por no haber pasado nada.
       await tester.pumpWidget(montarConRespaldo(null));
       final error = tester.takeException();
 
-      // Puede o no haber llegado a fallar en este frame; lo que importa es que
-      // el widget se construyó y no dejó el árbol roto.
       expect(error, anyOf(isNull, isA<Exception>(), isA<Error>()));
       expect(find.byType(ImageTile), findsOneWidget);
     });
@@ -150,16 +191,20 @@ void main() {
         ),
       );
 
-      expect(find.byType(Image), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ImageTile),
+          matching: find.byType(CustomPaint),
+        ),
+        findsNothing,
+      );
     });
   });
 
   group('PuzzleBoard con imagen', () {
     testWidgets(
-      'cada ficha recibe la alineación de SU número, no la de su posición',
+      'cada ficha recibe el recorte de SU número, no el de su posición',
       (tester) async {
-        // Tablero desordenado a propósito: si el widget usara la posición
-        // actual en vez del número, las alineaciones no coincidirían.
         const n = 3;
         const tablero = [4, 1, 0, 2, 8, 5, 3, 6, 7];
 
@@ -189,80 +234,53 @@ void main() {
           );
           expect(ficha, findsOneWidget, reason: 'falta la ficha $k');
 
-          final caja = tester.widget<OverflowBox>(
-            find.descendant(of: ficha, matching: find.byType(OverflowBox)),
+          final tileImagen = tester.widget<ImageTile>(
+            find.descendant(of: ficha, matching: find.byType(ImageTile)),
           );
           expect(
-            caja.alignment,
-            ImageTile.alineacionDe(k, n),
+            tileImagen.numero,
+            k,
             reason: 'la ficha $k muestra la porción equivocada',
           );
+          expect(tileImagen.size, n);
         }
       },
     );
 
     testWidgets(
-      'la imagen queda desplazada exactamente -col*lado y -fila*lado',
+      'el recorte de cada ficha corresponde exactamente a (col*lado, fila*lado)',
       (tester) async {
-        // Verificación geométrica de verdad: mide dónde terminó la imagen en
-        // pantalla. El test de arriba solo comprueba que el código coincide con
-        // la fórmula de `alineacionDe`; si esa fórmula estuviera mal, pasaría
-        // igual. Este mide el layout que Flutter realmente calculó.
         const n = 3;
-        const ladoTablero = 300.0;
-        const espaciado = 4.0;
-        const tablero = [4, 1, 0, 2, 8, 5, 3, 6, 7];
-
-        await tester.pumpWidget(
-          appLocalizada(
-            home: Scaffold(
-              body: Center(
-                child: SizedBox(
-                  width: ladoTablero,
-                  height: ladoTablero,
-                  child: PuzzleBoard(
-                    tablero: tablero,
-                    size: n,
-                    onTileTap: (_) {},
-                    imagen: _imagenPrueba,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        final ladoCelda = (ladoTablero - (n - 1) * espaciado) / n;
+        const ladoImagen = 300.0;
+        const ladoCelda = ladoImagen / n;
 
         for (var k = 1; k < n * n; k++) {
           final (:fila, :col) = ImageTile.posicionDe(k, n);
-          final ficha = find.byWidgetPredicate(
-            (w) => w is PuzzleTile && w.numero == k,
+          final rect = ImageTile.recorteDe(
+            k,
+            n,
+            const Size(ladoImagen, ladoImagen),
           );
 
-          final rectFicha = tester.getRect(ficha);
-          final rectImagen = tester.getRect(
-            find.descendant(of: ficha, matching: find.byType(Image)),
-          );
-
-          // La celda mide `ladoCelda`; la imagen entera mide n veces eso y está
-          // corrida hacia arriba/izquierda justo lo necesario para que la
-          // porción visible caiga sobre la celda (fila, col).
           expect(
-            rectImagen.width,
-            moreOrLessEquals(ladoCelda * n, epsilon: 0.01),
-            reason: 'la imagen debería medir n celdas (ficha $k)',
+            rect.width,
+            moreOrLessEquals(ladoCelda, epsilon: 0.01),
+            reason: 'ancho de recorte incorrecto en la ficha $k',
           );
           expect(
-            rectImagen.left,
-            moreOrLessEquals(rectFicha.left - col * ladoCelda, epsilon: 0.01),
-            reason: 'corrimiento horizontal incorrecto en la ficha $k',
+            rect.height,
+            moreOrLessEquals(ladoCelda, epsilon: 0.01),
+            reason: 'alto de recorte incorrecto en la ficha $k',
           );
           expect(
-            rectImagen.top,
-            moreOrLessEquals(rectFicha.top - fila * ladoCelda, epsilon: 0.01),
-            reason: 'corrimiento vertical incorrecto en la ficha $k',
+            rect.left,
+            moreOrLessEquals(col * ladoCelda, epsilon: 0.01),
+            reason: 'origen X de recorte incorrecto en la ficha $k',
+          );
+          expect(
+            rect.top,
+            moreOrLessEquals(fila * ladoCelda, epsilon: 0.01),
+            reason: 'origen Y de recorte incorrecto en la ficha $k',
           );
         }
       },
@@ -291,7 +309,7 @@ void main() {
       );
       await tester.pump();
 
-      // 8 fichas con imagen (el 0 no se dibuja como ficha) + 9 sockets.
+      // 8 fichas con imagen (el 0 no se dibuja como ficha).
       expect(find.byType(ImageTile), findsNWidgets(8));
     });
 

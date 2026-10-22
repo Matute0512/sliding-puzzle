@@ -80,19 +80,23 @@ void main() {
 
           // Extensión máxima de sombra hacia abajo entre todas las fichas
           // (offset.dy + blurRadius), tomada de la decoración real.
-          final tiles = tester.widgetList<AnimatedContainer>(
+          final tiles = tester.widgetList<DecoratedBox>(
             find.descendant(
               of: find.byType(PuzzleBoard),
-              matching: find.byType(AnimatedContainer),
+              matching: find.byType(DecoratedBox),
             ),
           );
           var maxShadow = 0.0;
           for (final tile in tiles) {
-            final sombras = (tile.decoration as BoxDecoration).boxShadow!;
+            final deco = tile.decoration;
+            if (deco is! BoxDecoration) continue;
+            final sombras = deco.boxShadow;
+            if (sombras == null) continue;
             for (final s in sombras) {
               maxShadow = math.max(maxShadow, s.offset.dy + s.blurRadius);
             }
           }
+          expect(maxShadow, greaterThan(0));
 
           // La sombra de la fila inferior debe quedar dentro del viewport
           // visible (no cortada por el SingleChildScrollView).

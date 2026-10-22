@@ -109,6 +109,18 @@ abstract final class KenneySlices {
     Rect.fromLTRB(8, 8, 56, 55),
   );
 
+  /// [primarySquare] ya multiplicado por [AppTheme.seedColor] (`#4361EE`).
+  ///
+  /// Lo usa el tablero, que dibuja hasta 24 fichas por frame: bajo Impeller no
+  /// hay caché de rasterizado de capas, así que tintar en GPU con
+  /// `ColorFilter.mode(seedColor, BlendMode.modulate)` algo que siempre da el
+  /// mismo resultado paga un filtro de color por ficha en cada frame del
+  /// deslizamiento. Ver `tool/tint_sprite.py`.
+  static const primarySquareSeed = KenneySlice(
+    '$_dir/button_square_depth_flat_seed.png',
+    Rect.fromLTRB(8, 8, 56, 55),
+  );
+
   /// Cuadrado plano, sin bisel. Para celdas de tablero y casillas.
   static const flatSquare = KenneySlice(
     '$_dir/button_square_flat.png',
@@ -214,14 +226,17 @@ class GameBackground extends StatelessWidget {
         // de pantalla completa tal cual, sin que el Stack las relaje.
         fit: StackFit.passthrough,
         children: [
-          // Las tres capas decorativas van con `IgnorePointer`: son fondo, y
-          // sin esto se comerían los toques que sí tienen que llegar al
-          // contenido de arriba.
+          // Grilla modular y glows atmosféricos unificados en un solo
+          // `CustomPaint` (y `RepaintBoundary` propio) para grabar una única
+          // display list en lugar de dos capas de pantalla completa. Va con
+          // `IgnorePointer`: es fondo, y sin esto se comería los toques que sí
+          // tienen que llegar al contenido de arriba.
           const Positioned.fill(
-            child: IgnorePointer(child: CustomPaint(painter: _Grilla())),
-          ),
-          const Positioned.fill(
-            child: IgnorePointer(child: CustomPaint(painter: _Atmosfera())),
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                child: CustomPaint(painter: _FondoArcade()),
+              ),
+            ),
           ),
           const Positioned.fill(
             child: IgnorePointer(
@@ -248,13 +263,16 @@ class GameBackground extends StatelessWidget {
   }
 }
 
-/// La grilla modular del fondo, una línea cada [AppTheme.gridStep] píxeles.
+/// Grilla modular (una línea cada [AppTheme.gridStep] píxeles) y los dos glows
+/// atmosféricos del fondo ("atmosphere" en el frame), unificados en un solo
+/// [CustomPainter].
 ///
-/// Va con `CustomPaint` y no con una `Column`/`Row` de `Divider`s porque en una
-/// pantalla alta son ~40 líneas: como widgets sería un árbol de decenas de
-/// elementos para algo que es puro dibujo.
-class _Grilla extends CustomPainter {
-  const _Grilla();
+/// Va con `CustomPaint` y no con widgets porque en una pantalla alta la grilla
+/// son ~40 líneas y los glows son dos círculos `RadialGradient` que **sangran**
+/// por los bordes de la pantalla. Unificarlos en un único painter ahorra una
+/// capa y una display list de pantalla completa.
+class _FondoArcade extends CustomPainter {
+  const _FondoArcade();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -285,23 +303,7 @@ class _Grilla extends CustomPainter {
         i % 4 == 0 ? acento : normal,
       );
     }
-  }
 
-  @override
-  bool shouldRepaint(_Grilla oldDelegate) => false;
-}
-
-/// Los dos glows del fondo ("atmosphere" en el frame).
-///
-/// Se pintan como `RadialGradient` en un `CustomPainter` en vez de posicionar
-/// dos `Container` con `Align`/`FractionallySizedBox`: el glow es un círculo que
-/// **sangra** por los bordes de la pantalla, y expresarlo como layout obliga a
-/// pelear con `AspectRatio` contra constraints de pantalla completa.
-class _Atmosfera extends CustomPainter {
-  const _Atmosfera();
-
-  @override
-  void paint(Canvas canvas, Size size) {
     // Las posiciones y los tamaños salen del frame (400x844) llevados a
     // fracciones, para que escalen con cualquier pantalla en vez de quedar
     // clavados en píxeles de un mockup.
@@ -346,7 +348,7 @@ class _Atmosfera extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Atmosfera oldDelegate) => false;
+  bool shouldRepaint(_FondoArcade oldDelegate) => false;
 }
 
 /// Superficie 9-slice: pinta [slice] de fondo y encima coloca [child].

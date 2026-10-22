@@ -47,16 +47,12 @@ class PuzzleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esVacio = numero == 0;
-    final l10n = AppLocalizations.of(context)!;
     final conImagen = imagen != null && !esVacio;
 
-    // El borde vive en `foregroundDecoration`, no en `decoration`, a propósito.
-    // Un borde dentro de `decoration` le mete padding al hijo (`BoxDecoration`
-    // aporta `border.dimensions` como padding), y eso encoge el área de
-    // contenido: en modo imagen, la ficha movible mostraría su porción un 5%
-    // más chica que las demás —las piezas se encogerían justo al volverse
-    // movibles y se verían costuras—. En `foregroundDecoration` se pinta encima
-    // sin tocar el layout, así que todas las celdas miden lo mismo.
+    // El borde va en un `DecoratedBox` con `DecorationPosition.foreground` (se
+    // pinta encima del hijo sin encoger el área de contenido): en modo imagen
+    // el anillo blanco de "movible" apoya sobre los bordes de la foto sin
+    // achicar la porción ni abrir costuras entre piezas.
     final borde = esVacio
         // El hueco lleva un contorno claro, pero **por debajo** del blanco pleno
         // que marca las movibles: si el hueco también fuera blanco, la ayuda
@@ -73,82 +69,81 @@ class PuzzleTile extends StatelessWidget {
         : Border.all(color: AppTheme.tileBorder, width: 1);
     final radio = BorderRadius.circular(_radioFicha);
 
-    // El fondo de la ficha es un sprite 9-slice: la celda vacía usa el cuadrado
-    // plano (se lee como hueco) y la ocupada el cuadrado con bisel, tintado con
-    // el color de la app.
-    //
-    // Sin `borderRadius` en la decoración a propósito: el sprite ya trae sus
-    // esquinas redondeadas dibujadas, y recortarlo además con el radio de
-    // `_radioFicha` (12) le comería el borde, porque la esquina del sprite mide
-    // 8px lógicos y no escala con la celda. `_radioFicha` se sigue usando para
-    // el anillo de "movible" y para el recorte de `ImageTile`.
-    final fondo = (esVacio ? KenneySlices.flatSquare : KenneySlices.primarySquare)
-        .decoration(tint: esVacio ? null : AppTheme.seedColor);
+    // En modo numérico el fondo es un sprite 9-slice pre-tintado
+    // (`primarySquareSeed`). En modo imagen (`conImagen`), la foto cubre el
+    // 100 % de la cara de la ficha con el mismo radio (`_radioFicha`), así que
+    // no se dibuja el sprite 9-slice por detrás para ahorrar overdraw en GPU.
+    final decoracionFondo = esVacio
+        ? KenneySlices.flatSquare.decoration()
+        : conImagen
+        ? BoxDecoration(
+            borderRadius: radio,
+            boxShadow: const [
+              BoxShadow(
+                color: AppTheme.accentShadow,
+                offset: Offset(0, 4),
+                blurRadius: 0,
+              ),
+            ],
+          )
+        : KenneySlices.primarySquareSeed.decoration().copyWith(
+            boxShadow: const [
+              BoxShadow(
+                color: AppTheme.accentShadow,
+                offset: Offset(0, 4),
+                blurRadius: 0,
+              ),
+            ],
+          );
 
-    final contenido = AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      decoration: fondo.copyWith(
-        boxShadow: esVacio
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : [
-                const BoxShadow(
-                  color: AppTheme.accentShadow,
-                  offset: Offset(0, 4),
-                  blurRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      foregroundDecoration: BoxDecoration(border: borde, borderRadius: radio),
-      // La imagen va sin `Center` ni padding: ocupa la celda entera. El número,
-      // en cambio, se centra con un margen para que respire.
-      child: conImagen
-          ? ImageTile(
-              imagen: imagen!,
-              respaldo: imagenRespaldo,
-              numero: numero,
-              size: size,
-              borderRadius: radio,
-            )
-          : Center(
-              child: esVacio
-                  ? null
-                  : Padding(
-                      padding: const EdgeInsets.all(6),
-                      // FittedBox escala el número hacia abajo si la fuente del
-                      // sistema es muy grande, evitando desbordes en la celda.
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '$numero',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: size == 3
-                                ? 24
-                                : size == 4
-                                ? 19
-                                : 14,
-                            fontWeight: FontWeight.bold,
+    final contenido = DecoratedBox(
+      decoration: decoracionFondo,
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(border: borde, borderRadius: radio),
+        // La imagen va sin `Center` ni padding: ocupa la celda entera. El
+        // número, en cambio, se centra con un margen para que respire.
+        child: conImagen
+            ? ImageTile(
+                imagen: imagen!,
+                respaldo: imagenRespaldo,
+                numero: numero,
+                size: size,
+                borderRadius: radio,
+              )
+            : Center(
+                child: esVacio
+                    ? null
+                    : Padding(
+                        padding: const EdgeInsets.all(6),
+                        // FittedBox escala el número hacia abajo si la fuente
+                        // del sistema es muy grande, evitando desbordes en la
+                        // celda.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '$numero',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: size == 3
+                                  ? 24
+                                  : size == 4
+                                  ? 19
+                                  : 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-            ),
+              ),
+      ),
     );
 
     if (esSocket) {
       return ExcludeSemantics(child: contenido);
     }
+
+    final l10n = AppLocalizations.of(context)!;
 
     return Semantics(
       button: true,
