@@ -61,6 +61,41 @@ jobs:
       - name: flutter test
         run: flutter test
 
+      - name: Preparar google-services.json para Android lint
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          elif [ ! -f android/app/google-services.json ]; then
+            cat > android/app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "ci-placeholder",
+              "storage_bucket": "ci-placeholder.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "dev.matute.slidingpuzzle"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyKeyForCiLintValidation0000000"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Android lint
         working-directory: android
         # chmod como defensa: git desde Windows puede perder el bit de ejecución.
@@ -105,11 +140,13 @@ jobs:
           cache: true
 
       # Secrets a configurar en Settings > Secrets and variables > Actions:
-      #   ANDROID_KEYSTORE_BASE64  -> el .jks codificado en base64
-      #   KEY_STORE_PASSWORD       -> storePassword del keystore
-      #   KEY_ALIAS_PASSWORD       -> keyPassword del keystore
-      #   KEY_ALIAS                -> alias de la clave
-      # Si falta alguno, se genera un keystore temporal para validar el build
+      #   ANDROID_KEYSTORE_BASE64     -> el .jks codificado en base64
+      #   KEY_STORE_PASSWORD          -> storePassword del keystore
+      #   KEY_ALIAS_PASSWORD          -> keyPassword del keystore
+      #   KEY_ALIAS                   -> alias de la clave
+      #   DART_DEFINES_JSON_BASE64    -> dart_defines.json codificado en base64 (IDs de AdMob y Firebase)
+      #   GOOGLE_SERVICES_JSON_BASE64 -> android/app/google-services.json codificado en base64
+      # Si falta alguno de firma, se genera un keystore temporal para validar el build
       # (el AAB resultante NO sirve para producción).
       - name: Configurar firma
         env:
@@ -141,11 +178,52 @@ jobs:
             echo "FIRMA=ci-validation" >> "$GITHUB_ENV"
           fi
 
+      - name: Configurar credenciales secretas (AdMob + Firebase)
+        env:
+          DART_DEFINES_JSON_BASE64: ${{ secrets.DART_DEFINES_JSON_BASE64 }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DART_DEFINES_JSON_BASE64:-}" ]; then
+            echo "$DART_DEFINES_JSON_BASE64" | base64 --decode > dart_defines.json
+          else
+            cp dart_defines.example.json dart_defines.json
+          fi
+          if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          elif [ ! -f android/app/google-services.json ]; then
+            cat > android/app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "ci-placeholder",
+              "storage_bucket": "ci-placeholder.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "dev.matute.slidingpuzzle"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyKeyForCiLintValidation0000000"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Dependencias
         run: flutter pub get
 
       - name: Build AAB release (ofuscado)
-        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols --dart-define-from-file=dart_defines.json
 
       - name: Subir AAB firmado de producción
         if: ${{ env.FIRMA == 'production' }}

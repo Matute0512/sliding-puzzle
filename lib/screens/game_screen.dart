@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../logic/dificultad.dart';
 import '../logic/duracion.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/admob_service.dart';
 import '../services/best_run_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/daily_leaderboard_service.dart';
@@ -580,6 +581,11 @@ class _GameScreenState extends State<GameScreen> {
     }
     if (!mounted) return;
 
+    if (_juegoTerminado) {
+      await AdMobService.registrarVictoriaYMostrarSiCorresponde();
+      if (!mounted) return;
+    }
+
     Navigator.of(context).popUntil((ruta) => ruta.isFirst);
   }
 
@@ -1063,6 +1069,10 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                         onPressed: () {
                           Navigator.pop(context); // cierra el diálogo
+                          unawaited(
+                            AdMobService
+                                .registrarVictoriaYMostrarSiCorresponde(),
+                          );
                           Navigator.pop(context, true); // encadena el siguiente
                         },
                         child: Text(
@@ -1092,6 +1102,9 @@ class _GameScreenState extends State<GameScreen> {
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context); // cierra el diálogo
+                        unawaited(
+                          AdMobService.registrarVictoriaYMostrarSiCorresponde(),
+                        );
                         Navigator.pop(context, false); // vuelve a la grilla
                       },
                       child: Text(
@@ -1136,6 +1149,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _reiniciar() {
+    final veniaDeVictoria = _juegoTerminado;
+    final movimientosPrevios = _movimientos.value;
     _detenerTimer();
     _cronometro.reset();
     // El tiempo acumulado se descarta junto con el tablero: la partida que se
@@ -1157,6 +1172,15 @@ class _GameScreenState extends State<GameScreen> {
     _movimientos.value = 0;
     _juegoIniciado = false;
     if (_pausado) setState(() => _pausado = false);
+    if (veniaDeVictoria) {
+      unawaited(AdMobService.registrarVictoriaYMostrarSiCorresponde());
+    } else {
+      unawaited(
+        AdMobService.registrarSalidaYMostrarSiCorresponde(
+          movimientos: movimientosPrevios,
+        ),
+      );
+    }
   }
 
   void _mostrarAyuda() {
@@ -1268,7 +1292,11 @@ class _GameScreenState extends State<GameScreen> {
         // una pausa asíncrona es lo que marca el lint
         // use_build_context_synchronously.
         final navigator = Navigator.of(context);
+        final movimientosEnCurso = _juegoTerminado ? 0 : _movimientos.value;
         await _guardarPartida();
+        await AdMobService.registrarSalidaYMostrarSiCorresponde(
+          movimientos: movimientosEnCurso,
+        );
         if (!mounted) return;
         navigator.pop();
       },

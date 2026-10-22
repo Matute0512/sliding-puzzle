@@ -8,7 +8,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             line-height: 1.6;
-            color: #f1f5f9;;
+            color: #f1f5f9;
             max-width: 700px;
             margin: 40px auto;
             padding: 0 20px;
@@ -23,48 +23,54 @@
         }
         h1 {color: #f8fafc; margin-top: 0;}
         h2 {color: #e2e8f0; margin-top: 24px; font-size: 1.25rem;}
+        a { color: #60a5fa; }
         p, li { color: #cbd5e1; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Política de Privacidad</h1>
-        <p><strong>Última actualización:</strong> Septiembre 2026</p>
+        <p><strong>Última actualización:</strong> Octubre 2026</p>
 
         <p>Esta política de privacidad aplica a la aplicación móvil <strong>Sliding Puzzle</strong> (en adelante, "la aplicación"), desarrollada como un proyecto independiente. Explica qué datos maneja la aplicación y para qué los usa.</p>
 
         <h2>1. Qué servicios usamos</h2>
-        <p>Para ofrecer el <strong>Top 5 Global</strong> de partidas libres, la aplicación integra servicios de <strong>Firebase</strong>, propiedad de Google:</p>
+        <p>Para ofrecer el <strong>Top 5 Global</strong>, el <strong>Desafío Diario</strong> y mostrar anuncios que mantienen la aplicación gratuita, la aplicación integra servicios propiedad de <strong>Google</strong>:</p>
         <ul>
             <li><strong>Firebase Authentication (sesión anónima):</strong> la aplicación crea una sesión anónima. No se pide correo, contraseña ni ningún dato personal para iniciarla.</li>
-            <li><strong>Cloud Firestore:</strong> base de datos en la nube donde se guardan los puntajes del ranking global.</li>
+            <li><strong>Cloud Firestore y Firebase Storage:</strong> base de datos en la nube donde se guardan los puntajes del ranking global y diario, y desde donde se descarga la imagen del Desafío Diario.</li>
+            <li><strong>Google AdMob:</strong> servicio de publicidad móvil que muestra anuncios tipo banner e intersticiales.</li>
         </ul>
 
         <h2>2. Qué datos recopilamos</h2>
-        <p>Únicamente los necesarios para mostrar el ranking:</p>
+        <p><strong>Ranking online (Firebase):</strong></p>
         <ul>
             <li>Un <strong>Alias público</strong> que elegís vos (máximo <strong>5 caracteres</strong>, en mayúsculas).</li>
             <li>La <strong>cantidad de movimientos</strong> de tu mejor partida.</li>
             <li>El <strong>tiempo en segundos</strong> de esa partida.</li>
             <li>Un <strong>identificador anónimo (UID)</strong> generado automáticamente por Firebase, que se usa para asociar tu récord a tu sesión sin revelar quién sos.</li>
         </ul>
+        <p><strong>Publicidad (Google AdMob):</strong></p>
+        <ul>
+            <li><strong>Identificadores de publicidad del dispositivo</strong> (Advertising ID en Android / IDFA en iOS, sujeto a los permisos de tu sistema operativo).</li>
+            <li><strong>Datos de interacción publicitaria y diagnóstico</strong> (impresiones, clics y prevención de fraude) procesados por Google conforme a la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad de Google</a>.</li>
+        </ul>
 
         <h2>3. Para qué se usan</h2>
         <ul>
-            <li><strong>Mostrar el Top 5 Global</strong> por tamaño de tablero (3×3, 4×4 y 5×5).</li>
+            <li><strong>Mostrar el Top 5 Global</strong> por tamaño de tablero (3×3, 4×4 y 5×5) y el <strong>Ranking Diario</strong>.</li>
             <li>Evitar que un mismo usuario publique puntajes repetidos (un documento por sesión anónima).</li>
+            <li><strong>Mostrar anuncios</strong> fuera de las partidas activas y medir su rendimiento.</li>
         </ul>
 
-        <h2>4. Qué NO recopilamos</h2>
-        <p>Sliding Puzzle <strong>no</strong> recopila <strong>Información Personal Identificable (PII)</strong>:</p>
+        <h2>4. Qué NO recopilamos directamente</h2>
+        <p>Sliding Puzzle <strong>no</strong> solicita ni almacena por cuenta propia <strong>Información Personal Identificable (PII)</strong>:</p>
         <ul>
-            <li>No pedimos nombre, correo electrónico ni contraseña.</li>
-            <li>No accedemos a tu ubicación.</li>
-            <li>No recopilamos datos de tu dispositivo ni del sistema.</li>
-            <li>No rastreamos tu actividad fuera del juego.</li>
+            <li>No pedimos nombre real, correo electrónico, teléfono ni contraseña.</li>
+            <li>No accedemos a tu ubicación GPS precisa.</li>
         </ul>
         <p>Tu Alias es <strong>público</strong> dentro del ranking: cualquier jugador puede verlo junto a tu puntaje. No lo asociamos a ningún dato personal.</p>
-        <p>El progreso del juego (Modo Desafío, estrellas y preferencias) se guarda exclusivamente de forma local en tu dispositivo.</p>
+        <p>El progreso del juego (Modo Desafío, estrellas y preferencias) se guarda exclusivamente de forma local en tu dispositivo. Podés restablecer o limitar el identificador de publicidad desde los ajustes de tu dispositivo (<em>Ajustes &rarr; Google &rarr; Anuncios</em>).</p>
 
         <h2>5. Eliminación de tus datos</h2>
         <p>Para eliminar tu récord del Top 5 Global:</p>
@@ -72,7 +78,7 @@
             <li><strong>Desinstalá la aplicación</strong> (esto termina tu sesión anónima).</li>
             <li><strong>Contactanos</strong> a <strong>matiastorr.dev@gmail.com</strong>, indicando que querés eliminar tu récord. Para poder localizarlo, mencioná tu <strong>Alias</strong> y, si lo tenés, el <strong>UID</strong> de la sesión. Atenderemos la solicitud en un plazo razonable.</li>
         </ol>
-        <p>También podés dejar de participar en el Top 5 simplemente no jugando partidas libres; el Modo Desafío y el resto del juego funcionan sin conexión.</p>
+        <p>También podés dejar de participar en el Top 5 simplemente no jugando partidas libres; el Modo Desafío funciona sin conexión.</p>
 
         <h2>6. Contacto</h2>
         <p>Si tiene preguntas o sugerencias sobre esta política de privacidad, puede comunicarse a través del correo electrónico: <strong>matiastorr.dev@gmail.com</strong></p>

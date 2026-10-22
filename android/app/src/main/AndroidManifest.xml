@@ -1,17 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Necesario para el Top 5 Global (Firestore/Auth). El juego sigue siendo
-         jugable offline; solo la tabla de récords mostrará error sin red. -->
+    <!-- Necesario para el Top 5 Global (Firestore/Auth) y para Google AdMob.
+         El juego sigue siendo jugable offline; solo la tabla de récords
+         mostrará error sin red y los anuncios se omitirán sin bloquear. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- Sin `android:taskAffinity=""`: las actividades de anuncios de AdMob
+             se abren en su propia Activity y, con la cadena vacía por defecto
+             de la plantilla de Flutter, Android puede apilarlas como dos
+             tarjetas separadas en la vista de Recientes. -->
         <activity
             android:name="dev.matute.slidingpuzzle.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -36,6 +40,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google AdMob Application ID inyectado desde build.gradle.kts
+             (lee dart_defines.json local o secret en CI, con fallback al App ID
+             de prueba oficial de Google). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
