@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -9,9 +11,11 @@ import 'l10n/app_localizations.dart';
 import 'l10n/supported_locales.dart';
 import 'providers/app_settings_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/admob_service.dart';
 import 'services/sound_service.dart';
 import 'theme/app_theme.dart';
 import 'theme/kenney_ui.dart';
+import 'widgets/ad_banner_widget.dart';
 
 Future<void> _inicializarFirebase() async {
   try {
@@ -36,6 +40,7 @@ void main() async {
   final settings = AppSettingsProvider();
   await settings.inicializar();
   await SoundService.inicializar();
+  unawaited(AdMobService.init());
 
   runApp(
     ChangeNotifierProvider.value(
@@ -64,12 +69,17 @@ class SlidingPuzzleApp extends StatelessWidget {
       // modo claro/oscuro del sistema. Como `theme` es lo único que hay,
       // MaterialApp lo usa siempre, sin importar lo que diga el dispositivo.
       theme: AppTheme.game,
-      // El fondo del juego se monta acá, una sola vez, y no en cada pantalla:
-      // así el patrón es continuo entre pantallas y no se desplaza al navegar.
-      // Para que se vea, los Scaffold tienen el fondo transparente (ver
-      // AppTheme.game).
-      builder: (context, child) =>
-          GameBackground(child: child ?? const SizedBox.shrink()),
+      // El fondo del juego y el banner inferior se montan acá, una sola vez,
+      // por fuera del Navigator: así el patrón de fondo es continuo y el
+      // banner permanece cargado al cambiar entre Home, Niveles y los tableros
+      // sin retraso ni recargas en cada navegación.
+      builder: (context, child) => GameBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: child ?? const SizedBox.shrink(),
+          bottomNavigationBar: const AdBannerWidget(),
+        ),
+      ),
       home: const HomeScreen(),
     );
   }

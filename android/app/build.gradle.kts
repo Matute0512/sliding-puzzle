@@ -23,6 +23,23 @@ val releaseKeyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties.getPrope
 val releaseStorePassword = System.getenv("KEY_STORE_PASSWORD") ?: keyProperties.getProperty("storePassword")
 val releaseStoreFile = System.getenv("KEY_STORE_FILE") ?: keyProperties.getProperty("storeFile")
 
+// Lee ADMOB_APP_ID_ANDROID desde ../dart_defines.json (ignorado en git) o desde
+// variables de entorno en CI. Si ninguno está presente, usa el App ID de prueba
+// oficial de Google para que el proyecto compile sin exponer IDs reales en git.
+fun resolveAdmobAppId(): String {
+    val envId = System.getenv("ADMOB_APP_ID_ANDROID")?.trim()
+    if (!envId.isNullOrEmpty()) return envId
+
+    val definesFile = rootProject.file("../dart_defines.json")
+    if (definesFile.exists()) {
+        val regex = Regex(""""ADMOB_APP_ID_ANDROID"\s*:\s*"([^"]+)"""")
+        val match = regex.find(definesFile.readText())
+        val fileId = match?.groupValues?.getOrNull(1)?.trim()
+        if (!fileId.isNullOrEmpty()) return fileId
+    }
+    return "ca-app-pub-3940256099942544~3347511713"
+}
+
 android {
     namespace = "dev.matute.slidingpuzzle"
     compileSdk = flutter.compileSdkVersion
@@ -45,14 +62,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.matute.slidingpuzzle"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = resolveAdmobAppId()
     }
 
     buildTypes {

@@ -439,6 +439,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
       // desde `MaterialApp.builder`. Ver `AppTheme.game`.
+      // Sin `backgroundColor`: el fondo lo pinta `GameBackground`
+      // desde `MaterialApp.builder`. Ver `AppTheme.game`.
       body: SafeArea(
         // El `AppBar` se fue con el rediseño: el header lo dibuja la pantalla y
         // el `SafeArea` es lo que evita que se meta bajo la barra de estado.
