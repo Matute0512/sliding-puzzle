@@ -80,3 +80,6 @@ aab/app-release.aab
 # subconjunto curado que declara el pubspec. Si agregás un sprite nuevo,
 # copialo ahí: el pack crudo no viaja en el repo.
 assets/ui/kenney_ui-pack
+
+# Imagenes Plantilla Play Store
+screenshots/

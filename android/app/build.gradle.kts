@@ -74,6 +74,10 @@ android {
         release {
             // Firma real si hay key.properties/env vars; si no, debug (solo validación).
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
