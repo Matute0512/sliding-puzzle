@@ -1,17 +1,18 @@
 # Política de Privacidad — Sliding Puzzle
 
-Última actualización: 2026-10-22
+Última actualización: 2026-10-24
 
 Esta política explica qué datos maneja **Sliding Puzzle** y para qué los usa.
 Es un documento directo: si tenés dudas, escribinos a <matiastorr.dev@gmail.com>.
 
 ## 1. Qué servicios usamos
 
-Para ofrecer el **Top 5 Global**, el **Desafío Diario** y mostrar anuncios que mantienen la aplicación gratuita, la app integra servicios propiedad de **Google**:
+Para ofrecer el **Top 5 Global**, el **Desafío Diario**, estadísticas de funcionamiento y mostrar anuncios que mantienen la aplicación gratuita, la app integra servicios propiedad de **Google**:
 
 - **Firebase Authentication (sesión anónima):** la app crea una sesión anónima.
   No se pide correo, contraseña ni ningún dato personal para iniciarla.
 - **Cloud Firestore y Firebase Storage:** base de datos en la nube donde se guardan los puntajes del ranking global/diario y desde donde se descarga la imagen del Desafío Diario.
+- **Google Analytics for Firebase (`firebase_analytics`):** servicio de analítica que recopila métricas anónimas de uso, sesiones y estabilidad de la aplicación.
 - **Google AdMob (`google_mobile_ads`):** servicio de publicidad móvil que muestra anuncios tipo banner e intersticiales.
 
 ## 2. Qué datos recopilamos
@@ -25,18 +26,20 @@ Para ofrecer el **Top 5 Global**, el **Desafío Diario** y mostrar anuncios que 
 - Un **identificador anónimo (UID)** generado automáticamente por Firebase, que
   se usa para asociar tu récord a tu sesión sin revelar quién sos.
 
-### 2.2. Publicidad (Google AdMob)
-El SDK de **Google AdMob** puede recopilar y procesar automáticamente:
+### 2.2. Publicidad y Estadísticas de uso (Google AdMob y Google Analytics)
+Los SDK de **Google AdMob** y **Google Analytics for Firebase** pueden recopilar y procesar automáticamente:
 
-- **Identificadores de publicidad del dispositivo** (como el Advertising ID de Android / IDFA de iOS, sujeto a la configuración de privacidad de tu sistema operativo).
-- **Datos de interacción con anuncios e información de diagnóstico/rendimiento** (impresiones, clics y prevención de fraude publicitario) conforme a la [Política de Privacidad de Google](https://policies.google.com/privacy).
+- **Identificadores del dispositivo y de publicidad** (como el Advertising ID de Android / IDFA de iOS e identificadores de instancia de la app, sujetos a la configuración de privacidad de tu sistema operativo).
+- **Datos de uso y diagnóstico** (inicio de sesiones, pantallas visitadas, duración de uso y eventos técnicos de rendimiento/estabilidad).
+- **Datos de interacción con anuncios** (impresiones, clics y prevención de fraude publicitario) conforme a la [Política de Privacidad de Google](https://policies.google.com/privacy).
 
 ## 3. Para qué se usan
 
 - **Mostrar el Top 5 Global** por tamaño de tablero (3×3, 4×4 y 5×5) y el **Ranking Diario**.
 - Evitar que un mismo usuario publique puntajes repetidos (un documento por
   sesión anónima).
-- **Mostrar anuncios** no intrusivos fuera de las partidas activas y medir su rendimiento.
+- **Analizar estadísticas agregadas y anónimas** sobre cómo se utiliza la aplicación para detectar mejoras y asegurar su correcto funcionamiento.
+- **Mostrar anuncios** fuera de las partidas activas y medir su rendimiento.
 
 ## 4. Qué NO recopilamos directamente
 

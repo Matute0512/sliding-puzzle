@@ -69,7 +69,7 @@
 
   "settingsTitle": "Configuración",
   "privacyTitle": "Privacidad y Datos",
-  "privacyBody": "Para el Top 5 Global, el juego guarda únicamente tu Alias y tu mejor puntuación de forma anónima.\n\nNo solicitamos correos, contraseñas ni datos de tu dispositivo. Podés participar con total tranquilidad.",
+  "privacyBody": "Para el Top 5 Global y el Desafío Diario, el juego guarda tu Alias y tu mejor puntuación mediante una sesión anónima de Firebase.\n\nAdemás, integramos Google AdMob y Google Analytics, que utilizan identificadores del dispositivo (como el ID de publicidad) para mostrar anuncios y recopilar estadísticas anónimas de uso y rendimiento.\n\nNo solicitamos tu nombre real, correo ni contraseña.",
 
   "rateTitle": "¿Te gusta Sliding Puzzle?",
   "rateBody": "Tu opinión nos ayuda a seguir mejorando el juego. ¿Nos dejarías una calificación en Google Play?",

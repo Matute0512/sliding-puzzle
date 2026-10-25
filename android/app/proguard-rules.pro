@@ -16,8 +16,10 @@
     *;
 }
 
-# Google Mobile Ads / AdMob
+# Google Mobile Ads / AdMob + Firebase Analytics integration
 -keep class com.google.android.gms.ads.** { *; }
 -keep class io.flutter.plugins.googlemobileads.** { *; }
+-keep class com.google.firebase.analytics.** { *; }
+-keep class com.google.android.gms.measurement.** { *; }
 -dontwarn com.google.errorprone.annotations.**
 

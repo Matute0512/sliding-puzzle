@@ -26,7 +26,7 @@
 
   "settingsTitle": "Settings",
   "privacyTitle": "Privacy & Data",
-  "privacyBody": "For the Global Top 5, the game only stores your Alias and your best score anonymously.\n\nWe don't ask for emails, passwords, or any device data. You can take part with complete peace of mind.",
+  "privacyBody": "For the Global Top 5 and Daily Challenge, the game stores your Alias and best score using an anonymous Firebase session.\n\nWe also use Google AdMob and Google Analytics, which process device identifiers (such as the Advertising ID) to display ads and collect anonymous usage and performance statistics.\n\nWe never ask for your real name, email, or password.",
 
   "rateTitle": "Enjoying Sliding Puzzle?",
   "rateBody": "Your feedback helps us keep improving the game. Would you leave us a rating on Google Play?",
