@@ -4,6 +4,8 @@
          El juego sigue siendo jugable offline; solo la tabla de récords
          mostrará error sin red y los anuncios se omitirán sin bloquear. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Requerido por Google Play para Android 13+ (API 33) al usar Google AdMob -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

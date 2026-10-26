@@ -146,5 +146,25 @@
 
   "emptySlot": "Empty slot",
   "tileLabel": "Tile {numero}",
-  "tileHint": "Tap or slide toward the empty space to move"
+  "tileHint": "Tap or slide toward the empty space to move",
+  "undo": "Undo",
+  "coins": "Coins",
+  "coinsReward": "+{cantidad} coins",
+  "@coinsReward": {
+    "description": "Coins earned in victory dialog.",
+    "placeholders": {
+      "cantidad": { "type": "int" }
+    }
+  },
+  "coinsBalance": "{cantidad}",
+  "@coinsBalance": {
+    "description": "Coins amount shown in HUD/header.",
+    "placeholders": {
+      "cantidad": { "type": "int" }
+    }
+  },
+  "undoNotEnoughCoinsTitle": "Undo move?",
+  "undoNotEnoughCoinsBody": "You don't have enough coins (10 required). Watch an ad to undo this move for free?",
+  "undoWatchAd": "Watch ad",
+  "cancel": "Cancel"
 }
