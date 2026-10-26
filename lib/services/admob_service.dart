@@ -36,6 +36,13 @@ class AdMobService {
     'ADMOB_INTERSTITIAL_IOS',
   );
 
+  static const String _prodRewardedAndroid = String.fromEnvironment(
+    'ADMOB_REWARDED_ANDROID',
+  );
+  static const String _prodRewardedIos = String.fromEnvironment(
+    'ADMOB_REWARDED_IOS',
+  );
+
   // ─────────────────────────────────────────────────────────────────────
   // IDs de Prueba Oficiales de Google AdMob
   // https://developers.google.com/admob/flutter/test-ads
@@ -49,6 +56,11 @@ class AdMobService {
       'ca-app-pub-3940256099942544/1033173712';
   static const String _testInterstitialIos =
       'ca-app-pub-3940256099942544/4411468910';
+
+  static const String _testRewardedAndroid =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _testRewardedIos =
+      'ca-app-pub-3940256099942544/1712485313';
 
   // ─────────────────────────────────────────────────────────────────────
   // Parámetros de Política de Frecuencia (Frequency Capping)
@@ -85,6 +97,10 @@ class AdMobService {
   static bool _cargandoInterstitial = false;
   static int _intentosFallidos = 0;
 
+  static RewardedAd? _rewarded;
+  static bool _cargandoRewarded = false;
+  static int _intentosFallidosRewarded = 0;
+
   static int _victoriasDesdeUltimoAnuncio = 0;
   static int _salidasDesdeUltimoAnuncio = 0;
   static DateTime? _ultimoAnuncioMostrado;
@@ -97,6 +113,11 @@ class AdMobService {
   /// invocar el canal nativo de `google_mobile_ads`.
   @visibleForTesting
   static Future<bool> Function()? mostrarInterstitialOverride;
+
+  /// Hook opcional para simular en tests la exhibición de un rewarded sin
+  /// invocar el canal nativo de `google_mobile_ads`.
+  @visibleForTesting
+  static Future<bool> Function()? mostrarRewardedOverride;
 
   /// `true` únicamente en Android e iOS (nunca en Web ni escritorio).
   static bool get plataformaSoportada =>
@@ -135,7 +156,19 @@ class AdMobService {
     return prod;
   }
 
-  /// Inicializa el SDK de Google Mobile Ads y precarga el primer interstitial.
+  /// Devuelve el Ad Unit ID de Rewarded correspondiente a la plataforma
+  /// actual, usando el de prueba oficial en debug o si no se inyectó el ID de
+  /// producción.
+  static String get adUnitIdRewarded {
+    final esIos = defaultTargetPlatform == TargetPlatform.iOS;
+    final prod = esIos ? _prodRewardedIos : _prodRewardedAndroid;
+    if (kDebugMode || _esPlaceholder(prod)) {
+      return esIos ? _testRewardedIos : _testRewardedAndroid;
+    }
+    return prod;
+  }
+
+  /// Inicializa el SDK de Google Mobile Ads y precarga el primer interstitial y rewarded.
   ///
   /// Nunca lanza: si la plataforma no está soportada o el SDK falla, la app
   /// continúa funcionando con normalidad sin anuncios.
@@ -148,6 +181,7 @@ class AdMobService {
       inicializadoListenable.value = true;
       debugPrint('AdMob: SDK inicializado correctamente.');
       loadInterstitial();
+      loadRewarded();
     } catch (e) {
       debugPrint('AdMob: error inicializando el SDK — $e');
     } finally {
@@ -299,6 +333,97 @@ class AdMobService {
     }
   }
 
+  /// Precarga un anuncio bonificado (rewarded) en segundo plano si no hay uno listo.
+  static void loadRewarded() {
+    if (!anunciosHabilitados ||
+        _rewarded != null ||
+        _cargandoRewarded) {
+      return;
+    }
+    _cargandoRewarded = true;
+
+    RewardedAd.load(
+      adUnitId: adUnitIdRewarded,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _cargandoRewarded = false;
+          _intentosFallidosRewarded = 0;
+          _rewarded = ad;
+          debugPrint('AdMob: rewarded precargado y listo.');
+        },
+        onAdFailedToLoad: (error) {
+          _cargandoRewarded = false;
+          _rewarded = null;
+          _intentosFallidosRewarded++;
+          debugPrint('AdMob: falló la precarga del rewarded — $error');
+          if (_intentosFallidosRewarded <= 3) {
+            final espera = Duration(seconds: 15 * _intentosFallidosRewarded);
+            Timer(espera, loadRewarded);
+          }
+        },
+      ),
+    );
+  }
+
+  /// Muestra un anuncio bonificado para obtener la recompensa de deshacer movimiento.
+  ///
+  /// Devuelve `true` si el usuario completó la visualización y obtuvo la recompensa.
+  static Future<bool> mostrarRewardedParaDeshacer() async {
+    final override = mostrarRewardedOverride;
+    if (override != null) {
+      return override();
+    }
+
+    if (!anunciosHabilitados) return false;
+    final ad = _rewarded;
+    if (ad == null) {
+      loadRewarded();
+      return false;
+    }
+
+    _rewarded = null;
+    final completer = Completer<bool>();
+    var recompensaOtorgada = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (_) {
+        unawaited(SoundService.pausarMusica());
+      },
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        unawaited(SoundService.reanudarMusica());
+        loadRewarded();
+        if (!completer.isCompleted) completer.complete(recompensaOtorgada);
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('AdMob: falló mostrar el rewarded — $error');
+        ad.dispose();
+        unawaited(SoundService.reanudarMusica());
+        loadRewarded();
+        if (!completer.isCompleted) completer.complete(false);
+      },
+    );
+
+    try {
+      await ad.show(
+        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+          recompensaOtorgada = true;
+          debugPrint(
+            'AdMob: usuario completó rewarded (${reward.amount} ${reward.type}).',
+          );
+        },
+      );
+      return await completer.future;
+    } catch (e) {
+      debugPrint('AdMob: excepción mostrando el rewarded — $e');
+      ad.dispose();
+      unawaited(SoundService.reanudarMusica());
+      loadRewarded();
+      return false;
+    }
+  }
+
   /// Restaura contadores y estado interno para pruebas unitarias.
   @visibleForTesting
   static void reiniciarEstadoParaTests() {
@@ -307,5 +432,6 @@ class AdMobService {
     _ultimoAnuncioMostrado = null;
     reloj = DateTime.now;
     mostrarInterstitialOverride = null;
+    mostrarRewardedOverride = null;
   }
 }

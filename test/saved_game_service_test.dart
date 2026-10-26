@@ -32,6 +32,24 @@ void main() {
       expect(leida.tablero, _tablero3x3);
       expect(leida.movimientos, 12);
       expect(leida.segundos, 45);
+      expect(leida.historialHuecos, isEmpty);
+    });
+
+    test('guarda y recupera historial de huecos para deshacer movimientos', () async {
+      const partida = PartidaGuardada(
+        esDesafio: false,
+        size: 3,
+        nivel: null,
+        tablero: _tablero3x3,
+        movimientos: 2,
+        segundos: 10,
+        historialHuecos: [8, 5],
+      );
+      await SavedGameService.guardar(partida);
+
+      final leida = await SavedGameService.obtener();
+      expect(leida, isNotNull);
+      expect(leida!.historialHuecos, equals([8, 5]));
     });
 
     test('guarda y recupera una partida del Modo Desafío', () async {

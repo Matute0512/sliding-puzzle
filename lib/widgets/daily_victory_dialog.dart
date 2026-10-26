@@ -2,6 +2,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../services/coins_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 
@@ -81,6 +82,12 @@ class DailyVictoryDialog extends StatelessWidget {
                 icono: Icons.sports_esports,
                 label: l10n.moves,
                 valor: '$movimientos',
+              ),
+              const SizedBox(height: 8),
+              _FilaResultado(
+                icono: Icons.monetization_on_rounded,
+                label: l10n.coins,
+                valor: '+${CoinsService.recompensaDiario}',
               ),
               const SizedBox(height: 16),
               Text(

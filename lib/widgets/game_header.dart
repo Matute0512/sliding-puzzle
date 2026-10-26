@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
+import 'coins_pill.dart';
 import 'header_square_button.dart';
 
 /// Header de la partida: volver, tablero y dificultad, y el menú de ajustes.
@@ -85,6 +86,8 @@ class GameHeader extends StatelessWidget {
                 ],
               ),
             ),
+            const CoinsPill(),
+            const SizedBox(width: 8),
             _MenuAjustes(onAjustes: onAjustes, onAyuda: onAyuda),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import 'coins_pill.dart';
 import 'header_square_button.dart';
 
 /// Header del menú: título centrado y dos acciones cuadradas a los costados.
@@ -78,6 +79,8 @@ class HomeHeader extends StatelessWidget {
               ],
             ),
           ),
+          const CoinsPill(),
+          const SizedBox(width: 8),
           HeaderSquareButton(
             tooltip: l10n.viewRecords,
             onTap: onRecords,

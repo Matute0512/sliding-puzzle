@@ -7,7 +7,9 @@ import '../logic/dificultad.dart';
 import '../logic/duracion.dart';
 import '../logic/puzzle_logic.dart';
 import '../services/admob_service.dart';
+
 import '../services/best_run_service.dart';
+import '../services/coins_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
@@ -89,6 +91,8 @@ class _GameScreenState extends State<GameScreen> {
   );
 
   late final int _objetivo;
+  final List<int> _historialHuecos = <int>[];
+  final ValueNotifier<bool> _puedeDeshacer = ValueNotifier<bool>(false);
 
   /// Movimientos de la partida. Mismo motivo que [_tablero]: la tarjeta que lo
   /// muestra es la única que tiene que reaccionar a cada jugada.
@@ -446,6 +450,8 @@ class _GameScreenState extends State<GameScreen> {
       _movimientos.value = guardada.movimientos;
       _segundosAcumulados = guardada.segundos;
       _segundos.value = guardada.segundos;
+      _historialHuecos.addAll(guardada.historialHuecos);
+      _puedeDeshacer.value = _historialHuecos.isNotEmpty;
       _juegoIniciado = true;
     } else {
       _tablero.value = _nuevoTablero();
@@ -472,6 +478,7 @@ class _GameScreenState extends State<GameScreen> {
     _imagenDiaria.dispose();
     _tablero.dispose();
     _movimientos.dispose();
+    _puedeDeshacer.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -511,6 +518,7 @@ class _GameScreenState extends State<GameScreen> {
         tablero: _tablero.value,
         movimientos: _movimientos.value,
         segundos: _segundosTotales,
+        historialHuecos: List<int>.from(_historialHuecos),
       ),
     );
   }
@@ -680,6 +688,8 @@ class _GameScreenState extends State<GameScreen> {
     // sus dos consumidores (`PuzzleBoard` y la tarjeta de movimientos) son los
     // únicos que tienen que reaccionar. Un `setState` acá reconstruía la
     // pantalla entera —header, HUD, consigna y botonera— en cada jugada.
+    _historialHuecos.add(_tablero.value.indexOf(0));
+    _puedeDeshacer.value = true;
     _tablero.value = PuzzleLogic.mover(_tablero.value, indice, widget.size);
     _movimientos.value++;
 
@@ -746,6 +756,8 @@ class _GameScreenState extends State<GameScreen> {
     // esperar la red acá retrasaba toda la celebración un round-trip.
     _celebrar();
     _resolverPuestoGlobal(_partidaId);
+    final recompensaMonedas = CoinsService.recompensaClasico(widget.size);
+    unawaited(CoinsService.agregarMonedas(recompensaMonedas));
 
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -784,6 +796,12 @@ class _GameScreenState extends State<GameScreen> {
                   icono: Icons.sports_esports,
                   label: l10n.moves,
                   valor: '${_movimientos.value}',
+                ),
+                const SizedBox(height: 8),
+                _FilaResultado(
+                  icono: Icons.monetization_on_rounded,
+                  label: l10n.coins,
+                  valor: '+$recompensaMonedas',
                 ),
                 ValueListenableBuilder<String?>(
                   valueListenable: _avisoTop,
@@ -885,6 +903,7 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
 
     _celebrar();
+    unawaited(CoinsService.agregarMonedas(CoinsService.recompensaDiario));
 
     await DailyVictoryDialog.mostrar(
       context,
@@ -1013,6 +1032,8 @@ class _GameScreenState extends State<GameScreen> {
       movimientos: _movimientos.value,
       objetivo: _objetivo,
     );
+    final recompensaMonedas = CoinsService.recompensaDesafio(estrellas);
+    unawaited(CoinsService.agregarMonedas(recompensaMonedas));
     if (!mounted) return;
 
     final haySiguiente = nivel < 20;
@@ -1044,6 +1065,12 @@ class _GameScreenState extends State<GameScreen> {
                     icono: Icons.sports_esports,
                     label: l10n.moves,
                     valor: '${_movimientos.value}',
+                  ),
+                  const SizedBox(height: 8),
+                  _FilaResultado(
+                    icono: Icons.monetization_on_rounded,
+                    label: l10n.coins,
+                    valor: '+$recompensaMonedas',
                   ),
                   const SizedBox(height: 8),
                   _FilaResultado(
@@ -1170,6 +1197,8 @@ class _GameScreenState extends State<GameScreen> {
     // pantalla.
     _tablero.value = _nuevoTablero();
     _movimientos.value = 0;
+    _historialHuecos.clear();
+    _puedeDeshacer.value = false;
     _juegoIniciado = false;
     if (_pausado) setState(() => _pausado = false);
     if (veniaDeVictoria) {
@@ -1180,6 +1209,114 @@ class _GameScreenState extends State<GameScreen> {
           movimientos: movimientosPrevios,
         ),
       );
+    }
+  }
+
+  void _aplicarDeshacer() {
+    if (_historialHuecos.isEmpty) return;
+    final huecoAnterior = _historialHuecos.removeLast();
+    _puedeDeshacer.value = _historialHuecos.isNotEmpty;
+    _tablero.value = PuzzleLogic.mover(_tablero.value, huecoAnterior, widget.size);
+    if (_movimientos.value > 0) {
+      _movimientos.value--;
+    }
+    SoundService.reproducirClick();
+  }
+
+  Future<void> _onDeshacer() async {
+    if (_pausado || _juegoTerminado || _historialHuecos.isEmpty) return;
+
+    final tieneMonedas = CoinsService.saldo >= CoinsService.costoDeshacer;
+    if (tieneMonedas) {
+      final gastado = await CoinsService.gastarMonedas(CoinsService.costoDeshacer);
+      if (gastado && mounted) {
+        _aplicarDeshacer();
+      }
+      return;
+    }
+
+    // Saldo insuficiente (< 10): pausar cronómetro y confirmar si desea ver anuncio
+    final relojCorriendo = _timer != null;
+    if (relojCorriendo) _detenerTimer();
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    final deseaVerAd = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          icon: const Icon(
+            Icons.smart_display_rounded,
+            size: 40,
+            color: Color(0xFFF59E0B),
+          ),
+          title: Text(
+            l10n.undoNotEnoughCoinsTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            l10n.undoNotEnoughCoinsBody,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: colors.textSecondary,
+            ),
+          ),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.textSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(l10n.cancel),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: Text(
+                      l10n.undoWatchAd,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+
+    if (deseaVerAd == true) {
+      final vioAd = await AdMobService.mostrarRewardedParaDeshacer();
+      if (vioAd && mounted) {
+        _aplicarDeshacer();
+      }
+    }
+
+    if (mounted && !_juegoTerminado && !_pausado && _juegoIniciado && relojCorriendo) {
+      _iniciarTimer();
     }
   }
 
@@ -1397,10 +1534,16 @@ class _GameScreenState extends State<GameScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              GameControls(
+                              ValueListenableBuilder<bool>(
+                                valueListenable: _puedeDeshacer,
+                                builder: (context, puedeDeshacer, _) =>
+                                    GameControls(
                                 pausado: _pausado,
+                                puedeDeshacer: puedeDeshacer,
                                 onReiniciar: _reiniciar,
+                                onDeshacer: _onDeshacer,
                                 onPausar: _alternarPausa,
+                              ),
                               ),
                             ],
                           ),

@@ -100,9 +100,25 @@ void main() {
       expect(vecesMostrado, 1);
     });
 
+    test('mostrarRewardedParaDeshacer respeta mostrarRewardedOverride', () async {
+      var rewardedVisto = false;
+      AdMobService.mostrarRewardedOverride = () async {
+        rewardedVisto = true;
+        return true;
+      };
+
+      final resultado = await AdMobService.mostrarRewardedParaDeshacer();
+      expect(resultado, isTrue);
+      expect(rewardedVisto, isTrue);
+    });
+
     test('Ad Unit IDs de prueba son válidos y no vacíos en modo test/debug',
         () {
       expect(AdMobService.adUnitIdBanner, startsWith('ca-app-pub-3940256099942544/'));
+      expect(
+        AdMobService.adUnitIdRewarded,
+        startsWith('ca-app-pub-3940256099942544/'),
+      );
       expect(
         AdMobService.adUnitIdInterstitial,
         startsWith('ca-app-pub-3940256099942544/'),
