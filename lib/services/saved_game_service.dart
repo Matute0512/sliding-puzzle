@@ -26,6 +26,7 @@ class PartidaGuardada {
 
   /// Segundos ya jugados antes de guardar.
   final int segundos;
+  final List<int> historialHuecos;
 
   const PartidaGuardada({
     required this.esDesafio,
@@ -34,6 +35,7 @@ class PartidaGuardada {
     required this.tablero,
     required this.movimientos,
     required this.segundos,
+    this.historialHuecos = const <int>[],
   });
 
   Map<String, dynamic> toJson() => {
@@ -43,6 +45,7 @@ class PartidaGuardada {
     'tablero': tablero,
     'movimientos': movimientos,
     'segundos': segundos,
+    'historial_huecos': historialHuecos,
   };
 
   /// Reconstruye una partida desde JSON, o `null` si los datos no son válidos.
@@ -91,6 +94,11 @@ class PartidaGuardada {
       tablero: tablero,
       movimientos: movimientos,
       segundos: segundos,
+      historialHuecos: (json['historial_huecos'] as List?)
+              ?.whereType<int>()
+              .where((h) => h >= 0 && h < size * size)
+              .toList() ??
+          const <int>[],
     );
   }
 }

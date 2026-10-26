@@ -277,5 +277,25 @@
       "numero": { "type": "int" }
     }
   },
-  "tileHint": "Toca o desliza hacia el hueco para mover"
+  "tileHint": "Toca o desliza hacia el hueco para mover",
+  "undo": "Deshacer",
+  "coins": "Monedas",
+  "coinsReward": "+{cantidad} monedas",
+  "@coinsReward": {
+    "description": "Monedas ganadas en el diálogo de victoria.",
+    "placeholders": {
+      "cantidad": { "type": "int" }
+    }
+  },
+  "coinsBalance": "{cantidad}",
+  "@coinsBalance": {
+    "description": "Cantidad de monedas mostrada en el HUD/header.",
+    "placeholders": {
+      "cantidad": { "type": "int" }
+    }
+  },
+  "undoNotEnoughCoinsTitle": "¿Deshacer movimiento?",
+  "undoNotEnoughCoinsBody": "No tenés suficientes monedas (necesitás 10). ¿Querés ver un anuncio para deshacer este movimiento gratis?",
+  "undoWatchAd": "Ver anuncio",
+  "cancel": "Cancelar"
 }

@@ -257,7 +257,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('0s'), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(HudCard), matching: find.text('0')),
+        findsOneWidget,
+      );
     });
   });
 
