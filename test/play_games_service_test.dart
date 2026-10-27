@@ -5,6 +5,19 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayGamesService — resiliencia y evaluación de logros', () {
+    test('logrosParaVictoria no devuelve IDs vacíos cuando no están configurados', () {
+      // En tests no se pasan dart-defines: todos los IDs quedan vacíos.
+      expect(
+        PlayGamesService.logrosParaVictoria(
+          size: 3,
+          segundos: 10,
+          esDiario: true,
+          estrellas: 3,
+        ),
+        isEmpty,
+      );
+    });
+
     test('iniciarSesionSilenciosa no lanza excepción en entorno no-Android/test', () async {
       await expectLater(
         PlayGamesService.iniciarSesionSilenciosa(),

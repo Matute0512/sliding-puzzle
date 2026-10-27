@@ -144,7 +144,7 @@ jobs:
       #   KEY_STORE_PASSWORD          -> storePassword del keystore
       #   KEY_ALIAS_PASSWORD          -> keyPassword del keystore
       #   KEY_ALIAS                   -> alias de la clave
-      #   DART_DEFINES_JSON_BASE64    -> dart_defines.json codificado en base64 (IDs de AdMob y Firebase)
+      #   DART_DEFINES_JSON_BASE64    -> dart_defines.json codificado en base64 (IDs de AdMob, Firebase y Play Games)
       #   GOOGLE_SERVICES_JSON_BASE64 -> android/app/google-services.json codificado en base64
       # Si falta alguno de firma, se genera un keystore temporal para validar el build
       # (el AAB resultante NO sirve para producción).
@@ -221,6 +221,22 @@ jobs:
 
       - name: Dependencias
         run: flutter pub get
+
+      # Sin estos IDs el AAB compila igual, pero Play Games queda con APP_ID "0"
+      # (el popup se cierra solo) y no se envía ningún logro. Falla el build de
+      # producción para que un secret desactualizado no pase desapercibido.
+      - name: Validar dart_defines (Play Games)
+        if: ${{ env.FIRMA == 'production' }}
+        run: |
+          set -euo pipefail
+          for k in PLAY_GAMES_APP_ID ACHIEVEMENT_PRIMER_DESLIZ ACHIEVEMENT_DESAFIO_SUPERADO \
+                   ACHIEVEMENT_MENTE_AGIL ACHIEVEMENT_PERFECCIONISTA ACHIEVEMENT_GRAN_MAESTRO; do
+            v=$(jq -r --arg k "$k" '.[$k] // ""' dart_defines.json)
+            if [ -z "$v" ]; then
+              echo "::error::Falta $k en el secret DART_DEFINES_JSON_BASE64"
+              exit 1
+            fi
+          done
 
       - name: Build AAB release (ofuscado)
         run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols --dart-define-from-file=dart_defines.json

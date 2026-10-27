@@ -1,6 +1,6 @@
 # Política de Privacidad — Sliding Puzzle
 
-Última actualización: 2026-10-24
+Última actualización: 2026-10-27
 
 Esta política explica qué datos maneja **Sliding Puzzle** y para qué los usa.
 Es un documento directo: si tenés dudas, escribinos a <matiastorr.dev@gmail.com>.
@@ -14,6 +14,7 @@ Para ofrecer el **Top 5 Global**, el **Desafío Diario**, estadísticas de funci
 - **Cloud Firestore y Firebase Storage:** base de datos en la nube donde se guardan los puntajes del ranking global/diario y desde donde se descarga la imagen del Desafío Diario.
 - **Google Analytics for Firebase (`firebase_analytics`):** servicio de analítica que recopila métricas anónimas de uso, sesiones y estabilidad de la aplicación.
 - **Google AdMob (`google_mobile_ads`):** servicio de publicidad móvil que muestra anuncios tipo banner e intersticiales.
+- **Servicios de juegos de Google Play (Android):** inicio de sesión opcional con tu perfil de Play Juegos para desbloquear **logros**. La app solo recibe tu nombre de jugador e identificador de Play Juegos para registrar los logros; no accede a tu correo ni a otros datos de tu cuenta de Google. Se rige por la [Política de Privacidad de Google](https://policies.google.com/privacy).
 
 ## 2. Qué datos recopilamos
 
