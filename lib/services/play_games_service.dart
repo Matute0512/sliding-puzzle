@@ -43,10 +43,16 @@ class PlayGamesService {
 
   /// Indica si el sistema actual soporta Google Play Games Services.
   /// Solo activo en dispositivos Android nativos en ejecución real (no web ni tests).
-  static bool get _esPlataformaSoportada =>
-      !kIsWeb &&
-      defaultTargetPlatform == TargetPlatform.android &&
-      !Platform.environment.containsKey('FLUTTER_TEST');
+  static bool get _esPlataformaSoportada {
+    if (kIsWeb) return false;
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      if (Platform.environment.containsKey('FLUTTER_TEST')) return false;
+    } catch (_) {
+      // Platform.environment no está soportado en Android y lanza UnsupportedError.
+    }
+    return true;
+  }
 
   /// Inicia sesión de manera silenciosa en Google Play Games al arrancar la app.
   ///
@@ -54,15 +60,27 @@ class PlayGamesService {
   /// saludo nativo en pantalla ("Conectado como..."). Si falla o no hay red,
   /// falla de forma silenciosa sin interrumpir la experiencia.
   static Future<void> iniciarSesionSilenciosa() async {
-    if (!_esPlataformaSoportada || _autenticado || _autenticando) return;
+    if (!_esPlataformaSoportada) {
+      debugPrint('PlayGames: plataforma no soportada para signIn.');
+      return;
+    }
+    if (_autenticado) {
+      debugPrint('PlayGames: ya autenticado previamente.');
+      return;
+    }
+    if (_autenticando) {
+      debugPrint('PlayGames: autenticación en progreso...');
+      return;
+    }
 
     _autenticando = true;
     try {
+      debugPrint('PlayGames: llamando a GameAuth.signIn()...');
       final resultado = await GameAuth.signIn();
       _autenticado = resultado != null;
-      debugPrint('PlayGames: inicio de sesión completado (auth: $_autenticado)');
-    } catch (e) {
-      debugPrint('PlayGames: inicio de sesión no disponible o cancelado: $e');
+      debugPrint('PlayGames: GameAuth.signIn() retorno: "$resultado" (autenticado: $_autenticado)');
+    } catch (e, stack) {
+      debugPrint('PlayGames: error en GameAuth.signIn(): $e\n$stack');
     } finally {
       _autenticando = false;
     }
@@ -70,32 +88,45 @@ class PlayGamesService {
 
   /// Desbloquea un logro por su ID alfanumérico en Google Play Games.
   static Future<void> desbloquearLogro(String androidId) async {
-    if (!_esPlataformaSoportada || androidId.trim().isEmpty) return;
+    if (!_esPlataformaSoportada) {
+      debugPrint('PlayGames: plataforma no soportada para desbloquearLogro.');
+      return;
+    }
+    if (androidId.trim().isEmpty) {
+      debugPrint('PlayGames: ID de logro vacío, omitiendo.');
+      return;
+    }
 
     try {
+      debugPrint('PlayGames: solicitando desbloqueo para ID: $androidId (autenticado: $_autenticado)');
       if (!_autenticado) {
         await iniciarSesionSilenciosa();
       }
       final respuesta = await Achievements.unlock(
         achievement: Achievement(androidID: androidId),
       );
-      debugPrint('PlayGames: logro $androidId desbloqueado: $respuesta');
-    } catch (e) {
-      debugPrint('PlayGames: error al desbloquear logro $androidId: $e');
+      debugPrint('PlayGames: logro $androidId respuesta: $respuesta');
+    } catch (e, stack) {
+      debugPrint('PlayGames: error al desbloquear logro $androidId: $e\n$stack');
     }
   }
 
   /// Abre la interfaz visual nativa de logros de Google Play Games.
   static Future<void> mostrarLogros() async {
-    if (!_esPlataformaSoportada) return;
+    if (!_esPlataformaSoportada) {
+      debugPrint('PlayGames: plataforma no soportada para mostrarLogros.');
+      return;
+    }
 
     try {
+      debugPrint('PlayGames: abriendo vista de logros (autenticado: $_autenticado)...');
       if (!_autenticado) {
         await iniciarSesionSilenciosa();
       }
-      await Achievements.showAchievements();
-    } catch (e) {
-      debugPrint('PlayGames: no se pudo abrir la pantalla de logros: $e');
+      final res = await Achievements.showAchievements();
+      debugPrint('PlayGames: showAchievements() retorno: $res');
+    } catch (e, stack) {
+      debugPrint('PlayGames: no se pudo abrir la pantalla de logros: $e\n$stack');
     }
   }
 
@@ -112,6 +143,10 @@ class PlayGamesService {
     int? estrellas,
   }) {
     if (!_esPlataformaSoportada) return;
+
+    debugPrint(
+      'PlayGames: evaluando victoria: size=$size, s=$segundos, diario=$esDiario, estrellas=$estrellas',
+    );
 
     // 1. Primer desliz: Resuelve tu primer tablero 3x3
     if (size == 3 && _logroPrimerDesliz.isNotEmpty) {
@@ -139,4 +174,3 @@ class PlayGamesService {
     }
   }
 }
-
