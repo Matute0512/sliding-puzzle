@@ -89,3 +89,8 @@ screenshots/
 /logo_app_120x120.png
 /grafico_funciones_1024x500.png
 /google_ads_images/
+
+# Agentes y skills
+.agents/
+skills-lock.json
+

@@ -143,11 +143,15 @@ class PlayGamesService {
     }
 
     try {
-      debugPrint('PlayGames: encolando logro $androidId (autenticado: $_autenticado)');
+      debugPrint(
+        'PlayGames: encolando logro $androidId (autenticado: $_autenticado)',
+      );
       await LogrosPendientes.encolar(androidId);
       await _sincronizarPendientes();
     } catch (e, stack) {
-      debugPrint('PlayGames: error al desbloquear logro $androidId: $e\n$stack');
+      debugPrint(
+        'PlayGames: error al desbloquear logro $androidId: $e\n$stack',
+      );
     }
   }
 
@@ -162,7 +166,9 @@ class PlayGamesService {
     }
 
     try {
-      debugPrint('PlayGames: abriendo vista de logros (autenticado: $_autenticado)...');
+      debugPrint(
+        'PlayGames: abriendo vista de logros (autenticado: $_autenticado)...',
+      );
       if (!_autenticado) {
         await _iniciarSesionInteractiva();
       }
@@ -171,7 +177,9 @@ class PlayGamesService {
       final res = await Achievements.showAchievements();
       debugPrint('PlayGames: showAchievements() retorno: $res');
     } catch (e, stack) {
-      debugPrint('PlayGames: no se pudo abrir la pantalla de logros: $e\n$stack');
+      debugPrint(
+        'PlayGames: no se pudo abrir la pantalla de logros: $e\n$stack',
+      );
     }
   }
 
@@ -275,7 +283,9 @@ class PlayGamesService {
       debugPrint('PlayGames: llamando a GameAuth.signIn()...');
       final resultado = await GameAuth.signIn();
       _autenticado = resultado != null;
-      debugPrint('PlayGames: GameAuth.signIn() retorno: "$resultado" (autenticado: $_autenticado)');
+      debugPrint(
+        'PlayGames: GameAuth.signIn() retorno: "$resultado" (autenticado: $_autenticado)',
+      );
     } catch (e, stack) {
       _autenticado = false;
       debugPrint('PlayGames: error en GameAuth.signIn(): $e\n$stack');
@@ -320,7 +330,9 @@ class PlayGamesService {
               final reintento = await Achievements.unlock(
                 achievement: Achievement(androidID: id),
               );
-              debugPrint('PlayGames: logro $id reintento respuesta: $reintento');
+              debugPrint(
+                'PlayGames: logro $id reintento respuesta: $reintento',
+              );
               return;
             }
             rethrow;
