@@ -14,6 +14,7 @@ import 'l10n/supported_locales.dart';
 import 'providers/app_settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/admob_service.dart';
+import 'services/play_games_service.dart';
 import 'services/sound_service.dart';
 import 'theme/app_theme.dart';
 import 'theme/kenney_ui.dart';
@@ -45,6 +46,7 @@ void main() async {
   await settings.inicializar();
   await SoundService.inicializar();
   unawaited(AdMobService.init());
+  unawaited(PlayGamesService.iniciarSesionSilenciosa());
 
   runApp(
     ChangeNotifierProvider.value(

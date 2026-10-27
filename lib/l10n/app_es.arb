@@ -297,5 +297,9 @@
   "undoNotEnoughCoinsTitle": "¿Deshacer movimiento?",
   "undoNotEnoughCoinsBody": "No tenés suficientes monedas (necesitás 10). ¿Querés ver un anuncio para deshacer este movimiento gratis?",
   "undoWatchAd": "Ver anuncio",
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "achievements": "Logros",
+  "@achievements": {
+    "description": "Texto del botón de logros de Google Play Games."
+  }
 }

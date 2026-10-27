@@ -83,3 +83,8 @@ assets/ui/kenney_ui-pack
 
 # Imagenes Plantilla Play Store
 screenshots/
+
+# Activos de consola / logros generados localmente
+/logros_icons/
+/generate_achievement_icons.ps1
+/icono_512x512.png

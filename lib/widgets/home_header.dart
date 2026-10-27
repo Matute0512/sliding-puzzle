@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../services/play_games_service.dart';
 import '../theme/app_theme.dart';
 import 'coins_pill.dart';
 import 'header_square_button.dart';
@@ -97,7 +98,7 @@ class HomeHeader extends StatelessWidget {
 }
 
 /// Las dos acciones que no entran en el header.
-enum _AccionMenu { ajustes, privacidad }
+enum _AccionMenu { logros, ajustes, privacidad }
 
 /// Botón de grilla, que abre el menú de ajustes y privacidad.
 ///
@@ -125,10 +126,19 @@ class _MenuCuadrado extends StatelessWidget {
       // translúcido deja leer lo de atrás y se vuelve ilegible.
       color: AppTheme.hudTint,
       onSelected: (accion) => switch (accion) {
+        _AccionMenu.logros => PlayGamesService.mostrarLogros(),
         _AccionMenu.ajustes => onAjustes(),
         _AccionMenu.privacidad => onPrivacidad(),
       },
       itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _AccionMenu.logros,
+          child: _FilaMenu(
+            icono: Icons.military_tech_outlined,
+            label: l10n.achievements,
+            color: color,
+          ),
+        ),
         PopupMenuItem(
           value: _AccionMenu.ajustes,
           child: _FilaMenu(

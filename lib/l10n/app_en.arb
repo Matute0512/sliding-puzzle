@@ -166,5 +166,9 @@
   "undoNotEnoughCoinsTitle": "Undo move?",
   "undoNotEnoughCoinsBody": "You don't have enough coins (10 required). Watch an ad to undo this move for free?",
   "undoWatchAd": "Watch ad",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "achievements": "Achievements",
+  "@achievements": {
+    "description": "Text for Google Play Games achievements button."
+  }
 }

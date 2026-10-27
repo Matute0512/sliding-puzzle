@@ -40,6 +40,22 @@ fun resolveAdmobAppId(): String {
     return "ca-app-pub-3940256099942544~3347511713"
 }
 
+// Lee PLAY_GAMES_APP_ID desde ../dart_defines.json o desde variables de entorno
+// en CI. Si no está presente, devuelve "0" para compilar sin exponer IDs en git.
+fun resolvePlayGamesAppId(): String {
+    val envId = System.getenv("PLAY_GAMES_APP_ID")?.trim()
+    if (!envId.isNullOrEmpty()) return envId
+
+    val definesFile = rootProject.file("../dart_defines.json")
+    if (definesFile.exists()) {
+        val regex = Regex(""""PLAY_GAMES_APP_ID"\s*:\s*"([^"]+)"""")
+        val match = regex.find(definesFile.readText())
+        val fileId = match?.groupValues?.getOrNull(1)?.trim()
+        if (!fileId.isNullOrEmpty()) return fileId
+    }
+    return "0"
+}
+
 android {
     namespace = "dev.matute.slidingpuzzle"
     compileSdk = flutter.compileSdkVersion
@@ -68,6 +84,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["admobAppId"] = resolveAdmobAppId()
+        resValue("string", "game_services_project_id", resolvePlayGamesAppId())
     }
 
     buildTypes {

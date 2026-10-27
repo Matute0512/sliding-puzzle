@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../services/firebase_service.dart';
+import '../services/play_games_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 
@@ -136,6 +137,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.military_tech_rounded),
+            color: AppTheme.podiumGold,
+            tooltip: l10n.achievements,
+            onPressed: PlayGamesService.mostrarLogros,
+          ),
+        ],
       ),
       body: _cuerpo(colors, l10n),
     );

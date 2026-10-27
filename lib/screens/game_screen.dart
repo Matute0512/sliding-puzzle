@@ -13,6 +13,7 @@ import '../services/coins_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/daily_leaderboard_service.dart';
 import '../services/firebase_service.dart';
+import '../services/play_games_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
 import '../services/sound_service.dart';
@@ -759,6 +760,10 @@ class _GameScreenState extends State<GameScreen> {
     final recompensaMonedas = CoinsService.recompensaClasico(widget.size);
     unawaited(CoinsService.agregarMonedas(recompensaMonedas));
     unawaited(RecordsService.incrementarVictoriasParaRating());
+    PlayGamesService.verificarLogrosVictoria(
+      size: widget.size,
+      segundos: _segundos.value,
+    );
 
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -906,6 +911,11 @@ class _GameScreenState extends State<GameScreen> {
     _celebrar();
     unawaited(CoinsService.agregarMonedas(CoinsService.recompensaDiario));
     unawaited(RecordsService.incrementarVictoriasParaRating());
+    PlayGamesService.verificarLogrosVictoria(
+      size: widget.size,
+      segundos: segundos,
+      esDiario: true,
+    );
 
     await DailyVictoryDialog.mostrar(
       context,
@@ -1037,6 +1047,11 @@ class _GameScreenState extends State<GameScreen> {
     final recompensaMonedas = CoinsService.recompensaDesafio(estrellas);
     unawaited(CoinsService.agregarMonedas(recompensaMonedas));
     unawaited(RecordsService.incrementarVictoriasParaRating());
+    PlayGamesService.verificarLogrosVictoria(
+      size: widget.size,
+      segundos: _segundos.value,
+      estrellas: estrellas,
+    );
     if (!mounted) return;
 
     final haySiguiente = nivel < 20;
