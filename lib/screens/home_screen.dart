@@ -76,10 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _cargarMejorPartida();
     _refrescarMejorPartidaDesdeFirestore();
 
-    // Esperamos la primera frame para no mostrar el modal durante el arranque.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _verificarCalificacion();
-    });
+    // La calificacion ya no se solicita al inicio, sino en momentos clave (Happy Moments).
   }
 
   @override
@@ -154,10 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /// Si el usuario todavía no calificó la app, muestra el modal de calificación.
+  /// Si el usuario alcanzó un momento ideal (Happy Moment tras victorias)
+  /// y aún no calificó, muestra el modal de calificación.
   Future<void> _verificarCalificacion() async {
-    final yaCalifico = await RecordsService.yaCalificoApp();
-    if (!mounted || yaCalifico) return;
+    final debe = await RecordsService.debeSolicitarCalificacion();
+    if (!mounted || !debe) return;
     _mostrarCalificacion();
   }
 
@@ -223,7 +221,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    unawaited(RecordsService.registrarSolicitudRating());
+                  },
                   child: Text(
                     l10n.notNow,
                     style: TextStyle(color: colors.textSecondary),
@@ -350,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SoundService.reanudarMusica();
     await _cargarPartidaGuardada();
     await _cargarMejorPartida();
+    if (mounted) unawaited(_verificarCalificacion());
   }
 
   /// Retoma la partida guardada donde quedó.
@@ -371,6 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SoundService.reanudarMusica();
     await _cargarPartidaGuardada();
     await _cargarMejorPartida();
+    if (mounted) unawaited(_verificarCalificacion());
   }
 
   /// Descarta la partida guardada sin entrar al juego.
@@ -392,6 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (_) => const ChallengeLevelsScreen()),
     );
+    if (mounted) unawaited(_verificarCalificacion());
   }
 
   /// Acción del botón del Desafío Diario.
@@ -430,6 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // del Día" y no esperar a que se reinicie la app.
     SoundService.reanudarMusica();
     await _cargarEstadoDiario();
+    if (mounted) unawaited(_verificarCalificacion());
   }
 
   @override

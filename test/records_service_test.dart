@@ -108,6 +108,37 @@ void main() {
 
       expect(await RecordsService.yaCalificoApp(), isTrue);
     });
+
+    test('debeSolicitarCalificacion solo pide tras 2 victorias y respeta cooldown', () async {
+      // 0 victorias: no pide
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 1 victoria: no pide todavia
+      await RecordsService.incrementarVictoriasParaRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 2 victorias: momento oportuno (Happy Moment)
+      await RecordsService.incrementarVictoriasParaRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isTrue);
+
+      // Usuario rechaza ('Ahora no') -> cooldown activo
+      await RecordsService.registrarSolicitudRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 4 victorias mas (total 6): sigue en cooldown (6 - 2 = 4 < 5)
+      for (var i = 0; i < 4; i++) {
+        await RecordsService.incrementarVictoriasParaRating();
+      }
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 5ta victoria tras rechazo (total 7): vuelve a ser oportuno (7 - 2 = 5)
+      await RecordsService.incrementarVictoriasParaRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isTrue);
+
+      // Si califica, nunca mas vuelve a pedir
+      await RecordsService.marcarAppCalificada();
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+    });
   });
 
   group('alias', () {

@@ -34,6 +34,8 @@ class RecordsService {
 
   // Clave del aviso de calificación en Google Play.
   static const String _claveAppCalificada = 'app_has_rated';
+  static const String _claveVictoriasRating = 'rating_victorias_count';
+  static const String _claveUltimaSolicitudRating = 'rating_ultima_solicitud';
 
   // Clave del alias del jugador para el Top 5 Global.
   static const String _claveAlias = 'alias_usuario';
@@ -123,6 +125,50 @@ class RecordsService {
   static Future<void> marcarAppCalificada() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_claveAppCalificada, true);
+  }
+
+  /// Incrementa el contador de victorias del usuario para calcular el momento ideal
+  /// ("Happy Moment") de solicitud de calificación.
+  static Future<int> incrementarVictoriasParaRating() async {
+    final prefs = await SharedPreferences.getInstance();
+    final actual = prefs.getInt(_claveVictoriasRating) ?? 0;
+    final nuevo = actual + 1;
+    await prefs.setInt(_claveVictoriasRating, nuevo);
+    return nuevo;
+  }
+
+  /// Devuelve el total de victorias acumuladas para el flujo de calificación.
+  static Future<int> obtenerVictoriasParaRating() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_claveVictoriasRating) ?? 0;
+  }
+
+  /// Determina si es el momento oportuno para invitar al usuario a calificar:
+  /// - Nunca si ya calificó.
+  /// - Requiere al menos 2 victorias (para que haya disfrutado la experiencia).
+  /// - Si rechazó anteriormente ("Ahora no"), respeta un enfriamiento de 5 victorias.
+  static Future<bool> debeSolicitarCalificacion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final yaCalifico = prefs.getBool(_claveAppCalificada) ?? false;
+    if (yaCalifico) return false;
+
+    final victorias = prefs.getInt(_claveVictoriasRating) ?? 0;
+    if (victorias < 2) return false;
+
+    final ultimaSolicitud = prefs.getInt(_claveUltimaSolicitudRating) ?? 0;
+    if (ultimaSolicitud > 0 && (victorias - ultimaSolicitud) < 5) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Registra que se mostró la solicitud de calificación (útil cuando el usuario
+  /// selecciona "Ahora no", para activar el enfriamiento).
+  static Future<void> registrarSolicitudRating() async {
+    final prefs = await SharedPreferences.getInstance();
+    final victorias = prefs.getInt(_claveVictoriasRating) ?? 0;
+    await prefs.setInt(_claveUltimaSolicitudRating, victorias);
   }
 
   /// Devuelve el alias guardado del jugador (ya normalizado, máx. 5 letras)

@@ -758,6 +758,7 @@ class _GameScreenState extends State<GameScreen> {
     _resolverPuestoGlobal(_partidaId);
     final recompensaMonedas = CoinsService.recompensaClasico(widget.size);
     unawaited(CoinsService.agregarMonedas(recompensaMonedas));
+    unawaited(RecordsService.incrementarVictoriasParaRating());
 
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -904,6 +905,7 @@ class _GameScreenState extends State<GameScreen> {
 
     _celebrar();
     unawaited(CoinsService.agregarMonedas(CoinsService.recompensaDiario));
+    unawaited(RecordsService.incrementarVictoriasParaRating());
 
     await DailyVictoryDialog.mostrar(
       context,
@@ -1034,6 +1036,7 @@ class _GameScreenState extends State<GameScreen> {
     );
     final recompensaMonedas = CoinsService.recompensaDesafio(estrellas);
     unawaited(CoinsService.agregarMonedas(recompensaMonedas));
+    unawaited(RecordsService.incrementarVictoriasParaRating());
     if (!mounted) return;
 
     final haySiguiente = nivel < 20;
