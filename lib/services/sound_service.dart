@@ -32,11 +32,14 @@ class SoundService {
 
       // Precargamos los 3 assets en memoria — quedan listos para
       // reproducirse instantáneamente sin recargar el archivo.
-      _fuenteClick = await _soloud.loadAsset('assets/sounds/click.mp3');
-      _fuenteVictoria = await _soloud.loadAsset('assets/sounds/victory.mp3');
-      _fuenteMusica = await _soloud.loadAsset(
-        'assets/sounds/background_music.mp3',
-      );
+      final fuentes = await Future.wait([
+        _soloud.loadAsset('assets/sounds/click.mp3'),
+        _soloud.loadAsset('assets/sounds/victory.mp3'),
+        _soloud.loadAsset('assets/sounds/background_music.mp3'),
+      ]);
+      _fuenteClick = fuentes[0];
+      _fuenteVictoria = fuentes[1];
+      _fuenteMusica = fuentes[2];
     } catch (e) {
       debugPrint('Error inicializando SoundService: $e');
     }

@@ -26,9 +26,15 @@ Future<void> _inicializarFirebase() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
-    // Sesión anónima: necesaria para escribir en Firestore (1 doc por uid).
+    // Sesión anónima en segundo plano: no bloquea el arranque ni el primer frame.
+    // Solo se requiere al interactuar con Firestore.
     if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
+      unawaited(
+        FirebaseAuth.instance.signInAnonymously().catchError((e) {
+          debugPrint('Firebase Auth anónimo no disponible: $e');
+          return null as dynamic;
+        }),
+      );
     }
   } catch (e) {
     // Sin red o plataforma sin configurar: la app arranca igual. El Top 5
@@ -39,12 +45,14 @@ Future<void> _inicializarFirebase() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _inicializarFirebase();
-  await RecordsService.limpiarDatosViejos();
-  await CoinsService.inicializar();
   final settings = AppSettingsProvider();
-  await settings.inicializar();
-  await SoundService.inicializar();
+  await Future.wait([
+    _inicializarFirebase(),
+    RecordsService.limpiarDatosViejos(),
+    CoinsService.inicializar(),
+    settings.inicializar(),
+    SoundService.inicializar(),
+  ]);
   unawaited(AdMobService.init());
   unawaited(PlayGamesService.iniciarSesionSilenciosa());
 

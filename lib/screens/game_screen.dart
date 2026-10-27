@@ -993,12 +993,12 @@ class _GameScreenState extends State<GameScreen> {
     final movimientos = _movimientos.value;
     final tiempoSegundos = _segundos.value;
 
-    final puestoPosible = await FirebaseService.posicionActualPuntaje(
+    final eval = await FirebaseService.evaluarPuntajeTop(
       size: widget.size,
       movimientos: movimientos,
       tiempoSegundos: tiempoSegundos,
     );
-    if (puestoPosible == null) return null;
+    if (eval.puesto == null) return null;
 
     var alias = await RecordsService.obtenerAlias();
     if (alias == null) {
@@ -1015,6 +1015,7 @@ class _GameScreenState extends State<GameScreen> {
       alias: alias,
       movimientos: movimientos,
       tiempoSegundos: tiempoSegundos,
+      actualesCache: eval.actuales,
     );
   }
 
@@ -1570,23 +1571,6 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          // Confetti encima del juego
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              numberOfParticles: 30,
-              gravity: 0.3,
-              colors: const [
-                Color(0xFF4361EE),
-                Color(0xFF10B981),
-                Color(0xFFF59E0B),
-                Color(0xFFEF4444),
-                Colors.white,
               ],
             ),
           ),

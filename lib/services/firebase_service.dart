@@ -83,16 +83,13 @@ class FirebaseService {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return null;
 
-      final snap = await FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection(nombreColeccion(size))
-          .limit(_limiteConsulta)
+          .doc(uid)
           .get();
 
-      // Un documento por usuario y tamaño, así que hay a lo sumo uno propio.
-      for (final doc in snap.docs) {
-        if (doc.id == uid) return PuntajeGlobal.fromDocument(doc);
-      }
-      return null;
+      if (!doc.exists) return null;
+      return PuntajeGlobal.fromDocument(doc);
     } catch (e) {
       debugPrint('No se pudo leer el récord propio: $e');
       return null;
@@ -111,6 +108,7 @@ class FirebaseService {
     required String alias,
     required int movimientos,
     required int tiempoSegundos,
+    List<PuntajeGlobal>? actualesCache,
   }) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -119,10 +117,15 @@ class FirebaseService {
       final coleccion =
           FirebaseFirestore.instance.collection(nombreColeccion(size));
 
-      // Leemos el estado actual (hasta 200 jugadores) para decidir en cliente.
-      final snap = await coleccion.limit(_limiteConsulta).get();
-      final actuales = snap.docs.map(PuntajeGlobal.fromDocument).toList()
-        ..sort((a, b) => a.compareTo(b));
+      final List<PuntajeGlobal> actuales;
+      if (actualesCache != null && actualesCache.isNotEmpty) {
+        actuales = actualesCache;
+      } else {
+        // Leemos el estado actual (hasta 200 jugadores) para decidir en cliente.
+        final snap = await coleccion.limit(_limiteConsulta).get();
+        actuales = snap.docs.map(PuntajeGlobal.fromDocument).toList()
+          ..sort((a, b) => a.compareTo(b));
+      }
 
       // Puntaje previo de ESTE usuario (doc id = uid), si existe.
       PuntajeGlobal? propio;
@@ -175,17 +178,22 @@ class FirebaseService {
   ///
   /// Devuelve `null` si no clasifica, si no hay sesión o si falla la red
   /// (nunca lanza).
-  static Future<int?> posicionActualPuntaje({
+  static Future<({int? puesto, List<PuntajeGlobal> actuales})> evaluarPuntajeTop({
     required int size,
     required int movimientos,
     required int tiempoSegundos,
   }) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return null;
-      final top = await obtenerTop(size);
-      return posicionEnTop(
-        top,
+      if (uid == null) return (puesto: null, actuales: <PuntajeGlobal>[]);
+      final snap = await FirebaseFirestore.instance
+          .collection(nombreColeccion(size))
+          .limit(_limiteConsulta)
+          .get();
+      final actuales = snap.docs.map(PuntajeGlobal.fromDocument).toList()
+        ..sort((a, b) => a.compareTo(b));
+      final puesto = posicionEnTop(
+        actuales,
         PuntajeGlobal(
           id: uid,
           alias: '',
@@ -194,9 +202,26 @@ class FirebaseService {
           fecha: DateTime.now(),
         ),
       );
+      return (puesto: puesto, actuales: actuales);
     } catch (_) {
-      return null;
+      return (puesto: null, actuales: <PuntajeGlobal>[]);
     }
+  }
+
+  /// Consulta el puesto que ocuparía (1..5) la partida actual del usuario en
+  /// el Top 5 de [size], **sin escribir nada**. Descuenta un eventual puntaje
+  /// previo del mismo usuario (doc id = uid).
+  static Future<int?> posicionActualPuntaje({
+    required int size,
+    required int movimientos,
+    required int tiempoSegundos,
+  }) async {
+    final res = await evaluarPuntajeTop(
+      size: size,
+      movimientos: movimientos,
+      tiempoSegundos: tiempoSegundos,
+    );
+    return res.puesto;
   }
 
   /// Devuelve la posición (1..5) que ocuparía [candidato] dentro de [actuales]
