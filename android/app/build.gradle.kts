@@ -77,6 +77,10 @@ android {
         }
     }
 
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         applicationId = "dev.matute.slidingpuzzle"
         minSdk = flutter.minSdkVersion
