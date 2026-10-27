@@ -1,0 +1,56 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          }
+        ]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "sliding-puzzle-2243e",
+          "appId": "1:538351334306:android:542f38a19077345dc538fb",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "sliding-puzzle-2243e",
+          "configurations": {
+            "android": "1:538351334306:android:542f38a19077345dc538fb",
+            "ios": "1:538351334306:ios:2bb48de730f3b7fcc538fb",
+            "web": "1:538351334306:web:6c6ded44609132b8c538fb"
+          }
+        }
+      }
+    }
+  }
+}

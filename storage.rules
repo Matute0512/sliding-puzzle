@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Foto del Desafío Diario: solo lectura desde el cliente.
+    // La subida y modificación se realiza exclusivamente desde la consola o backend administrativo.
+    match /daily/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Denegación por defecto para cualquier otra ruta
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

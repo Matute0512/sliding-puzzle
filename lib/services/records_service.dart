@@ -188,7 +188,7 @@ class RecordsService {
   }
 
   static String _normalizarAlias(String alias) {
-    final limpio = alias.trim().toUpperCase();
+    final limpio = alias.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     return limpio.length <= 5 ? limpio : limpio.substring(0, 5);
   }
 }

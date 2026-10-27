@@ -183,6 +183,7 @@ class AdMobService {
           ),
         );
       }
+      await _solicitarConsentimientoSiAplica();
       await MobileAds.instance.initialize();
       _inicializado = true;
       inicializadoListenable.value = true;
@@ -193,6 +194,47 @@ class AdMobService {
       debugPrint('AdMob: error inicializando el SDK — $e');
     } finally {
       _initEnCurso = false;
+    }
+  }
+
+  /// Solicita y muestra el formulario de consentimiento de la Plataforma de Mensajería
+  /// para Usuarios (UMP SDK) conforme a las normativas de privacidad (GDPR/ePrivacy).
+  static Future<void> _solicitarConsentimientoSiAplica() async {
+    try {
+      final completer = Completer<void>();
+      ConsentInformation.instance.requestConsentInfoUpdate(
+        ConsentRequestParameters(),
+        () async {
+          try {
+            if (await ConsentInformation.instance.isConsentFormAvailable()) {
+              ConsentForm.loadAndShowConsentFormIfRequired((formError) {
+                if (formError != null) {
+                  debugPrint('AdMob UMP: error en formulario: ${formError.message}');
+                }
+                if (!completer.isCompleted) completer.complete();
+              });
+            } else {
+              if (!completer.isCompleted) completer.complete();
+            }
+          } catch (e) {
+            debugPrint('AdMob UMP: excepción al verificar formulario: $e');
+            if (!completer.isCompleted) completer.complete();
+          }
+        },
+        (formError) {
+          debugPrint('AdMob UMP: error al solicitar info de consentimiento: ${formError.message}');
+          if (!completer.isCompleted) completer.complete();
+        },
+      );
+
+      await completer.future.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {
+          debugPrint('AdMob UMP: timeout esperando consentimiento.');
+        },
+      );
+    } catch (e) {
+      debugPrint('AdMob UMP: excepción en flujo de consentimiento: $e');
     }
   }
 

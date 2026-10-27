@@ -1,0 +1,159 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Root Collections for Classic Leaderboards:
+// - leaderboard_3x3
+// - leaderboard_4x4
+// - leaderboard_5x5
+//   Document ID: Firebase Auth UID of the player (request.auth.uid)
+//   Fields:
+//     - alias: string, 1 to 5 alphanumeric characters (trimmed)
+//     - movimientos: int, minimum moves threshold based on grid size (>= 10 for 3x3, >= 15 for 4x4, >= 20 for 5x5)
+//     - tiempoSegundos: int, elapsed time in seconds (>= 2)
+//     - fecha: timestamp, equal to request.time (FieldValue.serverTimestamp())
+//   No extra fields allowed.
+//   Permissions:
+//     - Read: public (anyone can view global top scores)
+//     - Create: authenticated user where docId == request.auth.uid and valid score data
+//     - Update: authenticated user where docId == request.auth.uid and valid score data
+//     - Delete: denied
+//
+// Subcollection for Daily Leaderboard:
+// - daily_leaderboards/{semilla}/scores/{uid}
+//   Parent: daily_leaderboards/{semilla} where semilla is an 8-digit date string (YYYYMMDD)
+//   Document ID: Firebase Auth UID of the player (request.auth.uid)
+//   Fields:
+//     - alias: string, 1 to 5 alphanumeric characters (trimmed)
+//     - movimientos: int, minimum moves threshold (>= 5)
+//     - tiempoSegundos: int, elapsed time in seconds (>= 2)
+//     - fecha: timestamp, equal to request.time (FieldValue.serverTimestamp())
+//   No extra fields allowed.
+//   Permissions:
+//     - Read: public (anyone can view daily challenge ranking)
+//     - Create: authenticated user where uid == request.auth.uid and valid score data
+//     - Update: authenticated user where uid == request.auth.uid and valid score data
+//     - Delete: denied
+//
+// Root fallback:
+// - match /{document=**}: deny all reads and writes
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user owns this document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate required fields exist in request payload
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate player alias: string, trimmed, 1 to 5 alphanumeric characters
+    function isValidAlias(alias) {
+      return alias is string &&
+             alias.size() >= 1 &&
+             alias.size() <= 5 &&
+             alias.matches('^[a-zA-Z0-9]{1,5}$');
+    }
+
+    // Validate server timestamp matches the request evaluation time
+    function isValidTimestamp(fecha) {
+      return fecha is timestamp && fecha == request.time;
+    }
+
+    // Validate YYYYMMDD seed (8 digits representing the daily challenge date)
+    function isValidSeed(semilla) {
+      return semilla is string && semilla.matches('^[0-9]{8}$');
+    }
+
+    // Domain validator for Classic Leaderboard score documents
+    function isValidClassicScore(data, minMoves) {
+      return hasRequiredFields(['alias', 'movimientos', 'tiempoSegundos', 'fecha']) &&
+             hasOnlyAllowedFields(['alias', 'movimientos', 'tiempoSegundos', 'fecha']) &&
+             isValidAlias(data.alias) &&
+             data.movimientos is int &&
+             data.movimientos >= minMoves &&
+             data.tiempoSegundos is int &&
+             data.tiempoSegundos >= 2 &&
+             isValidTimestamp(data.fecha);
+    }
+
+    // Domain validator for Daily Challenge score documents
+    function isValidDailyScore(data) {
+      return hasRequiredFields(['alias', 'movimientos', 'tiempoSegundos', 'fecha']) &&
+             hasOnlyAllowedFields(['alias', 'movimientos', 'tiempoSegundos', 'fecha']) &&
+             isValidAlias(data.alias) &&
+             data.movimientos is int &&
+             data.movimientos >= 5 &&
+             data.tiempoSegundos is int &&
+             data.tiempoSegundos >= 2 &&
+             isValidTimestamp(data.fecha);
+    }
+
+    // ===============================================================
+    // Classic Leaderboards (3x3, 4x4, 5x5)
+    // ===============================================================
+
+    match /leaderboard_3x3/{docId} {
+      allow read: if true;
+      allow create, update: if isOwner(docId) && isValidClassicScore(request.resource.data, 10);
+      allow delete: if false;
+    }
+
+    match /leaderboard_4x4/{docId} {
+      allow read: if true;
+      allow create, update: if isOwner(docId) && isValidClassicScore(request.resource.data, 15);
+      allow delete: if false;
+    }
+
+    match /leaderboard_5x5/{docId} {
+      allow read: if true;
+      allow create, update: if isOwner(docId) && isValidClassicScore(request.resource.data, 20);
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Daily Leaderboard (daily_leaderboards/{semilla}/scores/{uid})
+    // ===============================================================
+
+    match /daily_leaderboards/{semilla} {
+      // Parent documents do not store metadata; deny direct read/write
+      allow read, write: if false;
+
+      match /scores/{uid} {
+        allow read: if true;
+        allow create, update: if isOwner(uid) &&
+                                 isValidSeed(semilla) &&
+                                 isValidDailyScore(request.resource.data);
+        allow delete: if false;
+      }
+    }
+
+    // ===============================================================
+    // Default Deny Rule
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

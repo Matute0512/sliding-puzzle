@@ -32,7 +32,7 @@ class AliasDialog extends StatefulWidget {
       builder: (_) => const AliasDialog(),
     );
 
-    final normalizado = alias?.trim().toUpperCase() ?? '';
+    final normalizado = (alias ?? '').trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     if (normalizado.isEmpty) return null;
     return normalizado.length <= 5 ? normalizado : normalizado.substring(0, 5);
   }
@@ -86,7 +86,10 @@ class _AliasDialogState extends State<AliasDialog> {
               textCapitalization: TextCapitalization.characters,
               textAlign: TextAlign.center,
               maxLength: 5,
-              inputFormatters: [LengthLimitingTextInputFormatter(5)],
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                LengthLimitingTextInputFormatter(5),
+              ],
               style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
