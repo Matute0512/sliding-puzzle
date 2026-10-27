@@ -671,27 +671,34 @@ class _GameScreenState extends State<GameScreen> {
   void _onTapFicha(int indice) {
     if (_pausado || _juegoTerminado) return;
 
-    if (!PuzzleLogic.puedeMover(_tablero.value, indice, widget.size)) {
+    final tableroActual = _tablero.value;
+    final posVacio = tableroActual.indexOf(0);
+
+    if (!PuzzleLogic.puedeMoverConVacio(indice, posVacio, widget.size)) {
       // Feedback para un tap inválido (antes era un no-op silencioso).
       HapticFeedback.selectionClick();
       return;
     }
 
     // El reloj arranca con el primer movimiento y se reanuda si venía detenido
-    // (partida retomada). `_iniciarTimer` continúa el Stopwatch en vez de
+    // (partida retomada). _iniciarTimer continúa el Stopwatch en vez de
     // reiniciarlo, así que el tiempo ya acumulado se conserva.
     _juegoIniciado = true;
     if (_timer == null) _iniciarTimer();
 
     SoundService.reproducirClick();
 
-    // Sin `setState`: el tablero y el contador se publican por sus notifiers, y
-    // sus dos consumidores (`PuzzleBoard` y la tarjeta de movimientos) son los
-    // únicos que tienen que reaccionar. Un `setState` acá reconstruía la
-    // pantalla entera —header, HUD, consigna y botonera— en cada jugada.
-    _historialHuecos.add(_tablero.value.indexOf(0));
+    // Sin setState: el tablero y el contador se publican por sus notifiers, y
+    // sus dos consumidores (PuzzleBoard y la tarjeta de movimientos) son los
+    // únicos que tienen que reaccionar.
+    _historialHuecos.add(posVacio);
     _puedeDeshacer.value = true;
-    _tablero.value = PuzzleLogic.mover(_tablero.value, indice, widget.size);
+    _tablero.value = PuzzleLogic.mover(
+      tableroActual,
+      indice,
+      widget.size,
+      posVacio,
+    );
     _movimientos.value++;
 
     if (PuzzleLogic.estaResuelto(_tablero.value)) {

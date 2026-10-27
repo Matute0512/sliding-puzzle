@@ -51,43 +51,50 @@ class PuzzleLogic {
     tablero[b] = temp;
   }
 
-  /// Determina si la ficha seleccionada puede moverse.
-  static bool puedeMover(List<int> tablero, int indice, int size) {
-    int posVacio = tablero.indexOf(0);
+  /// Determina si la ficha en [indice] es adyacente a la posición del hueco [posVacio].
+  static bool puedeMoverConVacio(int indice, int posVacio, int size) {
+    if (posVacio < 0 || indice < 0) return false;
+    final filaFicha = indice ~/ size;
+    final colFicha = indice % size;
+    final filaVacio = posVacio ~/ size;
+    final colVacio = posVacio % size;
 
-    int filaFicha = indice ~/ size;
-    int colFicha = indice % size;
-
-    int filaVacio = posVacio ~/ size;
-    int colVacio = posVacio % size;
-
-    // Son adyacentes si comparten fila y su diferencia en columnas es 1,
-    // o viceversa.
-    bool mismaFila = filaFicha == filaVacio && (colFicha - colVacio).abs() == 1;
-    bool mismaColumna =
-        colFicha == colVacio && (filaFicha - filaVacio).abs() == 1;
-
+    final mismaFila = filaFicha == filaVacio && (colFicha - colVacio).abs() == 1;
+    final mismaColumna = colFicha == colVacio && (filaFicha - filaVacio).abs() == 1;
     return mismaFila || mismaColumna;
   }
 
+  /// Determina si la ficha seleccionada puede moverse.
+  static bool puedeMover(List<int> tablero, int indice, int size) {
+    return puedeMoverConVacio(indice, tablero.indexOf(0), size);
+  }
+
   /// Devuelve los índices de las fichas que actualmente pueden moverse
-  /// (adyacentes al hueco). Útil para dar pistas visuales en la UI.
+  /// (adyacentes al hueco). O(1) de vecinos directos tras localizar el hueco.
   static List<int> movibles(List<int> tablero, int size) {
-    return [
-      for (var i = 0; i < tablero.length; i++)
-        if (puedeMover(tablero, i, size)) i,
-    ];
+    final posVacio = tablero.indexOf(0);
+    if (posVacio < 0) return const [];
+
+    final f = posVacio ~/ size;
+    final c = posVacio % size;
+    final res = <int>[];
+
+    if (f > 0) res.add(posVacio - size);
+    if (c > 0) res.add(posVacio - 1);
+    if (c < size - 1) res.add(posVacio + 1);
+    if (f < size - 1) res.add(posVacio + size);
+
+    res.sort();
+    return res;
   }
 
   /// Si la ficha [indice] está adyacente al hueco, devuelve la dirección en la
   /// que debe deslizarse para caer en él. `null` si no es adyacente.
   static Direccion? direccionHaciaVacio(
       List<int> tablero, int indice, int size) {
-    if (!puedeMover(tablero, indice, size)) return null;
-
     final posVacio = tablero.indexOf(0);
-    // +1 en dx  => el hueco está a la derecha de la ficha
-    // +1 en dy  => el hueco está debajo de la ficha
+    if (!puedeMoverConVacio(indice, posVacio, size)) return null;
+
     final dx = (posVacio % size) - (indice % size);
     final dy = (posVacio ~/ size) - (indice ~/ size);
 
@@ -100,17 +107,15 @@ class PuzzleLogic {
   /// Mueve una ficha si el movimiento es válido.
   ///
   /// Retorna una nueva lista para preservar la inmutabilidad.
-  static List<int> mover(List<int> tablero, int indice, int size) {
-    if (!puedeMover(tablero, indice, size)) {
+  static List<int> mover(List<int> tablero, int indice, int size, [int? posVacioConocido]) {
+    final posVacio = posVacioConocido ?? tablero.indexOf(0);
+    if (!puedeMoverConVacio(indice, posVacio, size)) {
       return List.from(tablero);
     }
 
-    int posVacio = tablero.indexOf(0);
-
-    List<int> nuevo = List.from(tablero);
+    final nuevo = List<int>.from(tablero);
     nuevo[posVacio] = nuevo[indice];
     nuevo[indice] = 0;
-
     return nuevo;
   }
 

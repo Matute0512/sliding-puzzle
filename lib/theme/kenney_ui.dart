@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
@@ -198,17 +199,29 @@ abstract final class KenneyInk {
 /// cambió por capas: el pack no trae ninguna textura repetible —`Preview.png` y
 /// `Sample.png` de su raíz son collages de documentación, no patrones— y el
 /// cuadrado plano tileado se leía como una grilla de botones, no como un fondo.
-class GameBackground extends StatelessWidget {
+class GameBackground extends StatefulWidget {
   const GameBackground({super.key, required this.child});
 
   final Widget child;
 
   @override
+  State<GameBackground> createState() => _GameBackgroundState();
+}
+
+class _GameBackgroundState extends State<GameBackground> {
+  final _CacheTexturaFondo _cacheTextura = _CacheTexturaFondo();
+
+  @override
+  void dispose() {
+    _cacheTextura.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     return DecoratedBox(
       decoration: const BoxDecoration(
-        // Color de base: es el respaldo mientras pinta el degradado y lo que se
-        // ve por detrás de todo.
         color: AppTheme.gameBackground,
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -222,60 +235,87 @@ class GameBackground extends StatelessWidget {
         ),
       ),
       child: Stack(
-        // `passthrough` para que el contenido de la app reciba las constraints
-        // de pantalla completa tal cual, sin que el Stack las relaje.
         fit: StackFit.passthrough,
         children: [
-          // Grilla modular y glows atmosféricos unificados en un solo
-          // `CustomPaint` (y `RepaintBoundary` propio) para grabar una única
-          // display list en lugar de dos capas de pantalla completa. Va con
-          // `IgnorePointer`: es fondo, y sin esto se comería los toques que sí
-          // tienen que llegar al contenido de arriba.
-          const Positioned.fill(
+          Positioned.fill(
             child: IgnorePointer(
               child: RepaintBoundary(
-                child: CustomPaint(painter: _FondoArcade()),
-              ),
-            ),
-          ),
-          const Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppTheme.veilTop,
-                      Colors.transparent,
-                      AppTheme.veilBottom,
-                    ],
-                    stops: [0, 0.45, 1],
+                child: CustomPaint(
+                  painter: _FondoArcadeUnificadoPainter(
+                    dpr: dpr,
+                    cache: _cacheTextura,
                   ),
                 ),
               ),
             ),
           ),
-          child,
+          widget.child,
         ],
       ),
     );
   }
 }
 
-/// Grilla modular (una línea cada [AppTheme.gridStep] píxeles) y los dos glows
-/// atmosféricos del fondo ("atmosphere" en el frame), unificados en un solo
-/// [CustomPainter].
-///
-/// Va con `CustomPaint` y no con widgets porque en una pantalla alta la grilla
-/// son ~40 líneas y los glows son dos círculos `RadialGradient` que **sangran**
-/// por los bordes de la pantalla. Unificarlos en un único painter ahorra una
-/// capa y una display list de pantalla completa.
-class _FondoArcade extends CustomPainter {
-  const _FondoArcade();
+class _CacheTexturaFondo {
+  ui.Image? textura;
+  double? ancho;
+  double? alto;
+  double? dpr;
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  ui.Image? obtenerOGenerar({
+    required double ancho,
+    required double alto,
+    required double dpr,
+  }) {
+    if (textura != null &&
+        this.ancho == ancho &&
+        this.alto == alto &&
+        this.dpr == dpr) {
+      return textura;
+    }
+
+    final anchoPx = (ancho * dpr).round();
+    final altoPx = (alto * dpr).round();
+    if (anchoPx <= 0 || altoPx <= 0) return null;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(dpr, dpr);
+    final size = Size(ancho, alto);
+
+    _FondoArcadeUnificadoPainter.dibujarFondoCompleto(canvas, size);
+
+    final picture = recorder.endRecording();
+    textura?.dispose();
+    textura = picture.toImageSync(anchoPx, altoPx);
+    picture.dispose();
+
+    this.ancho = ancho;
+    this.alto = alto;
+    this.dpr = dpr;
+    return textura;
+  }
+
+  void dispose() {
+    textura?.dispose();
+    textura = null;
+  }
+}
+
+class _FondoArcadeUnificadoPainter extends CustomPainter {
+  final double dpr;
+  final _CacheTexturaFondo cache;
+
+  const _FondoArcadeUnificadoPainter({
+    required this.dpr,
+    required this.cache,
+  });
+
+  static void dibujarFondoCompleto(Canvas canvas, Size size) {
+    final rectTotal = Offset.zero & size;
+
+    
+
+    // 2. Grilla modular
     final paso = AppTheme.gridStep;
     final normal = Paint()
       ..color = AppTheme.gridLine
@@ -284,9 +324,6 @@ class _FondoArcade extends CustomPainter {
       ..color = AppTheme.gridLineAccent
       ..strokeWidth = 1;
 
-    // Se cuenta con enteros en vez de acumular `x += paso`: con doubles, el
-    // error de redondeo corre las líneas y el `% 4` del acento deja de caer
-    // donde tiene que caer.
     for (var i = 0; i * paso <= size.width; i++) {
       final x = i * paso;
       canvas.drawLine(
@@ -304,9 +341,7 @@ class _FondoArcade extends CustomPainter {
       );
     }
 
-    // Las posiciones y los tamaños salen del frame (400x844) llevados a
-    // fracciones, para que escalen con cualquier pantalla en vez de quedar
-    // clavados en píxeles de un mockup.
+    // 3. Glows atmosféricos
     _glow(
       canvas,
       size,
@@ -323,9 +358,23 @@ class _FondoArcade extends CustomPainter {
       color: AppTheme.backdropGlowLower,
       alfa: 0.16,
     );
+
+    // 4. Velo de legibilidad en los extremos
+    final paintVelo = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppTheme.veilTop,
+          Colors.transparent,
+          AppTheme.veilBottom,
+        ],
+        stops: [0, 0.45, 1],
+      ).createShader(rectTotal);
+    canvas.drawRect(rectTotal, paintVelo);
   }
 
-  void _glow(
+  static void _glow(
     Canvas canvas,
     Size size, {
     required Offset centro,
@@ -348,7 +397,38 @@ class _FondoArcade extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FondoArcade oldDelegate) => false;
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+
+    final textura = cache.obtenerOGenerar(
+      ancho: size.width,
+      alto: size.height,
+      dpr: dpr,
+    );
+
+    if (textura != null) {
+      canvas.drawImageRect(
+        textura,
+        Rect.fromLTWH(
+          0,
+          0,
+          textura.width.toDouble(),
+          textura.height.toDouble(),
+        ),
+        Offset.zero & size,
+        Paint()..filterQuality = FilterQuality.low,
+      );
+      return;
+    }
+
+    // Fallback sincrónico si toImageSync no está disponible
+    dibujarFondoCompleto(canvas, size);
+  }
+
+  @override
+  bool shouldRepaint(_FondoArcadeUnificadoPainter oldDelegate) {
+    return oldDelegate.dpr != dpr;
+  }
 }
 
 /// Superficie 9-slice: pinta [slice] de fondo y encima coloca [child].
