@@ -81,13 +81,9 @@ aab/app-release.aab
 # copialo ahí: el pack crudo no viaja en el repo.
 assets/ui/kenney_ui-pack
 
-# Imagenes Plantilla Play Store
+# Imagenes Plantilla Play Store y capturas
 screenshots/
-
-# Activos de consola / logros generados localmente
 /logros_icons/
 /generate_achievement_icons.ps1
 /icono_512x512.png
 /grafico_funciones_1024x500.png
-/grafico_funciones_1024x500.png
-
