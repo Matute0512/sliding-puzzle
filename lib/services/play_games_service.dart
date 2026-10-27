@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:games_services/games_services.dart';
 
 import 'logros_pendientes.dart';
@@ -295,11 +296,35 @@ class PlayGamesService {
     try {
       do {
         _resincronizar = false;
+        var primerEnvio = true;
         final enviados = await LogrosPendientes.sincronizar((id) async {
-          final respuesta = await Achievements.unlock(
-            achievement: Achievement(androidID: id),
-          );
-          debugPrint('PlayGames: logro $id respuesta: $respuesta');
+          if (!primerEnvio) {
+            // Espaciado para evitar saturación del canal IPC nativo de Play Games
+            // (evita el código 26502: CLIENT_RECONNECT_REQUIRED).
+            await Future.delayed(const Duration(milliseconds: 250));
+          }
+          primerEnvio = false;
+
+          try {
+            final respuesta = await Achievements.unlock(
+              achievement: Achievement(androidID: id),
+            );
+            debugPrint('PlayGames: logro $id respuesta: $respuesta');
+          } on PlatformException catch (e) {
+            final mensaje = e.message ?? '';
+            if (e.code.contains('26502') || mensaje.contains('26502')) {
+              debugPrint(
+                'PlayGames: CLIENT_RECONNECT_REQUIRED en $id, reintentando tras espera...',
+              );
+              await Future.delayed(const Duration(milliseconds: 500));
+              final reintento = await Achievements.unlock(
+                achievement: Achievement(androidID: id),
+              );
+              debugPrint('PlayGames: logro $id reintento respuesta: $reintento');
+              return;
+            }
+            rethrow;
+          }
         });
         if (enviados > 0) {
           debugPrint('PlayGames: $enviados logro(s) pendiente(s) enviado(s).');

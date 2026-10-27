@@ -48,11 +48,11 @@ void main() async {
   final settings = AppSettingsProvider();
   await Future.wait([
     _inicializarFirebase(),
-    RecordsService.limpiarDatosViejos(),
     CoinsService.inicializar(),
     settings.inicializar(),
     SoundService.inicializar(),
   ]);
+  unawaited(RecordsService.limpiarDatosViejos());
   unawaited(AdMobService.init());
   unawaited(PlayGamesService.iniciarSesionSilenciosa());
 

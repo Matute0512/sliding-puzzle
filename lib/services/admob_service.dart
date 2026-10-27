@@ -176,6 +176,13 @@ class AdMobService {
     if (_inicializado || _initEnCurso || !plataformaSoportada) return;
     _initEnCurso = true;
     try {
+      if (kDebugMode) {
+        await MobileAds.instance.updateRequestConfiguration(
+          RequestConfiguration(
+            testDeviceIds: const ['8996DA7F40C774D4538F7BFB6C16B784'],
+          ),
+        );
+      }
       await MobileAds.instance.initialize();
       _inicializado = true;
       inicializadoListenable.value = true;
