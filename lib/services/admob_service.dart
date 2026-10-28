@@ -247,28 +247,33 @@ class AdMobService {
     }
     _cargandoInterstitial = true;
 
-    InterstitialAd.load(
-      adUnitId: adUnitIdInterstitial,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _cargandoInterstitial = false;
-          _intentosFallidos = 0;
-          _interstitial = ad;
-          debugPrint('AdMob: interstitial precargado y listo.');
-        },
-        onAdFailedToLoad: (error) {
-          _cargandoInterstitial = false;
-          _interstitial = null;
-          _intentosFallidos++;
-          debugPrint('AdMob: falló la precarga del interstitial — $error');
-          if (_intentosFallidos <= 3) {
-            final espera = Duration(seconds: 15 * _intentosFallidos);
-            Timer(espera, loadInterstitial);
-          }
-        },
-      ),
-    );
+    try {
+      InterstitialAd.load(
+        adUnitId: adUnitIdInterstitial,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _cargandoInterstitial = false;
+            _intentosFallidos = 0;
+            _interstitial = ad;
+            debugPrint('AdMob: interstitial precargado y listo.');
+          },
+          onAdFailedToLoad: (error) {
+            _cargandoInterstitial = false;
+            _interstitial = null;
+            _intentosFallidos++;
+            debugPrint('AdMob: falló la precarga del interstitial — $error');
+            if (_intentosFallidos <= 3) {
+              final espera = Duration(seconds: 15 * _intentosFallidos);
+              Timer(espera, loadInterstitial);
+            }
+          },
+        ),
+      );
+    } catch (e) {
+      _cargandoInterstitial = false;
+      debugPrint('AdMob: excepción al solicitar carga de interstitial: $e');
+    }
   }
 
   /// Verifica si transcurrió el [cooldownMinimo] desde el último anuncio.
@@ -372,7 +377,16 @@ class AdMobService {
 
     try {
       await ad.show();
-      return await completer.future;
+      return await completer.future.timeout(
+        const Duration(seconds: 8),
+        onTimeout: () {
+          debugPrint('AdMob: timeout esperando cierre del interstitial.');
+          ad.dispose();
+          unawaited(SoundService.reanudarMusica());
+          loadInterstitial();
+          return false;
+        },
+      );
     } catch (e) {
       debugPrint('AdMob: excepción mostrando el interstitial — $e');
       ad.dispose();
@@ -391,28 +405,33 @@ class AdMobService {
     }
     _cargandoRewarded = true;
 
-    RewardedAd.load(
-      adUnitId: adUnitIdRewarded,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _cargandoRewarded = false;
-          _intentosFallidosRewarded = 0;
-          _rewarded = ad;
-          debugPrint('AdMob: rewarded precargado y listo.');
-        },
-        onAdFailedToLoad: (error) {
-          _cargandoRewarded = false;
-          _rewarded = null;
-          _intentosFallidosRewarded++;
-          debugPrint('AdMob: falló la precarga del rewarded — $error');
-          if (_intentosFallidosRewarded <= 3) {
-            final espera = Duration(seconds: 15 * _intentosFallidosRewarded);
-            Timer(espera, loadRewarded);
-          }
-        },
-      ),
-    );
+    try {
+      RewardedAd.load(
+        adUnitId: adUnitIdRewarded,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            _cargandoRewarded = false;
+            _intentosFallidosRewarded = 0;
+            _rewarded = ad;
+            debugPrint('AdMob: rewarded precargado y listo.');
+          },
+          onAdFailedToLoad: (error) {
+            _cargandoRewarded = false;
+            _rewarded = null;
+            _intentosFallidosRewarded++;
+            debugPrint('AdMob: falló la precarga del rewarded — $error');
+            if (_intentosFallidosRewarded <= 3) {
+              final espera = Duration(seconds: 15 * _intentosFallidosRewarded);
+              Timer(espera, loadRewarded);
+            }
+          },
+        ),
+      );
+    } catch (e) {
+      _cargandoRewarded = false;
+      debugPrint('AdMob: excepción al solicitar carga de rewarded: $e');
+    }
   }
 
   /// Muestra un anuncio bonificado para obtener la recompensa de deshacer movimiento.
@@ -463,7 +482,16 @@ class AdMobService {
           );
         },
       );
-      return await completer.future;
+      return await completer.future.timeout(
+        const Duration(seconds: 12),
+        onTimeout: () {
+          debugPrint('AdMob: timeout esperando cierre del rewarded.');
+          ad.dispose();
+          unawaited(SoundService.reanudarMusica());
+          loadRewarded();
+          return false;
+        },
+      );
     } catch (e) {
       debugPrint('AdMob: excepción mostrando el rewarded — $e');
       ad.dispose();

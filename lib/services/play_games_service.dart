@@ -121,7 +121,9 @@ class PlayGamesService {
         _autenticado = true;
         debugPrint('PlayGames: sesión existente detectada.');
       } else {
-        await _iniciarSesionInteractiva();
+        debugPrint(
+          'PlayGames: no hay sesión activa previa. Se mantiene modo local/invitado.',
+        );
       }
     }
     await _sincronizarPendientes();

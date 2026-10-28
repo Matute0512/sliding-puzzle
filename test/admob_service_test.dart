@@ -124,6 +124,13 @@ void main() {
         startsWith('ca-app-pub-3940256099942544/'),
       );
     });
+
+    test('mostrarInterstitial y mostrarRewarded devuelven false de forma segura sin SDK activo', () async {
+      AdMobService.mostrarInterstitialOverride = null;
+      AdMobService.mostrarRewardedOverride = null;
+      expect(await AdMobService.registrarVictoriaYMostrarSiCorresponde(), isFalse);
+      expect(await AdMobService.mostrarRewardedParaDeshacer(), isFalse);
+    });
   });
 
   testWidgets(

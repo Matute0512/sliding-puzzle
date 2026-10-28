@@ -89,11 +89,28 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
         onAdFailedToLoad: (ad, error) {
           debugPrint('AdMob: falló la carga del banner — $error');
           ad.dispose();
+          if (mounted) {
+            setState(() {
+              _bannerAd = null;
+              _cargado = false;
+            });
+            _solicitudIniciada = false;
+            Future.delayed(const Duration(seconds: 30), () {
+              if (mounted && !_cargado && !_solicitudIniciada) {
+                _intentarProgramarCarga();
+              }
+            });
+          }
         },
       ),
     );
 
-    await banner.load();
+    try {
+      await banner.load();
+    } catch (e) {
+      debugPrint('AdMob: excepción al cargar banner: $e');
+      _solicitudIniciada = false;
+    }
   }
 
   @override

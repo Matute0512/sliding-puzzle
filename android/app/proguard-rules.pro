@@ -23,3 +23,14 @@
 -keep class com.google.android.gms.measurement.** { *; }
 -dontwarn com.google.errorprone.annotations.**
 
+
+# Google Play Games Services & Gson
+-keep class com.google.android.gms.games.** { *; }
+-keep class com.abedalkareem.games_services.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Firebase Crashlytics
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception

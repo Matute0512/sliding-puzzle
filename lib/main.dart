@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sliding_puzzle/services/coins_service.dart';
@@ -26,6 +28,11 @@ Future<void> _inicializarFirebase() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
+    if (!kIsWeb) {
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+    }
     // Sesión anónima en segundo plano: no bloquea el arranque ni el primer frame.
     // Solo se requiere al interactuar con Firestore.
     if (FirebaseAuth.instance.currentUser == null) {
@@ -45,12 +52,28 @@ Future<void> _inicializarFirebase() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Captura de excepciones globales de la plataforma e hilos secundarios en Crashlytics.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (!kIsWeb) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
+    debugPrint('Error global de plataforma no capturado: $error');
+    return true;
+  };
+
   final settings = AppSettingsProvider();
   await Future.wait([
     _inicializarFirebase(),
-    CoinsService.inicializar(),
-    settings.inicializar(),
-    SoundService.inicializar(),
+    CoinsService.inicializar().catchError((e) {
+      debugPrint('CoinsService no disponible al iniciar: $e');
+    }),
+    settings.inicializar().catchError((e) {
+      debugPrint('AppSettingsProvider no disponible al iniciar: $e');
+    }),
+    SoundService.inicializar().catchError((e) {
+      debugPrint('SoundService no disponible al iniciar: $e');
+    }),
   ]);
   unawaited(RecordsService.limpiarDatosViejos());
   unawaited(AdMobService.init());
