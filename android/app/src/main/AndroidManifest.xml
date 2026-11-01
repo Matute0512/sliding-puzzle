@@ -48,6 +48,13 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+        <!-- Optimización de Google Mobile Ads: descarga la inicialización y carga de anuncios a hilos secundarios para mitigar ANRs -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
+            android:value="true" />
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
+            android:value="true" />
         <!-- Google Play Games Services Application ID inyectado desde build.gradle.kts
              (lee dart_defines.json local o secret en CI). -->
         <meta-data

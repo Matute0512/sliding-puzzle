@@ -114,13 +114,19 @@ class SoundService {
 
   static void manejarCicloDeVida(AppLifecycleState estado) {
     if (estado == AppLifecycleState.paused ||
-        estado == AppLifecycleState.inactive) {
+        estado == AppLifecycleState.inactive ||
+        estado == AppLifecycleState.hidden) {
       if (musicaActivada &&
           _handleMusica != null &&
           _soloud.getIsValidVoiceHandle(_handleMusica!)) {
         pausarMusica();
         _pausadoPorCicloDeVida = true;
       }
+    } else if (estado == AppLifecycleState.detached) {
+      // El motor de la app se está destruyendo: detener todo para evitar
+      // que miniaudio/SoLoud dispare callbacks FFI sobre trampolines ya liberados.
+      detenerMusica();
+      _pausadoPorCicloDeVida = false;
     } else if (estado == AppLifecycleState.resumed) {
       if (_pausadoPorCicloDeVida) {
         reanudarMusica();

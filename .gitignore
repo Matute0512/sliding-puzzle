@@ -55,6 +55,10 @@ app.*.map.json
 /dart_defines.json
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
+/sliding-puzzle-*.json
+/play_service_account*.json
+/.credentials/
+/.env
 
 
 # Informes de auditoría local

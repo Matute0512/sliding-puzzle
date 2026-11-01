@@ -49,8 +49,15 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
   void _intentarProgramarCarga() {
     if (!_solicitudIniciada && AdMobService.anunciosHabilitados) {
       _solicitudIniciada = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _cargarBanner();
+      // Diferir levemente (350ms) la solicitud inicial del banner tras el primer
+      // frame para permitir que las animaciones iniciales de transición y entrada
+      // de rutas de Flutter se asienten en el hilo principal sin contención con
+      // el PlatformView nativo.
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted || !AdMobService.anunciosHabilitados) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _cargarBanner();
+        });
       });
     }
   }
