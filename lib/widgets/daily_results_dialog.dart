@@ -8,8 +8,8 @@ import '../services/daily_leaderboard_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 
-/// Resultados del Desafío Diario: el Top 5 del día y el resultado propio, con
-/// un botón para compartir.
+/// Resultados del Desafío Diario: el Top 5 del día, la racha diaria y el
+/// resultado propio, con un botón para compartir.
 ///
 /// Se abre desde el menú cuando el candado del día ya está cerrado. Consulta
 /// `DailyLeaderboardService` (ruta `daily_leaderboards/{semilla}/scores`), que
@@ -37,8 +37,14 @@ class DailyResultsDialog extends StatefulWidget {
   State<DailyResultsDialog> createState() => _DailyResultsDialogState();
 }
 
+typedef _DatosResultadosDiarios = ({
+  List<PuntajeDiario> top,
+  ResultadoDiario? mio,
+  EstadoRachaDiaria racha,
+});
+
 class _DailyResultsDialogState extends State<DailyResultsDialog> {
-  late Future<({List<PuntajeDiario> top, ResultadoDiario? mio})> _consulta;
+  late Future<_DatosResultadosDiarios> _consulta;
 
   @override
   void initState() {
@@ -46,12 +52,13 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
     _consulta = _cargar();
   }
 
-  /// Una sola `Future` para las dos cosas que necesita el diálogo: así hay un
+  /// Una sola `Future` para todo lo que necesita el diálogo: así hay un
   /// único estado de carga y un único botón de reintento.
-  Future<({List<PuntajeDiario> top, ResultadoDiario? mio})> _cargar() async {
+  Future<_DatosResultadosDiarios> _cargar() async {
     final top = await DailyLeaderboardService.obtenerTopDia(widget.semilla);
     final mio = await DailyChallengeService.resultadoDe(widget.semilla);
-    return (top: top, mio: mio);
+    final racha = await DailyChallengeService.estadoRacha();
+    return (top: top, mio: mio, racha: racha);
   }
 
   void _reintentar() {
@@ -59,17 +66,25 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
   }
 
   /// Copia al portapapeles el texto para compartir. Estilo Wordle: el resultado
-  /// del día en dos líneas y el link para que otro pueda jugar.
+  /// del día con su racha activa y el link para que otro pueda jugar.
   Future<void> _compartir(ResultadoDiario mio) async {
     final l10n = AppLocalizations.of(context)!;
-    final texto = l10n.dailyShareText(
-      // Como String a propósito: si fuera `int`, ICU le pondría separador de
-      // miles y la semilla se vería "20.260.919" en vez de "20260919".
-      '${widget.semilla}',
-      l10n.secondsShort(mio.segundos),
-      mio.movimientos,
-      urlPlayStore,
-    );
+    final texto = mio.racha > 0
+        ? l10n.dailyShareTextWithStreak(
+            '${widget.semilla}',
+            mio.racha,
+            l10n.secondsShort(mio.segundos),
+            mio.movimientos,
+            urlPlayStore,
+          )
+        : l10n.dailyShareText(
+            // Como String a propósito: si fuera `int`, ICU le pondría separador de
+            // miles y la semilla se vería "20.260.919" en vez de "20260919".
+            '${widget.semilla}',
+            l10n.secondsShort(mio.segundos),
+            mio.movimientos,
+            urlPlayStore,
+          );
 
     await Clipboard.setData(ClipboardData(text: texto));
     if (!mounted) return;
@@ -110,13 +125,10 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
             Text(
               l10n.dailyResultsDay('${widget.semilla}'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                color: KenneyInk.secondary,
-              ),
+              style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
             ),
             const SizedBox(height: 16),
-            FutureBuilder<({List<PuntajeDiario> top, ResultadoDiario? mio})>(
+            FutureBuilder<_DatosResultadosDiarios>(
               future: _consulta,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
@@ -141,18 +153,27 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
                 }
 
                 final datos = snapshot.data!;
-                if (datos.top.isEmpty) {
-                  return _Estado(
-                    icono: Icons.hourglass_empty_rounded,
-                    mensaje: l10n.dailyResultsEmpty,
-                  );
-                }
+                final rachaHoy = datos.mio?.racha ?? datos.racha.rachaActual;
+                final mejorRacha = datos.racha.mejorRacha;
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (var i = 0; i < datos.top.length; i++)
-                      _FilaPuntaje(puesto: i + 1, puntaje: datos.top[i]),
+                    if (rachaHoy > 0 || mejorRacha > 0) ...[
+                      _ResumenRacha(
+                        rachaActual: rachaHoy,
+                        mejorRacha: mejorRacha,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (datos.top.isEmpty)
+                      _Estado(
+                        icono: Icons.hourglass_empty_rounded,
+                        mensaje: l10n.dailyResultsEmpty,
+                      )
+                    else
+                      for (var i = 0; i < datos.top.length; i++)
+                        _FilaPuntaje(puesto: i + 1, puntaje: datos.top[i]),
                     if (datos.mio case final mio?) ...[
                       const SizedBox(height: 12),
                       const Divider(color: KenneyInk.line, height: 1),
@@ -184,7 +205,7 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
             // El botón de compartir depende del resultado local, que se resuelve
             // junto con la consulta: por eso vive dentro de otro `FutureBuilder`
             // en vez de leer `snapshot` acá afuera.
-            FutureBuilder<({List<PuntajeDiario> top, ResultadoDiario? mio})>(
+            FutureBuilder<_DatosResultadosDiarios>(
               future: _consulta,
               builder: (context, snapshot) {
                 final mio = snapshot.data?.mio;
@@ -233,6 +254,49 @@ class _DailyResultsDialogState extends State<DailyResultsDialog> {
   }
 }
 
+/// Píldora compacta que muestra la racha actual y la mejor racha histórica.
+class _ResumenRacha extends StatelessWidget {
+  final int rachaActual;
+  final int mejorRacha;
+
+  const _ResumenRacha({required this.rachaActual, required this.mejorRacha});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.seedColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.seedColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            l10n.dailyStreakValue(rachaActual),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: KenneyInk.primary,
+            ),
+          ),
+          Text(
+            l10n.dailyBestStreak(mejorRacha),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: KenneyInk.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Fila del ranking: puesto, alias, tiempo y movimientos.
 class _FilaPuntaje extends StatelessWidget {
   /// `null` en la fila del resultado propio, que no compite en la tabla.
@@ -243,11 +307,11 @@ class _FilaPuntaje extends StatelessWidget {
 
   /// Dorado, plata y bronce para el podio; el resto queda en gris.
   Color get _colorPuesto => switch (puesto) {
-        1 => const Color(0xFFB45309),
-        2 => const Color(0xFF64748B),
-        3 => const Color(0xFF92400E),
-        _ => KenneyInk.secondary,
-      };
+    1 => const Color(0xFFB45309),
+    2 => const Color(0xFF64748B),
+    3 => const Color(0xFF92400E),
+    _ => KenneyInk.secondary,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -330,16 +394,13 @@ class _Estado extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icono, size: 40, color: KenneyInk.secondary),
-          const SizedBox(height: 12),
+          const SizedBox(width: 12),
           Text(
             mensaje,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, color: KenneyInk.secondary),
           ),
-          if (accion case final accion?) ...[
-            const SizedBox(height: 4),
-            accion,
-          ],
+          if (accion case final accion?) ...[const SizedBox(height: 4), accion],
         ],
       ),
     );

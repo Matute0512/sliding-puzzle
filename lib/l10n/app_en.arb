@@ -53,10 +53,24 @@
 
   "dailyChallenge": "Daily Challenge",
   "dailyChallengeSubtitle": "One board a day · everyone plays the same",
+  "dailyChallengeSubtitleStreak": "🔥 {dias}d streak · keep it alive today!",
+  "dailyChallengeSubtitleAtRisk": "⚠️ {dias}d streak at risk · save it today!",
   "dailyChallengePlayed": "View Today's Results",
   "dailyChallengePlayedSubtitle": "You already played today · come back tomorrow",
+  "dailyChallengePlayedSubtitleStreak": "Played today · 🔥 {dias}d streak",
   "dailyVictoryTitle": "Today's challenge complete!",
-  "dailyVictoryBody": "Come back tomorrow for the next one. The daily ranking is coming soon.",
+  "dailyVictoryBody": "Come back tomorrow to keep your daily streak alive.",
+  "dailyStreakLabel": "Streak",
+  "dailyStreakValue": "🔥 {dias}d",
+  "dailyBestStreak": "Best streak: {dias}d",
+  "dailyCoinsWithBonus": "+{total} (+{bonus} streak)",
+
+  "streakShieldTitle": "🛡️ {dias}d streak at risk!",
+  "streakShieldBody": "You missed yesterday's challenge. Activate the Streak Shield to save your streak before starting today's board?",
+  "streakShieldUseCoins": "Save with {costo} coins",
+  "streakShieldWatchAd": "Save by watching ad",
+  "streakShieldSkip": "Play without saving (reset streak)",
+  "streakShieldSaved": "🛡️ Streak saved! Complete today's board to extend it.",
 
   "dailyPreviewTitle": "Today's photo",
   "dailyPreviewBody": "This is the photo you'll put together. Take a good look before you start!",
@@ -81,6 +95,17 @@
     "description": "Text copied to the clipboard to share the daily result.",
     "placeholders": {
       "semilla": { "type": "String" },
+      "tiempo": { "type": "String" },
+      "movimientos": { "type": "int" },
+      "link": { "type": "String" }
+    }
+  },
+  "dailyShareTextWithStreak": "🧩 Sliding Puzzle Daily #{semilla} | 🔥 {racha}d\n⏱️ {tiempo} | 🔄 {movimientos}\nPlay at {link}!",
+  "@dailyShareTextWithStreak": {
+    "description": "Text copied to the clipboard to share the daily result including streak.",
+    "placeholders": {
+      "semilla": { "type": "String" },
+      "racha": { "type": "int" },
       "tiempo": { "type": "String" },
       "movimientos": { "type": "int" },
       "link": { "type": "String" }

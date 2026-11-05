@@ -100,6 +100,26 @@ void main() {
     test('recompensaDiario es 25', () {
       expect(CoinsService.recompensaDiario, equals(25));
     });
+
+    test('costoEscudoRacha es 50', () {
+      expect(CoinsService.costoEscudoRacha, equals(50));
+    });
+
+    test('bonusRachaDiaria escala de +0 a +25 según días consecutivos', () {
+      expect(CoinsService.bonusRachaDiaria(0), equals(0));
+      expect(CoinsService.bonusRachaDiaria(1), equals(0));
+      expect(CoinsService.bonusRachaDiaria(2), equals(5));
+      expect(CoinsService.bonusRachaDiaria(3), equals(10));
+      expect(CoinsService.bonusRachaDiaria(4), equals(15));
+      expect(CoinsService.bonusRachaDiaria(5), equals(20));
+      expect(CoinsService.bonusRachaDiaria(6), equals(25));
+      expect(CoinsService.bonusRachaDiaria(15), equals(25));
+    });
+
+    test('recompensaTotalDiario suma base (25) más bonus de racha', () {
+      expect(CoinsService.recompensaTotalDiario(1), equals(25));
+      expect(CoinsService.recompensaTotalDiario(3), equals(35));
+      expect(CoinsService.recompensaTotalDiario(6), equals(50));
+    });
   });
 }
-

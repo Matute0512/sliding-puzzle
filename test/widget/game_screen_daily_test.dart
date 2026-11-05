@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_puzzle/logic/puzzle_logic.dart';
 import 'package:sliding_puzzle/screens/game_screen.dart';
+import 'package:sliding_puzzle/services/coins_service.dart';
 import 'package:sliding_puzzle/services/daily_challenge_service.dart';
 import 'package:sliding_puzzle/services/saved_game_service.dart';
 import 'package:sliding_puzzle/widgets/daily_preview_dialog.dart';
@@ -31,6 +32,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues(const {});
+    CoinsService.reiniciarEstadoParaTests(0);
     // El reloj es global y estático: si un test lo mueve y no lo devuelve, el
     // siguiente arranca en el día equivocado.
     DailyChallengeService.reloj = DateTime.now;
@@ -156,6 +158,8 @@ void main() {
     await resolverYEsperarVictoria(tester);
 
     expect(find.text('¡Desafío de hoy completado!'), findsOneWidget);
+    expect(find.text('🔥 1d'), findsOneWidget);
+    expect(find.text('+25'), findsOneWidget);
 
     // El diálogo de partida libre es la puerta de entrada al Top 5 global:
     // `_resolverPuestoGlobal` solo se llama desde esa rama. Que no aparezca
@@ -166,6 +170,22 @@ void main() {
       reason: 'el diario no debe pasar por el ranking global',
     );
     expect(find.text('Jugar de nuevo'), findsNothing);
+  });
+
+  testWidgets('al ganar con racha consecutiva otorga bonus de monedas y muestra racha', (
+    tester,
+  ) async {
+    DailyChallengeService.reloj = () => DateTime.utc(2026, 9, 20, 12);
+    await DailyChallengeService.marcarJugado(20260918);
+    await DailyChallengeService.marcarJugado(20260919);
+
+    await montarDiario(tester);
+    await resolverYEsperarVictoria(tester);
+
+    // Racha 3 -> base 25 + bonus 10 = 35 monedas
+    expect(find.text('🔥 3d'), findsOneWidget);
+    expect(find.text('+35 (+10 racha)'), findsOneWidget);
+    expect(CoinsService.saldo, equals(35));
   });
 
   testWidgets('no guarda la partida como "en curso"', (tester) async {

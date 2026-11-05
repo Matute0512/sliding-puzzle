@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Servicio de gestión y persistencia local del saldo de monedas del jugador.
 ///
 /// Las monedas se obtienen completando partidas (Modo Clásico, Modo Desafío y
-/// Desafío Diario) y se consumen para deshacer movimientos en el tablero.
+/// Desafío Diario) y se consumen para deshacer movimientos en el tablero o
+/// activar el escudo protector de la racha diaria.
 class CoinsService {
   static const String _claveSaldo = 'monedas_saldo';
   static const String _claveBienvenida = 'monedas_bienvenida_entregada';
@@ -15,7 +16,10 @@ class CoinsService {
   /// Costo en monedas de deshacer un movimiento en el tablero.
   static const int costoDeshacer = 10;
 
-  /// Monedas otorgadas al resolver el Desafío Diario.
+  /// Costo en monedas del escudo protector para reparar una racha diaria en riesgo.
+  static const int costoEscudoRacha = 50;
+
+  /// Monedas base otorgadas al resolver el Desafío Diario.
   static const int recompensaDiario = 25;
 
   /// Notificador reactivo del saldo actual de monedas en memoria.
@@ -63,6 +67,23 @@ class CoinsService {
     _ => 10,
   };
 
+  /// Calcula el bonus adicional de monedas según los días consecutivos de [racha]:
+  /// - Día 1: +0 🪙
+  /// - Día 2: +5 🪙
+  /// - Día 3: +10 🪙
+  /// - Día 4: +15 🪙
+  /// - Día 5: +20 🪙
+  /// - Día 6+: +25 🪙 (tope máximo de bonus)
+  static int bonusRachaDiaria(int racha) {
+    if (racha <= 1) return 0;
+    return (racha - 1).clamp(0, 5) * 5;
+  }
+
+  /// Recompensa total del Desafío Diario sumando la base ([recompensaDiario])
+  /// más el bonus escalonado por [racha].
+  static int recompensaTotalDiario(int racha) =>
+      recompensaDiario + bonusRachaDiaria(racha);
+
   /// Agrega [cantidad] monedas al saldo del jugador y persiste el cambio.
   static Future<void> agregarMonedas(int cantidad) async {
     if (cantidad <= 0) return;
@@ -91,4 +112,3 @@ class CoinsService {
     saldoListenable.value = saldo;
   }
 }
-

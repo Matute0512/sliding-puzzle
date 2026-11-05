@@ -114,10 +114,73 @@
 
   "dailyChallenge": "Desafío Diario",
   "dailyChallengeSubtitle": "Un tablero por día · todos juegan el mismo",
+  "dailyChallengeSubtitleStreak": "🔥 Racha de {dias}d · ¡mantenela hoy!",
+  "@dailyChallengeSubtitleStreak": {
+    "description": "Subtítulo del botón del Desafío Diario cuando hay racha activa y aún no jugó hoy.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
+  "dailyChallengeSubtitleAtRisk": "⚠️ Racha de {dias}d en riesgo · ¡salvala hoy!",
+  "@dailyChallengeSubtitleAtRisk": {
+    "description": "Subtítulo del botón del Desafío Diario cuando el jugador faltó ayer y puede reparar su racha.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
   "dailyChallengePlayed": "Ver Resultados del Día",
   "dailyChallengePlayedSubtitle": "Ya jugaste el de hoy · volvé mañana",
+  "dailyChallengePlayedSubtitleStreak": "Ya jugaste hoy · 🔥 Racha de {dias}d",
+  "@dailyChallengePlayedSubtitleStreak": {
+    "description": "Subtítulo del botón del Desafío Diario cuando ya jugó hoy y tiene racha.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
   "dailyVictoryTitle": "¡Desafío de hoy completado!",
-  "dailyVictoryBody": "Volvé mañana para el siguiente. El ranking del día llega pronto.",
+  "dailyVictoryBody": "Volvé mañana para mantener tu racha diaria.",
+  "dailyStreakLabel": "Racha",
+  "dailyStreakValue": "🔥 {dias}d",
+  "@dailyStreakValue": {
+    "description": "Valor compacto de racha en filas de resultados, ej. '🔥 3d'.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
+  "dailyBestStreak": "Mejor racha: {dias}d",
+  "@dailyBestStreak": {
+    "description": "Etiqueta de mejor racha histórica en el diálogo de resultados del día.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
+  "dailyCoinsWithBonus": "+{total} (+{bonus} racha)",
+  "@dailyCoinsWithBonus": {
+    "description": "Monedas totales ganadas en el Desafío Diario cuando incluye bonus por racha.",
+    "placeholders": {
+      "total": { "type": "int" },
+      "bonus": { "type": "int" }
+    }
+  },
+
+  "streakShieldTitle": "🛡️ ¡Racha de {dias}d en riesgo!",
+  "@streakShieldTitle": {
+    "description": "Título del diálogo del Escudo Protector cuando el jugador salteó ayer.",
+    "placeholders": {
+      "dias": { "type": "int" }
+    }
+  },
+  "streakShieldBody": "Ayer no pudiste jugar. ¿Querés activar el Escudo Protector para salvar tu racha antes de empezar el desafío de hoy?",
+  "streakShieldUseCoins": "Salvar con {costo} monedas",
+  "@streakShieldUseCoins": {
+    "description": "Botón para reparar la racha usando monedas.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "streakShieldWatchAd": "Salvar viendo anuncio",
+  "streakShieldSkip": "Jugar sin salvar (reiniciar racha)",
+  "streakShieldSaved": "🛡️ ¡Racha salvada! Completá el tablero de hoy para aumentarla.",
 
   "dailyPreviewTitle": "La foto de hoy",
   "dailyPreviewBody": "Es la foto que vas a armar. ¡Mirala bien antes de empezar!",
@@ -142,6 +205,17 @@
     "description": "Texto que se copia al portapapeles para compartir el resultado del día.",
     "placeholders": {
       "semilla": { "type": "String" },
+      "tiempo": { "type": "String" },
+      "movimientos": { "type": "int" },
+      "link": { "type": "String" }
+    }
+  },
+  "dailyShareTextWithStreak": "🧩 Sliding Puzzle Diario #{semilla} | 🔥 {racha}d\n⏱️ {tiempo} | 🔄 {movimientos}\n¡Jugá en {link}!",
+  "@dailyShareTextWithStreak": {
+    "description": "Texto que se copia al portapapeles para compartir el resultado del día incluyendo la racha.",
+    "placeholders": {
+      "semilla": { "type": "String" },
+      "racha": { "type": "int" },
       "tiempo": { "type": "String" },
       "movimientos": { "type": "int" },
       "link": { "type": "String" }

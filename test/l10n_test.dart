@@ -49,6 +49,25 @@ void main() {
       expect(es.levelStarsSemantics(4, 2), 'Nivel 4, 2 de 3 estrellas');
       expect(en.levelStarsSemantics(4, 2), 'Level 4, 2 of 3 stars');
     });
+
+    test('interpolan los mensajes de racha diaria y escudo protector', () {
+      expect(es.dailyStreakValue(3), '🔥 3d');
+      expect(en.dailyStreakValue(3), '🔥 3d');
+      expect(es.dailyBestStreak(7), 'Mejor racha: 7d');
+      expect(en.dailyBestStreak(7), 'Best streak: 7d');
+      expect(es.dailyCoinsWithBonus(35, 10), '+35 (+10 racha)');
+      expect(en.dailyCoinsWithBonus(35, 10), '+35 (+10 streak)');
+      expect(es.streakShieldUseCoins(50), 'Salvar con 50 monedas');
+      expect(en.streakShieldUseCoins(50), 'Save with 50 coins');
+      expect(
+        es.dailyShareTextWithStreak('20260920', 4, '32s', 18, 'https://example.com'),
+        contains('🔥 4d'),
+      );
+      expect(
+        en.dailyShareTextWithStreak('20260920', 4, '32s', 18, 'https://example.com'),
+        contains('🔥 4d'),
+      );
+    });
   });
 
   group('renderizado por locale', () {

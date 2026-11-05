@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -7,39 +8,70 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/puzzle_logic.dart';
 
+/// Estado actual de la Racha Diaria del jugador.
+class EstadoRachaDiaria {
+  /// Días consecutivos vigentes (jugó hoy o ayer). Vale `0` si nunca jugó o
+  /// si pasó más de 1 día sin jugar.
+  final int rachaActual;
+
+  /// Mayor cantidad de días consecutivos alcanzada históricamente.
+  final int mejorRacha;
+
+  /// Racha acumulada que puede rescatarse hoy con el Escudo Protector cuando
+  /// el jugador salteó exactamente 1 día (jugó anteayer pero no ayer).
+  /// Vale `0` cuando no hay racha en riesgo.
+  final int rachaSalvable;
+
+  const EstadoRachaDiaria({
+    required this.rachaActual,
+    required this.mejorRacha,
+    this.rachaSalvable = 0,
+  });
+
+  /// `true` cuando el jugador faltó ayer pero puede reparar su racha hoy.
+  bool get enRiesgo => rachaSalvable > 0;
+}
+
 /// Resultado del Desafío Diario de un día concreto.
 ///
 /// Se guarda en disco junto al candado porque el botón "Compartir" necesita el
-/// tiempo y los movimientos del jugador, y el ranking de Firestore es de solo
-/// lectura desde la app (no se consulta "mi puntaje" para no gastar una lectura
-/// más). El dato es local y de un solo día: no hay historial.
+/// tiempo, los movimientos y la racha del jugador, y el ranking de Firestore es
+/// de solo lectura desde la app (no se consulta "mi puntaje" para no gastar una
+/// lectura más). El dato es local y de un solo día: no hay historial.
 class ResultadoDiario {
   /// Semilla (YYYYMMDD) del día jugado.
   final int semilla;
   final int movimientos;
   final int segundos;
 
+  /// Días consecutivos de racha alcanzados al completar este desafío.
+  final int racha;
+
   const ResultadoDiario({
     required this.semilla,
     required this.movimientos,
     required this.segundos,
+    this.racha = 1,
   });
 
   Map<String, dynamic> toJson() => {
-        'semilla': semilla,
-        'movimientos': movimientos,
-        'segundos': segundos,
-      };
+    'semilla': semilla,
+    'movimientos': movimientos,
+    'segundos': segundos,
+    'racha': racha,
+  };
 
   static ResultadoDiario? fromJson(Map<String, dynamic> json) {
     final semilla = json['semilla'];
     final movimientos = json['movimientos'];
     final segundos = json['segundos'];
+    final racha = json['racha'];
     if (semilla is! int || movimientos is! int || segundos is! int) return null;
     return ResultadoDiario(
       semilla: semilla,
       movimientos: movimientos,
       segundos: segundos,
+      racha: racha is int && racha > 0 ? racha : 1,
     );
   }
 }
@@ -82,7 +114,13 @@ class DailyChallengeService {
   /// Fecha (YYYYMMDD) del último día que el jugador completó.
   static const String _claveUltimoDia = 'desafio_diario_ultimo_dia';
 
-  /// Último resultado guardado (JSON con semilla, movimientos y segundos).
+  /// Racha de días consecutivos acumulada hasta `_claveUltimoDia`.
+  static const String _claveRachaActual = 'desafio_diario_racha_actual';
+
+  /// Mejor racha histórica de días consecutivos.
+  static const String _claveMejorRacha = 'desafio_diario_mejor_racha';
+
+  /// Último resultado guardado (JSON con semilla, movimientos, segundos y racha).
   static const String _claveResultado = 'desafio_diario_resultado';
 
   /// Convierte un instante a la fecha UTC en formato `YYYYMMDD`.
@@ -99,6 +137,22 @@ class DailyChallengeService {
     // número ordena igual que la fecha: 20260919 < 20260920. Eso hace que
     // comparar semillas sea comparar días.
     return utc.year * 10000 + utc.month * 100 + utc.day;
+  }
+
+  /// Reconstruye la fecha UTC (`00:00:00Z`) correspondiente a una [semilla] `YYYYMMDD`.
+  static DateTime fechaDeSemilla(int semilla) {
+    final year = semilla ~/ 10000;
+    final month = (semilla % 10000) ~/ 100;
+    final day = semilla % 100;
+    return DateTime.utc(year, month, day);
+  }
+
+  /// Calcula la cantidad exacta de días calendario UTC entre [semillaAnterior]
+  /// y [semillaPosterior].
+  static int diasEntreSemillas(int semillaAnterior, int semillaPosterior) {
+    final inicio = fechaDeSemilla(semillaAnterior);
+    final fin = fechaDeSemilla(semillaPosterior);
+    return fin.difference(inicio).inDays;
   }
 
   /// Reloj del que sale "hoy" cuando no se pasa uno explícito.
@@ -211,15 +265,107 @@ class DailyChallengeService {
     return ultimo != null && ultimo == semillaDe(ahora ?? reloj());
   }
 
-  /// Marca como completado el desafío de [semilla].
+  /// Lee la racha guardada manteniendo retrocompatibilidad con `v25` (donde
+  /// solo se guardaba `_claveUltimoDia` sin `_claveRachaActual`).
+  static int _leerRachaGuardada(SharedPreferences prefs, int? ultimoDia) {
+    if (ultimoDia == null) return 0;
+    final guardada = prefs.getInt(_claveRachaActual);
+    if (guardada != null && guardada > 0) return guardada;
+    return 1;
+  }
+
+  /// Consulta el estado de la racha diaria para el día de [ahora] (o [reloj]).
+  static Future<EstadoRachaDiaria> estadoRacha({DateTime? ahora}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ultimoDia = prefs.getInt(_claveUltimoDia);
+    final rachaGuardada = _leerRachaGuardada(prefs, ultimoDia);
+    final mejorGuardada = math.max(
+      prefs.getInt(_claveMejorRacha) ?? 0,
+      rachaGuardada,
+    );
+
+    if (ultimoDia == null) {
+      return EstadoRachaDiaria(rachaActual: 0, mejorRacha: mejorGuardada);
+    }
+
+    final hoy = semillaDe(ahora ?? reloj());
+    final dias = diasEntreSemillas(ultimoDia, hoy);
+
+    if (dias == 0 || dias == 1) {
+      return EstadoRachaDiaria(
+        rachaActual: rachaGuardada,
+        mejorRacha: mejorGuardada,
+      );
+    }
+
+    if (dias == 2) {
+      return EstadoRachaDiaria(
+        rachaActual: 0,
+        mejorRacha: mejorGuardada,
+        rachaSalvable: rachaGuardada,
+      );
+    }
+
+    return EstadoRachaDiaria(rachaActual: 0, mejorRacha: mejorGuardada);
+  }
+
+  /// Repara una racha en riesgo (cuando el jugador faltó exactamente 1 día, ayer)
+  /// puenteando `_claveUltimoDia` al día de ayer para que la racha continúe
+  /// intacta. Devuelve `true` si la racha estaba en riesgo y fue reparada.
+  static Future<bool> repararRacha({DateTime? ahora}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ultimoDia = prefs.getInt(_claveUltimoDia);
+    if (ultimoDia == null) return false;
+
+    final fechaHoy = fechaDeSemilla(semillaDe(ahora ?? reloj()));
+    final hoy = semillaDe(fechaHoy);
+    final dias = diasEntreSemillas(ultimoDia, hoy);
+    if (dias != 2) return false;
+
+    final rachaGuardada = _leerRachaGuardada(prefs, ultimoDia);
+    final semillaAyer = semillaDe(fechaHoy.subtract(const Duration(days: 1)));
+
+    await prefs.setInt(_claveUltimoDia, semillaAyer);
+    await prefs.setInt(_claveRachaActual, rachaGuardada);
+    return true;
+  }
+
+  /// Marca como completado el desafío de [semilla] y actualiza la racha diaria.
   ///
   /// Recibe la semilla en vez de leer el reloj a propósito: quien jugó sabe qué
   /// día jugó. Si alguien arranca a las 23:59 UTC y termina después de la
   /// medianoche, lo que consumió es el desafío del día en que **empezó**, y
   /// marcar el día nuevo le regalaría el de hoy sin haberlo visto.
-  static Future<void> marcarJugado(int semilla) async {
+  ///
+  /// Devuelve la racha actualizada tras registrar la victoria.
+  static Future<int> marcarJugado(int semilla) async {
     final prefs = await SharedPreferences.getInstance();
+    final ultimoDia = prefs.getInt(_claveUltimoDia);
+    final rachaPrevia = _leerRachaGuardada(prefs, ultimoDia);
+    final mejorPrevia = math.max(
+      prefs.getInt(_claveMejorRacha) ?? 0,
+      rachaPrevia,
+    );
+
+    int nuevaRacha;
+    if (ultimoDia == null) {
+      nuevaRacha = 1;
+    } else {
+      final dias = diasEntreSemillas(ultimoDia, semilla);
+      if (dias == 0) {
+        nuevaRacha = rachaPrevia;
+      } else if (dias == 1) {
+        nuevaRacha = rachaPrevia + 1;
+      } else {
+        nuevaRacha = 1;
+      }
+    }
+
+    final nuevaMejor = math.max(mejorPrevia, nuevaRacha);
     await prefs.setInt(_claveUltimoDia, semilla);
+    await prefs.setInt(_claveRachaActual, nuevaRacha);
+    await prefs.setInt(_claveMejorRacha, nuevaMejor);
+    return nuevaRacha;
   }
 
   /// Marca el desafío del día de [ahora] como completado.
@@ -227,7 +373,7 @@ class DailyChallengeService {
   /// Se llama al resolver el tablero. Guardar la fecha (y no un booleano) es lo
   /// que hace que el candado se renueve solo: mañana la comparación da distinto
   /// sin que nadie tenga que limpiar nada.
-  static Future<void> marcarJugadoHoy({DateTime? ahora}) =>
+  static Future<int> marcarJugadoHoy({DateTime? ahora}) =>
       marcarJugado(semillaDe(ahora ?? reloj()));
 
   /// Guarda el resultado del jugador para el día [semilla].
@@ -257,12 +403,14 @@ class DailyChallengeService {
     }
   }
 
-  /// Borra el candado y el resultado guardado. Pensado para tests y para un
-  /// futuro "reiniciar progreso" desde Ajustes; la app no lo usa en el flujo
-  /// normal.
+  /// Borra el candado, la racha y el resultado guardado. Pensado para tests y
+  /// para un futuro "reiniciar progreso" desde Ajustes; la app no lo usa en el
+  /// flujo normal.
   static Future<void> reiniciar() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_claveUltimoDia);
+    await prefs.remove(_claveRachaActual);
+    await prefs.remove(_claveMejorRacha);
     await prefs.remove(_claveResultado);
   }
 }

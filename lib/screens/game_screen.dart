@@ -904,19 +904,22 @@ class _GameScreenState extends State<GameScreen> {
     //
     // Se marca [semilla] y no "hoy": si la partida cruzó la medianoche UTC, el
     // desafío consumido es el del día en que se empezó a jugar.
-    await DailyChallengeService.marcarJugado(semilla);
+    final racha = await DailyChallengeService.marcarJugado(semilla);
     // El resultado local es lo que después alimenta el botón de compartir.
     await DailyChallengeService.guardarResultado(
       ResultadoDiario(
         semilla: semilla,
         movimientos: movimientos,
         segundos: segundos,
+        racha: racha,
       ),
     );
     if (!mounted) return;
 
     _celebrar();
-    unawaited(CoinsService.agregarMonedas(CoinsService.recompensaDiario));
+    unawaited(
+      CoinsService.agregarMonedas(CoinsService.recompensaTotalDiario(racha)),
+    );
     unawaited(RecordsService.incrementarVictoriasParaRating());
     PlayGamesService.verificarLogrosVictoria(
       size: widget.size,
@@ -928,6 +931,7 @@ class _GameScreenState extends State<GameScreen> {
       context,
       movimientos: movimientos,
       segundos: segundos,
+      racha: racha,
       confetti: _confettiController,
     );
 

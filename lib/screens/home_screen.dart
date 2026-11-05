@@ -11,7 +11,9 @@ import '../screens/challenge_levels_screen.dart';
 import '../screens/game_screen.dart';
 import '../screens/records_screen.dart';
 import '../screens/settings_screen.dart';
+import '../services/admob_service.dart';
 import '../services/best_run_service.dart';
+import '../services/coins_service.dart';
 import '../services/daily_challenge_service.dart';
 import '../services/records_service.dart';
 import '../services/saved_game_service.dart';
@@ -47,6 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Si el jugador ya completó el Desafío Diario de hoy (según la fecha UTC).
   /// Arranca en `false` y se corrige apenas se lee el disco.
   bool _jugoDiarioHoy = false;
+
+  /// Estado actual de la Racha Diaria (racha activa, mejor racha y si está en riesgo).
+  EstadoRachaDiaria _estadoRacha = const EstadoRachaDiaria(
+    rachaActual: 0,
+    mejorRacha: 0,
+  );
 
   /// La mejor partida del tablero vigente, para la tarjeta del menú. `null`
   /// mientras el jugador no haya completado ninguna partida libre.
@@ -109,11 +117,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Relee si el Desafío Diario de hoy ya fue completado.
+  /// Relee si el Desafío Diario de hoy ya fue completado y el estado de la racha.
   Future<void> _cargarEstadoDiario() async {
-    final jugo = await DailyChallengeService.yaJugoHoy();
+    final futuroJugo = DailyChallengeService.yaJugoHoy();
+    final futuroRacha = DailyChallengeService.estadoRacha();
+    final jugo = await futuroJugo;
+    final racha = await futuroRacha;
     if (!mounted) return;
-    setState(() => _jugoDiarioHoy = jugo);
+    setState(() {
+      _jugoDiarioHoy = jugo;
+      _estadoRacha = racha;
+    });
   }
 
   /// Relee la partida guardada. Se llama al arrancar y cada vez que se vuelve
@@ -398,6 +412,183 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) unawaited(_verificarCalificacion());
   }
 
+  /// Subtítulo contextual del botón del Desafío Diario según el candado y la racha.
+  String _subtituloDiario(AppLocalizations l10n) {
+    if (_jugoDiarioHoy) {
+      if (_estadoRacha.rachaActual >= 2) {
+        return l10n.dailyChallengePlayedSubtitleStreak(
+          _estadoRacha.rachaActual,
+        );
+      }
+      return l10n.dailyChallengePlayedSubtitle;
+    }
+
+    if (_estadoRacha.enRiesgo) {
+      return l10n.dailyChallengeSubtitleAtRisk(_estadoRacha.rachaSalvable);
+    }
+
+    if (_estadoRacha.rachaActual >= 1) {
+      return l10n.dailyChallengeSubtitleStreak(_estadoRacha.rachaActual);
+    }
+
+    return l10n.dailyChallengeSubtitle;
+  }
+
+  /// Abre el diálogo del Escudo Protector cuando la racha está en riesgo.
+  /// Devuelve `true` si el jugador decidió avanzar a la partida (haya salvado
+  /// o no la racha), o `false` si cerró el diálogo sin entrar.
+  Future<bool> _ofrecerEscudoRacha(int diasSalvable) async {
+    final l10n = AppLocalizations.of(context)!;
+    final puedePagarConMonedas =
+        CoinsService.saldo >= CoinsService.costoEscudoRacha;
+
+    final eleccion = await showDialog<_AccionEscudoRacha>(
+      context: context,
+      builder: (dialogContext) => KenneyDialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.streakShieldTitle(diasSalvable),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: KenneyInk.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.streakShieldBody,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: KenneyInk.secondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (puedePagarConMonedas) ...[
+              KenneyButton(
+                tint: const Color(0xFFF59E0B),
+                onPressed: () =>
+                    Navigator.pop(dialogContext, _AccionEscudoRacha.monedas),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.monetization_on_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        l10n.streakShieldUseCoins(
+                          CoinsService.costoEscudoRacha,
+                        ),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            KenneyButton(
+              tint: AppTheme.seedColor,
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _AccionEscudoRacha.anuncio),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.smart_display_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      l10n.streakShieldWatchAd,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _AccionEscudoRacha.omitir),
+              child: Text(
+                l10n.streakShieldSkip,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: KenneyInk.secondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (eleccion == null || !mounted) return false;
+
+    if (eleccion == _AccionEscudoRacha.monedas) {
+      final pagado = await CoinsService.gastarMonedas(
+        CoinsService.costoEscudoRacha,
+      );
+      if (pagado) {
+        await DailyChallengeService.repararRacha();
+        await _cargarEstadoDiario();
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.streakShieldSaved),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
+      }
+      return true;
+    }
+
+    if (eleccion == _AccionEscudoRacha.anuncio) {
+      final vioAd = await AdMobService.mostrarRewardedParaDeshacer();
+      if (vioAd) {
+        await DailyChallengeService.repararRacha();
+        await _cargarEstadoDiario();
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.streakShieldSaved),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
+        return true;
+      }
+      return false;
+    }
+
+    return true;
+  }
+
   /// Acción del botón del Desafío Diario.
   ///
   /// Si el jugador todavía no jugó hoy, entra al tablero del día. El modo
@@ -412,6 +603,11 @@ class _HomeScreenState extends State<HomeScreen> {
         semilla: DailyChallengeService.semillaHoy,
       );
       return;
+    }
+
+    if (_estadoRacha.enRiesgo) {
+      final avanzar = await _ofrecerEscudoRacha(_estadoRacha.rachaSalvable);
+      if (!avanzar || !mounted) return;
     }
 
     // Pausamos la música del menú antes de entrar, igual que en los otros
@@ -505,9 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             titulo: _jugoDiarioHoy
                                 ? l10n.dailyChallengePlayed
                                 : l10n.dailyChallenge,
-                            subtitulo: _jugoDiarioHoy
-                                ? l10n.dailyChallengePlayedSubtitle
-                                : l10n.dailyChallengeSubtitle,
+                            subtitulo: _subtituloDiario(l10n),
                           ),
                         ],
                       ),
@@ -522,6 +716,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+/// Opciones del diálogo del Escudo Protector cuando la racha está en riesgo.
+enum _AccionEscudoRacha { monedas, anuncio, omitir }
 
 /// Título y bajada de la selección de dificultad.
 class _IntroDificultad extends StatelessWidget {

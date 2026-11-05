@@ -313,4 +313,146 @@ void main() {
       });
     });
   });
+
+  group('racha diaria y escudo protector', () {
+    tearDown(() => DailyChallengeService.reloj = DateTime.now);
+
+    test('diasEntreSemillas calcula días exactos cruzando fin de mes y bisiesto', () {
+      expect(DailyChallengeService.diasEntreSemillas(20260919, 20260919), 0);
+      expect(DailyChallengeService.diasEntreSemillas(20260919, 20260920), 1);
+      expect(DailyChallengeService.diasEntreSemillas(20260930, 20261001), 1);
+      expect(DailyChallengeService.diasEntreSemillas(20261231, 20270101), 1);
+      // 2028 es bisiesto (febrero tiene 29 días)
+      expect(DailyChallengeService.diasEntreSemillas(20280228, 20280301), 2);
+    });
+
+    test('arranca en 0 y sube con victorias en días consecutivos', () async {
+      final inicial = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 19),
+      );
+      expect(inicial.rachaActual, 0);
+      expect(inicial.mejorRacha, 0);
+      expect(inicial.enRiesgo, isFalse);
+
+      // Día 1
+      await DailyChallengeService.marcarJugado(20260919);
+      final dia1 = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 19),
+      );
+      expect(dia1.rachaActual, 1);
+      expect(dia1.mejorRacha, 1);
+      expect(dia1.enRiesgo, isFalse);
+
+      // Al día siguiente antes de jugar, la racha de 1 sigue vigente
+      final mananaAntes = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 20),
+      );
+      expect(mananaAntes.rachaActual, 1);
+      expect(mananaAntes.enRiesgo, isFalse);
+
+      // Día 2
+      await DailyChallengeService.marcarJugado(20260920);
+      final dia2 = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 20),
+      );
+      expect(dia2.rachaActual, 2);
+      expect(dia2.mejorRacha, 2);
+
+      // Marcar el mismo día otra vez es idempotente
+      await DailyChallengeService.marcarJugado(20260920);
+      final repetido = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 20),
+      );
+      expect(repetido.rachaActual, 2);
+    });
+
+    test('detecta racha en riesgo al saltear 1 día y permite repararla', () async {
+      await DailyChallengeService.marcarJugado(20260918);
+      await DailyChallengeService.marcarJugado(20260919);
+      await DailyChallengeService.marcarJugado(20260920);
+
+      // Saltea el 21 y abre el 22 (distancia = 2 días)
+      final enRiesgo = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 22),
+      );
+      expect(enRiesgo.rachaActual, 0);
+      expect(enRiesgo.rachaSalvable, 3);
+      expect(enRiesgo.enRiesgo, isTrue);
+      expect(enRiesgo.mejorRacha, 3);
+
+      // Repara la racha el día 22
+      final reparada = await DailyChallengeService.repararRacha(
+        ahora: DateTime.utc(2026, 9, 22),
+      );
+      expect(reparada, isTrue);
+
+      final trasReparar = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 22),
+      );
+      expect(trasReparar.rachaActual, 3);
+      expect(trasReparar.enRiesgo, isFalse);
+
+      // Al ganar hoy (día 22), la racha sube a 4
+      await DailyChallengeService.marcarJugado(20260922);
+      final trasGanar = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 22),
+      );
+      expect(trasGanar.rachaActual, 4);
+      expect(trasGanar.mejorRacha, 4);
+    });
+
+    test('si no repara y juega con racha en riesgo, se reinicia a 1 conservando mejorRacha', () async {
+      await DailyChallengeService.marcarJugado(20260918);
+      await DailyChallengeService.marcarJugado(20260919);
+
+      // Saltea el 20 y gana el 21 sin reparar
+      await DailyChallengeService.marcarJugado(20260921);
+      final estado = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 21),
+      );
+      expect(estado.rachaActual, 1);
+      expect(estado.mejorRacha, 2);
+      expect(estado.enRiesgo, isFalse);
+    });
+
+    test('si saltea 2 o más días seguidos, la racha expira y no es reparable', () async {
+      await DailyChallengeService.marcarJugado(20260918);
+      await DailyChallengeService.marcarJugado(20260919);
+
+      // Abre el 22 (faltó 20 y 21 -> distancia = 3 días)
+      final expirada = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 22),
+      );
+      expect(expirada.rachaActual, 0);
+      expect(expirada.rachaSalvable, 0);
+      expect(expirada.enRiesgo, isFalse);
+      expect(expirada.mejorRacha, 2);
+
+      expect(
+        await DailyChallengeService.repararRacha(
+          ahora: DateTime.utc(2026, 9, 22),
+        ),
+        isFalse,
+      );
+    });
+
+    test('retrocompatibilidad v25: infiere racha 1 si existe ultimo_dia sin clave de racha', () async {
+      SharedPreferences.setMockInitialValues({
+        'desafio_diario_ultimo_dia': 20260919,
+      });
+
+      final estadoAyer = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 20),
+      );
+      expect(estadoAyer.rachaActual, 1);
+      expect(estadoAyer.mejorRacha, 1);
+
+      await DailyChallengeService.marcarJugado(20260920);
+      final estadoHoy = await DailyChallengeService.estadoRacha(
+        ahora: DateTime.utc(2026, 9, 20),
+      );
+      expect(estadoHoy.rachaActual, 2);
+      expect(estadoHoy.mejorRacha, 2);
+    });
+  });
 }

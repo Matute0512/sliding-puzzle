@@ -6,10 +6,9 @@ import '../services/coins_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 
-/// ⚠️ DIÁLOGO TEMPORAL — reemplazar por la pantalla de resultados del día.
-///
-/// Cierra el Desafío Diario: muestra el resultado y devuelve al menú. Por ahora
-/// no comparte nada ni muestra el ranking del día, que todavía no existe.
+/// Diálogo de celebración al resolver el Desafío Diario: muestra el tiempo,
+/// los movimientos, la racha diaria alcanzada y las monedas obtenidas (con
+/// desglose de bonus por racha).
 ///
 /// Sigue el patrón de `AliasDialog`: la UI vive en su propio widget y se abre
 /// con un `mostrar` estático. El `ConfettiController` llega desde afuera porque
@@ -21,12 +20,14 @@ import '../theme/kenney_ui.dart';
 class DailyVictoryDialog extends StatelessWidget {
   final int movimientos;
   final int segundos;
+  final int racha;
   final ConfettiController confetti;
 
   const DailyVictoryDialog({
     super.key,
     required this.movimientos,
     required this.segundos,
+    this.racha = 1,
     required this.confetti,
   });
 
@@ -35,6 +36,7 @@ class DailyVictoryDialog extends StatelessWidget {
     BuildContext context, {
     required int movimientos,
     required int segundos,
+    int racha = 1,
     required ConfettiController confetti,
   }) {
     return showDialog<void>(
@@ -46,6 +48,7 @@ class DailyVictoryDialog extends StatelessWidget {
       builder: (_) => DailyVictoryDialog(
         movimientos: movimientos,
         segundos: segundos,
+        racha: racha,
         confetti: confetti,
       ),
     );
@@ -54,6 +57,11 @@ class DailyVictoryDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final bonus = CoinsService.bonusRachaDiaria(racha);
+    final totalMonedas = CoinsService.recompensaTotalDiario(racha);
+    final textoMonedas = bonus > 0
+        ? l10n.dailyCoinsWithBonus(totalMonedas, bonus)
+        : '+$totalMonedas';
 
     return Stack(
       alignment: Alignment.topCenter,
@@ -85,15 +93,24 @@ class DailyVictoryDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _FilaResultado(
+                icono: Icons.local_fire_department_rounded,
+                label: l10n.dailyStreakLabel,
+                valor: l10n.dailyStreakValue(racha),
+              ),
+              const SizedBox(height: 8),
+              _FilaResultado(
                 icono: Icons.monetization_on_rounded,
                 label: l10n.coins,
-                valor: '+${CoinsService.recompensaDiario}',
+                valor: textoMonedas,
               ),
               const SizedBox(height: 16),
               Text(
                 l10n.dailyVictoryBody,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: KenneyInk.secondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: KenneyInk.secondary,
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -133,9 +150,7 @@ class DailyVictoryDialog extends StatelessWidget {
   }
 }
 
-/// Fila "icono + etiqueta + valor" del resultado. Copia local de la que usa el
-/// diálogo de victoria clásico: al ser un diálogo temporal no vale la pena
-/// acoplarlos, y así borrar este archivo no toca el juego normal.
+/// Fila "icono + etiqueta + valor" del resultado.
 class _FilaResultado extends StatelessWidget {
   final IconData icono;
   final String label;
