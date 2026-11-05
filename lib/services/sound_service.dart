@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +22,7 @@ class SoundService {
   static bool musicaActivada = true;
   static bool _inicializado = false;
   static bool _pausadoPorCicloDeVida = false;
+  static AppLifecycleListener? _lifecycleListener;
 
   static Future<void> inicializar() async {
     try {
@@ -27,7 +30,19 @@ class SoundService {
       sonidoActivado = prefs.getBool(_claveSonido) ?? true;
       musicaActivada = prefs.getBool(_claveMusica) ?? true;
 
-      await _soloud.init();
+      // Registra el listener global del ciclo de vida para sincronizar
+      // segundo plano y destrucción limpia del motor nativo.
+      _lifecycleListener ??= AppLifecycleListener(
+        onStateChange: manejarCicloDeVida,
+        onExitRequested: () async {
+          await dispose();
+          return AppExitResponse.exit;
+        },
+      );
+
+      if (!_soloud.isInitialized) {
+        await _soloud.init();
+      }
       _inicializado = true;
 
       // Precargamos los 3 assets en memoria — quedan listos para
@@ -50,16 +65,27 @@ class SoundService {
   /// hilo principal — soporta clicks tan rápidos como el usuario tapee.
   static void reproducirClick() {
     if (!sonidoActivado || !_inicializado || _fuenteClick == null) return;
-    _soloud.play(_fuenteClick!, volume: 0.6);
+    if (!_soloud.isInitialized) return;
+    try {
+      _soloud.play(_fuenteClick!, volume: 0.6);
+    } catch (e) {
+      debugPrint('Error reproduciendo click: $e');
+    }
   }
 
   static void reproducirVictoria() {
     if (!sonidoActivado || !_inicializado || _fuenteVictoria == null) return;
-    _soloud.play(_fuenteVictoria!, volume: 0.8);
+    if (!_soloud.isInitialized) return;
+    try {
+      _soloud.play(_fuenteVictoria!, volume: 0.8);
+    } catch (e) {
+      debugPrint('Error reproduciendo victoria: $e');
+    }
   }
 
   static Future<void> iniciarMusica() async {
     if (!musicaActivada || !_inicializado || _fuenteMusica == null) return;
+    if (!_soloud.isInitialized) return;
     try {
       // Si ya hay una instancia válida, la reanudamos en vez de abrir otra
       // encima. "Iniciar" siempre deja la música sonando (por ejemplo al
@@ -78,6 +104,7 @@ class SoundService {
   static Future<void> pausarMusica() async {
     try {
       if (_handleMusica != null &&
+          _soloud.isInitialized &&
           _soloud.getIsValidVoiceHandle(_handleMusica!)) {
         _soloud.setPause(_handleMusica!, true);
       }
@@ -90,6 +117,7 @@ class SoundService {
     if (!musicaActivada) return;
     try {
       if (_handleMusica != null &&
+          _soloud.isInitialized &&
           _soloud.getIsValidVoiceHandle(_handleMusica!)) {
         _soloud.setPause(_handleMusica!, false);
       } else {
@@ -103,12 +131,32 @@ class SoundService {
 
   static Future<void> detenerMusica() async {
     try {
-      if (_handleMusica != null) {
+      if (_handleMusica != null && _soloud.isInitialized) {
         await _soloud.stop(_handleMusica!);
         _handleMusica = null;
       }
     } catch (e) {
       debugPrint('Error al detener música: $e');
+    }
+  }
+
+  /// Libera los recursos nativos del motor SoLoud y detiene todos los hilos
+  /// de audio de fondo (miniaudio). Crítico para evitar que llamadas FFI
+  /// pendientes aterricen sobre trampolines destruidos al terminar la app.
+  static Future<void> dispose() async {
+    try {
+      if (_soloud.isInitialized) {
+        await _soloud.deinitAsync();
+      }
+    } catch (e) {
+      debugPrint('Error cerrando SoLoud: $e');
+    } finally {
+      _fuenteClick = null;
+      _fuenteVictoria = null;
+      _fuenteMusica = null;
+      _handleMusica = null;
+      _inicializado = false;
+      _pausadoPorCicloDeVida = false;
     }
   }
 
@@ -118,17 +166,35 @@ class SoundService {
         estado == AppLifecycleState.hidden) {
       if (musicaActivada &&
           _handleMusica != null &&
+          _soloud.isInitialized &&
           _soloud.getIsValidVoiceHandle(_handleMusica!)) {
         pausarMusica();
         _pausadoPorCicloDeVida = true;
       }
     } else if (estado == AppLifecycleState.detached) {
-      // El motor de la app se está destruyendo: detener todo para evitar
-      // que miniaudio/SoLoud dispare callbacks FFI sobre trampolines ya liberados.
-      detenerMusica();
-      _pausadoPorCicloDeVida = false;
+      // El motor de la app se está destruyendo: liberar recursos nativos y
+      // detener worker threads de miniaudio para evitar que SoLoud dispare callbacks
+      // FFI hacia trampolines ya liberados (crash DLRT_GetFfiCallbackMetadata / SIGABRT).
+      try {
+        if (_soloud.isInitialized) {
+          _soloud.deinit();
+        }
+      } catch (e) {
+        debugPrint('Error en deinit sincrónico de SoLoud: $e');
+      } finally {
+        _fuenteClick = null;
+        _fuenteVictoria = null;
+        _fuenteMusica = null;
+        _handleMusica = null;
+        _inicializado = false;
+        _pausadoPorCicloDeVida = false;
+      }
     } else if (estado == AppLifecycleState.resumed) {
-      if (_pausadoPorCicloDeVida) {
+      if (!_inicializado || !_soloud.isInitialized) {
+        inicializar().then((_) {
+          if (musicaActivada) iniciarMusica();
+        });
+      } else if (_pausadoPorCicloDeVida) {
         reanudarMusica();
         _pausadoPorCicloDeVida = false;
       }

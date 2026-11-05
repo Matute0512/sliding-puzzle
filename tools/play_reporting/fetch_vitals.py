@@ -6,6 +6,7 @@ problemas agrupados (errorIssues) y reportes individuales con stack trace (error
 """
 
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -77,17 +78,43 @@ def get_authenticated_session(creds_path: Path) -> requests.Session:
     return session
 
 
+def _build_interval_params(days: int) -> dict[str, int]:
+    """Genera los parámetros DateTimeInterval para Google Play Developer Reporting API.
+
+    La API exige fechas UTC alineadas a la hora (minutos y segundos omitidos o en cero).
+    """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    past = now - datetime.timedelta(days=days)
+    return {
+        "interval.startTime.year": past.year,
+        "interval.startTime.month": past.month,
+        "interval.startTime.day": past.day,
+        "interval.startTime.hours": 0,
+        "interval.endTime.year": now.year,
+        "interval.endTime.month": now.month,
+        "interval.endTime.day": now.day,
+        "interval.endTime.hours": now.hour,
+    }
+
+
 def fetch_error_issues(
     session: requests.Session,
     package_name: str,
     page_size: int = 10,
     filter_type: str = "ALL",
+    days: int = 14,
 ) -> list[dict]:
     """Obtiene el listado agrupado de problemas de estabilidad (Crashes / ANRs)."""
     url = f"{API_BASE}/apps/{package_name}/errorIssues:search"
-    params = {"pageSize": page_size}
+    params: dict = {"pageSize": page_size}
+    params.update(_build_interval_params(days))
+
+    filters = []
     if filter_type in ("ANR", "CRASH"):
-        params["filter"] = f"errorIssueType = {filter_type}"
+        filters.append(f"errorIssueType = {filter_type}")
+
+    if filters:
+        params["filter"] = " AND ".join(filters)
 
     resp = session.get(url, params=params)
     if resp.status_code != 200:
@@ -100,14 +127,21 @@ def fetch_error_issues(
 def fetch_error_reports(
     session: requests.Session,
     package_name: str,
-    page_size: int = 5,
+    page_size: int = 10,
     filter_type: str = "ALL",
+    days: int = 14,
 ) -> list[dict]:
     """Obtiene los últimos reportes individuales con stack trace."""
     url = f"{API_BASE}/apps/{package_name}/errorReports:search"
-    params = {"pageSize": page_size}
+    params: dict = {"pageSize": page_size}
+    params.update(_build_interval_params(days))
+
+    filters = []
     if filter_type in ("ANR", "CRASH"):
-        params["filter"] = f"errorIssueType = {filter_type}"
+        filters.append(f"errorIssueType = {filter_type}")
+
+    if filters:
+        params["filter"] = " AND ".join(filters)
 
     resp = session.get(url, params=params)
     if resp.status_code != 200:
@@ -169,7 +203,8 @@ def main():
     parser.add_argument("--package", default=DEFAULT_PACKAGE_NAME, help="Package name de la app")
     parser.add_argument("--creds", help="Ruta al archivo JSON de credenciales")
     parser.add_argument("--type", choices=["ALL", "CRASH", "ANR"], default="ALL", help="Filtrar por tipo")
-    parser.add_argument("--limit", type=int, default=5, help="Cantidad máxima de elementos a consultar")
+    parser.add_argument("--days", type=int, default=14, help="Días hacia atrás a consultar (default: 14)")
+    parser.add_argument("--limit", type=int, default=10, help="Cantidad máxima de elementos a consultar")
     parser.add_argument("--no-traces", action="store_true", help="No imprimir los stack traces detallados")
     parser.add_argument("--json", action="store_true", help="Salida en formato JSON crudo")
 
@@ -185,8 +220,12 @@ def main():
         sys.exit(1)
 
     session = get_authenticated_session(creds_path)
-    issues = fetch_error_issues(session, args.package, page_size=args.limit, filter_type=args.type)
-    reports = fetch_error_reports(session, args.package, page_size=args.limit, filter_type=args.type)
+    issues = fetch_error_issues(
+        session, args.package, page_size=args.limit, filter_type=args.type, days=args.days
+    )
+    reports = fetch_error_reports(
+        session, args.package, page_size=args.limit, filter_type=args.type, days=args.days
+    )
 
     if args.json:
         print(json.dumps({"errorIssues": issues, "errorReports": reports}, indent=2))
