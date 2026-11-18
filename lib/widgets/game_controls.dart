@@ -4,7 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../services/coins_service.dart';
 import '../theme/app_theme.dart';
 
-/// Botonera del pie de la partida: reiniciar, deshacer movimiento y pausar.
+/// Botonera del pie de la partida: reiniciar, deshacer movimiento, pista y pausar.
 class GameControls extends StatelessWidget {
   const GameControls({
     super.key,
@@ -13,6 +13,8 @@ class GameControls extends StatelessWidget {
     required this.onReiniciar,
     required this.onPausar,
     required this.onDeshacer,
+    this.onPista,
+    this.puedePista = true,
   });
 
   final bool pausado;
@@ -20,6 +22,8 @@ class GameControls extends StatelessWidget {
   final VoidCallback onReiniciar;
   final VoidCallback onPausar;
   final VoidCallback onDeshacer;
+  final VoidCallback? onPista;
+  final bool puedePista;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +38,7 @@ class GameControls extends StatelessWidget {
             onTap: onReiniciar,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: ValueListenableBuilder<int>(
             valueListenable: CoinsService.saldoListenable,
@@ -49,7 +53,24 @@ class GameControls extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        if (onPista != null) ...[
+          const SizedBox(width: 6),
+          Expanded(
+            child: ValueListenableBuilder<int>(
+              valueListenable: CoinsService.saldoListenable,
+              builder: (context, saldo, _) {
+                final tieneMonedas = saldo >= CoinsService.costoPista;
+                return _BotonControlPista(
+                  label: l10n.hint.toUpperCase(),
+                  tieneMonedas: tieneMonedas,
+                  habilitado: puedePista && !pausado,
+                  onTap: onPista!,
+                );
+              },
+            ),
+          ),
+        ],
+        const SizedBox(width: 6),
         Expanded(
           child: _BotonControl(
             icono: pausado ? Icons.play_arrow : Icons.pause,
@@ -137,6 +158,101 @@ class _BotonControlDeshacer extends StatelessWidget {
                 ),
                 Text(
                   '${CoinsService.costoDeshacer}',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: tinta,
+                  ),
+                ),
+              ] else ...[
+                Icon(
+                  Icons.smart_display_rounded,
+                  size: 13,
+                  color: tinta,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón central dedicado a pista inteligente, indicando si consume 15 monedas
+/// o si requiere ver un anuncio bonificado por saldo insuficiente.
+class _BotonControlPista extends StatelessWidget {
+  const _BotonControlPista({
+    required this.label,
+    required this.tieneMonedas,
+    required this.habilitado,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool tieneMonedas;
+  final bool habilitado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    final forma = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+      side: BorderSide(
+        color: habilitado
+            ? (tieneMonedas
+                ? const Color(0xFFF59E0B).withValues(alpha: 0.6)
+                : AppTheme.accentCyan.withValues(alpha: 0.6))
+            : AppTheme.controlBorder.withValues(alpha: 0.3),
+      ),
+    );
+
+    final tinta = habilitado
+        ? (tieneMonedas ? const Color(0xFFF59E0B) : AppTheme.accentCyan)
+        : colors.textSecondary.withValues(alpha: 0.3);
+
+    return Material(
+      color: habilitado
+          ? AppTheme.controlSurface
+          : AppTheme.controlSurface.withValues(alpha: 0.4),
+      shape: forma,
+      child: InkWell(
+        onTap: habilitado ? onTap : null,
+        customBorder: forma,
+        child: SizedBox(
+          height: AppTheme.controlHeight,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.lightbulb_rounded,
+                size: 16,
+                color: tinta,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w900,
+                    color: tinta,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              if (tieneMonedas) ...[
+                Icon(
+                  Icons.monetization_on_rounded,
+                  size: 11,
+                  color: tinta,
+                ),
+                Text(
+                  '${CoinsService.costoPista}',
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w900,

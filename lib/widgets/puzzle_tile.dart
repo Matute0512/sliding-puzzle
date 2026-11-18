@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/puzzle_logic.dart';
+import '../services/skin_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 import 'image_tile.dart';
@@ -21,6 +22,12 @@ class PuzzleTile extends StatelessWidget {
   /// semántica (TalkBack no la lee) ni maneja gestos.
   final bool esSocket;
 
+  /// Resalta la ficha cuando es la sugerida por la Pista Inteligente.
+  final bool esSugerida;
+
+  /// Tema de color (skin) aplicado a la ficha en modo numérico.
+  final TileSkin? skin;
+
   /// Si no es `null`, la ficha muestra su porción de esta imagen en vez del
   /// número. El número se sigue usando para la semántica y para saber qué
   /// recorte corresponde (ver [ImageTile]).
@@ -40,6 +47,8 @@ class PuzzleTile extends StatelessWidget {
     this.onSwipe,
     this.activa = false,
     this.esSocket = false,
+    this.esSugerida = false,
+    this.skin,
     this.imagen,
     this.imagenRespaldo,
   });
@@ -59,6 +68,10 @@ class PuzzleTile extends StatelessWidget {
         // ("las fichas con borde blanco son las que podés mover") dejaría de ser
         // cierta. El frame los pinta igual de claros; acá se separan a propósito.
         ? Border.all(color: AppTheme.emptySlotBorder, width: 1)
+        : esSugerida
+        ? const Border.fromBorderSide(
+            BorderSide(color: Color(0xFFFBBF24), width: 3),
+          )
         : activa
         ? const Border.fromBorderSide(
             BorderSide(color: Colors.white, width: 2),
@@ -69,31 +82,32 @@ class PuzzleTile extends StatelessWidget {
         : Border.all(color: AppTheme.tileBorder, width: 1);
     final radio = BorderRadius.circular(_radioFicha);
 
-    // En modo numérico el fondo es un sprite 9-slice pre-tintado
-    // (`primarySquareSeed`). En modo imagen (`conImagen`), la foto cubre el
-    // 100 % de la cara de la ficha con el mismo radio (`_radioFicha`), así que
-    // no se dibuja el sprite 9-slice por detrás para ahorrar overdraw en GPU.
+    final skinActiva = skin ?? SkinService.catalogo[SkinService.skinClasicaId]!;
+    final colorFicha = skinActiva.colorFicha;
+    final colorSombra = skinActiva.colorSombra;
+
+    final sombraFicha = BoxShadow(
+      color: esSugerida ? const Color(0xFFF59E0B) : colorSombra,
+      offset: const Offset(0, 4),
+      blurRadius: esSugerida ? 8 : 0,
+    );
+
+    // En modo numérico el fondo es un sprite 9-slice (pre-tintado si es clásico).
+    // En modo imagen (`conImagen`), la foto cubre el 100 % de la cara de la ficha
+    // con el mismo radio (`_radioFicha`), así que no se dibuja el sprite 9-slice
+    // por detrás para ahorrar overdraw en GPU.
     final decoracionFondo = esVacio
         ? KenneySlices.flatSquare.decoration()
         : conImagen
         ? BoxDecoration(
             borderRadius: radio,
-            boxShadow: const [
-              BoxShadow(
-                color: AppTheme.accentShadow,
-                offset: Offset(0, 4),
-                blurRadius: 0,
-              ),
-            ],
+            boxShadow: [sombraFicha],
           )
-        : KenneySlices.primarySquareSeed.decoration().copyWith(
-            boxShadow: const [
-              BoxShadow(
-                color: AppTheme.accentShadow,
-                offset: Offset(0, 4),
-                blurRadius: 0,
-              ),
-            ],
+        : (skinActiva.id == 'classic'
+            ? KenneySlices.primarySquareSeed.decoration()
+            : KenneySlices.primarySquare.decoration(tint: colorFicha))
+          .copyWith(
+            boxShadow: [sombraFicha],
           );
 
     final contenido = DecoratedBox(

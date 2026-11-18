@@ -88,6 +88,85 @@ class PuzzleLogic {
     return res;
   }
 
+  /// Devuelve la suma de distancias Manhattan de todas las fichas a sus
+  /// posiciones resueltas (la posición final de la ficha `v` es `v - 1`).
+  static int distanciaManhattanTotal(List<int> tablero, int size) {
+    var total = 0;
+    for (var idx = 0; idx < tablero.length; idx++) {
+      final v = tablero[idx];
+      if (v == 0) continue;
+      final target = v - 1;
+      final dFila = (idx ~/ size - target ~/ size).abs();
+      final dCol = (idx % size - target % size).abs();
+      total += dFila + dCol;
+    }
+    return total;
+  }
+
+  /// Calcula cuál de las fichas adyacentes al hueco conviene mover a continuación
+  /// para acercar el tablero a su estado resuelto.
+  ///
+  /// Utiliza la heurística de distancia Manhattan con un lookahead de 2 pasos
+  /// y una penalización para evitar el retroceso inmediato a la posición anterior
+  /// ([ultimoIndiceMovido]).
+  ///
+  /// Retorna el índice de la ficha recomendada en [tablero], o `null` si el tablero
+  /// ya está resuelto o no tiene movimientos posibles.
+  static int? calcularPista(
+    List<int> tablero,
+    int size, {
+    int? ultimoIndiceMovido,
+  }) {
+    if (estaResuelto(tablero)) return null;
+    final posHueco = tablero.indexOf(0);
+    if (posHueco < 0) return null;
+
+    final candidatos = movibles(tablero, size);
+    if (candidatos.isEmpty) return null;
+    if (candidatos.length == 1) return candidatos.first;
+
+    int? mejorFicha;
+    var menorCosto = 999999;
+
+    for (final candidato in candidatos) {
+      // Penalización si el movimiento deshace exactamente la última jugada
+      // cuando hay otras opciones disponibles.
+      final penalizacion =
+          (candidato == ultimoIndiceMovido && candidatos.length > 1) ? 2 : 0;
+
+      // Paso 1: simulamos mover [candidato] al hueco
+      final b1 = List<int>.from(tablero);
+      b1[posHueco] = b1[candidato];
+      b1[candidato] = 0;
+      final d1 = distanciaManhattanTotal(b1, size);
+
+      if (estaResuelto(b1)) {
+        // Victoria inmediata en 1 paso
+        return candidato;
+      }
+
+      // Paso 2 (Lookahead): mejor respuesta subsiguiente
+      final subCandidatos = movibles(b1, size);
+      var subMin = 999999;
+      for (final sub in subCandidatos) {
+        if (sub == posHueco) continue; // no volver hacia atrás en la simulación
+        final b2 = List<int>.from(b1);
+        b2[candidato] = b2[sub];
+        b2[sub] = 0;
+        final d2 = distanciaManhattanTotal(b2, size);
+        if (d2 < subMin) subMin = d2;
+      }
+
+      final costoTotal = (subMin < 999999 ? subMin : d1) + penalizacion;
+      if (costoTotal < menorCosto) {
+        menorCosto = costoTotal;
+        mejorFicha = candidato;
+      }
+    }
+
+    return mejorFicha ?? candidatos.first;
+  }
+
   /// Si la ficha [indice] está adyacente al hueco, devuelve la dirección en la
   /// que debe deslizarse para caer en él. `null` si no es adyacente.
   static Direccion? direccionHaciaVacio(

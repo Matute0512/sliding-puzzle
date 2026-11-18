@@ -16,6 +16,9 @@ class CoinsService {
   /// Costo en monedas de deshacer un movimiento en el tablero.
   static const int costoDeshacer = 10;
 
+  /// Costo en monedas de solicitar una pista inteligente.
+  static const int costoPista = 15;
+
   /// Costo en monedas del escudo protector para reparar una racha diaria en riesgo.
   static const int costoEscudoRacha = 50;
 

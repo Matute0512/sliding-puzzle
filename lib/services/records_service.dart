@@ -145,18 +145,18 @@ class RecordsService {
 
   /// Determina si es el momento oportuno para invitar al usuario a calificar:
   /// - Nunca si ya calificó.
-  /// - Requiere al menos 2 victorias (para que haya disfrutado la experiencia).
-  /// - Si rechazó anteriormente ("Ahora no"), respeta un enfriamiento de 5 victorias.
+  /// - Requiere al menos 3 partidas (para que haya disfrutado la experiencia).
+  /// - Si rechazó anteriormente ("Ahora no"), se vuelve a solicitar cada 3 partidas.
   static Future<bool> debeSolicitarCalificacion() async {
     final prefs = await SharedPreferences.getInstance();
     final yaCalifico = prefs.getBool(_claveAppCalificada) ?? false;
     if (yaCalifico) return false;
 
     final victorias = prefs.getInt(_claveVictoriasRating) ?? 0;
-    if (victorias < 2) return false;
+    if (victorias < 3) return false;
 
     final ultimaSolicitud = prefs.getInt(_claveUltimaSolicitudRating) ?? 0;
-    if (ultimaSolicitud > 0 && (victorias - ultimaSolicitud) < 5) {
+    if (ultimaSolicitud > 0 && (victorias - ultimaSolicitud) < 3) {
       return false;
     }
 

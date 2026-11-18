@@ -501,6 +501,9 @@ class AdMobService {
     }
   }
 
+  /// Muestra un anuncio bonificado para obtener la recompensa de pista inteligente.
+  static Future<bool> mostrarRewardedParaPista() => mostrarRewardedParaDeshacer();
+
   /// Restaura contadores y estado interno para pruebas unitarias.
   @visibleForTesting
   static void reiniciarEstadoParaTests() {

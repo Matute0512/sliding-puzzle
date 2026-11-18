@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:sliding_puzzle/logic/puzzle_logic.dart';
+import '../services/skin_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kenney_ui.dart';
 import 'puzzle_tile.dart';
@@ -25,6 +26,10 @@ class PuzzleBoard extends StatefulWidget {
   final int size;
   final void Function(int indice) onTileTap;
 
+  /// Índice en [tablero] de la ficha recomendada por la Pista Inteligente.
+  /// `null` si no hay ninguna pista activa en este momento.
+  final int? fichaSugerida;
+
   /// Si no es `null`, las fichas muestran porciones de esta imagen en vez de
   /// números. No afecta en nada la mecánica: el deslizamiento, los huecos y las
   /// pistas de "movible" dependen del [tablero], no de cómo se dibuje la ficha.
@@ -38,6 +43,7 @@ class PuzzleBoard extends StatefulWidget {
     required this.tablero,
     required this.size,
     required this.onTileTap,
+    this.fichaSugerida,
     this.imagen,
     this.imagenRespaldo,
   });
@@ -55,6 +61,11 @@ class _PuzzleBoardState extends State<PuzzleBoard> {
   /// Último valor de `activa` con el que se construyó cada ficha cacheada.
   final Map<int, bool> _activaCacheada = <int, bool>{};
 
+  /// Último valor de `esSugerida` con el que se construyó cada ficha cacheada.
+  final Map<int, bool> _sugeridaCacheada = <int, bool>{};
+
+  String? _ultimaSkinId;
+
   /// Subárbol memoizado de la capa de sockets para el `(size, ladoCelda)` actual.
   Widget? _socketsCacheados;
   int? _sizeSockets;
@@ -65,9 +76,11 @@ class _PuzzleBoardState extends State<PuzzleBoard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.size != widget.size ||
         oldWidget.imagen != widget.imagen ||
-        oldWidget.imagenRespaldo != widget.imagenRespaldo) {
+        oldWidget.imagenRespaldo != widget.imagenRespaldo ||
+        oldWidget.fichaSugerida != widget.fichaSugerida) {
       _fichasCacheadas.clear();
       _activaCacheada.clear();
+      _sugeridaCacheada.clear();
     }
     if (oldWidget.size != widget.size) {
       _socketsCacheados = null;
@@ -119,9 +132,22 @@ class _PuzzleBoardState extends State<PuzzleBoard> {
     return _socketsCacheados!;
   }
 
-  Widget _obtenerFicha(int numero, bool activa) {
+  Widget _obtenerFicha(
+    int numero,
+    bool activa,
+    bool esSugerida,
+    TileSkin skin,
+  ) {
+    if (_ultimaSkinId != skin.id) {
+      _ultimaSkinId = skin.id;
+      _fichasCacheadas.clear();
+      _activaCacheada.clear();
+      _sugeridaCacheada.clear();
+    }
     final existente = _fichasCacheadas[numero];
-    if (existente != null && _activaCacheada[numero] == activa) {
+    if (existente != null &&
+        _activaCacheada[numero] == activa &&
+        _sugeridaCacheada[numero] == esSugerida) {
       return existente;
     }
     final nueva = PuzzleTile(
@@ -130,10 +156,13 @@ class _PuzzleBoardState extends State<PuzzleBoard> {
       imagen: widget.imagen,
       imagenRespaldo: widget.imagenRespaldo,
       activa: activa,
+      esSugerida: esSugerida,
+      skin: skin,
       onTap: () => _onTapNumero(numero),
       onSwipe: (direccion) => _deslizarNumero(numero, direccion),
     );
     _activaCacheada[numero] = activa;
+    _sugeridaCacheada[numero] = esSugerida;
     _fichasCacheadas[numero] = nueva;
     return nueva;
   }
@@ -144,65 +173,47 @@ class _PuzzleBoardState extends State<PuzzleBoard> {
     final tablero = widget.tablero;
     final movibles = PuzzleLogic.movibles(tablero, n).toSet();
 
-    // La capa de repintado va **por fuera del `LayoutBuilder`**, y ése es el
-    // detalle que decide si el deslizamiento repinta sólo el tablero o la
-    // pantalla entera.
-    //
-    // El `LayoutBuilder` es el boundary de *relayout* del tablero, y el
-    // framework cierra todo layout con `markNeedsPaint()` (`RenderObject.layout`
-    // y `_layoutWithoutResize`, ver `rendering/object.dart`): al cambiar el
-    // `left`/`top` de una ficha, la invalidación de pintado nace en el
-    // `LayoutBuilder` y sube hasta la primera capa de repintado que encuentre.
-    // Con el `RepaintBoundary` **adentro** del `LayoutBuilder` esa capa es el
-    // viewport del `SingleChildScrollView` de `GameScreen`
-    // (`_RenderSingleChildViewport` es repaint boundary), que envuelve el HUD,
-    // la consigna, el pozo con su halo y la botonera: todo eso se volvía a
-    // registrar y a rasterizar en cada uno de los ~10 frames de los 160 ms del
-    // deslizamiento. Con la capa acá, la propagación se corta antes de salir
-    // del tablero.
-    //
-    // `RenderRepaintBoundary` es un `RenderProxyBox`: no recorta ni cambia el
-    // layout, así que la sombra de la fila inferior sigue desbordando
-    // (`Clip.none`) y la geometría que lee `test/helpers/puzzle_solver.dart` no
-    // se corre.
-    //
-    // Lo vigila `test/widget/game_screen_repaint_test.dart`: no alcanza con que
-    // la capa exista y mida lo que mide el tablero, también tiene que quedar
-    // *por encima* del `LayoutBuilder`. Si vuelve a meterse adentro, el
-    // deslizamiento repinta otra vez el HUD, el pozo y la botonera.
-    return RepaintBoundary(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final ladoCelda = (constraints.maxWidth - (n - 1) * _espaciado) / n;
-          double left(int i) => (i % n) * (ladoCelda + _espaciado);
-          double top(int i) => (i ~/ n) * (ladoCelda + _espaciado);
+    return ValueListenableBuilder<String>(
+      valueListenable: SkinService.skinEquipadaListenable,
+      builder: (context, _, _) {
+        final skin = SkinService.skinEquipada;
 
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Sockets: el fondo de todas las celdas, horneado en una sola
-              // textura `ui.Image` para que el hilo Raster pinte un único quad
-              // en vez de n² nine-patch + n² bordes por frame.
-              _obtenerCapaSockets(n, ladoCelda),
-              // Fichas numeradas: al cambiar su índice, `AnimatedPositioned`
-              // las desliza desde su posición anterior. Su subárbol se
-              // reutiliza desde `_fichasCacheadas` mientras no cambie `activa`.
-              for (var i = 0; i < tablero.length; i++)
-                if (tablero[i] != 0)
-                  AnimatedPositioned(
-                    key: ValueKey(tablero[i]),
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOutCubic,
-                    left: left(i),
-                    top: top(i),
-                    width: ladoCelda,
-                    height: ladoCelda,
-                    child: _obtenerFicha(tablero[i], movibles.contains(i)),
-                  ),
-            ],
-          );
-        },
-      ),
+        return RepaintBoundary(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final ladoCelda =
+                  (constraints.maxWidth - (n - 1) * _espaciado) / n;
+              double left(int i) => (i % n) * (ladoCelda + _espaciado);
+              double top(int i) => (i ~/ n) * (ladoCelda + _espaciado);
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _obtenerCapaSockets(n, ladoCelda),
+                  for (var i = 0; i < tablero.length; i++)
+                    if (tablero[i] != 0)
+                      AnimatedPositioned(
+                        key: ValueKey(tablero[i]),
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOutCubic,
+                        left: left(i),
+                        top: top(i),
+                        width: ladoCelda,
+                        height: ladoCelda,
+                        child: _obtenerFicha(
+                          tablero[i],
+                          movibles.contains(i),
+                          widget.fichaSugerida != null &&
+                              widget.fichaSugerida == i,
+                          skin,
+                        ),
+                      ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

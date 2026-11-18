@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/dificultad.dart';
@@ -27,6 +28,7 @@ import '../widgets/game_controls.dart';
 import '../widgets/game_header.dart';
 import '../widgets/hud_card.dart';
 import '../widgets/puzzle_board.dart';
+import '../widgets/rating_dialog.dart';
 import 'settings_screen.dart';
 
 /// Pantalla principal del juego donde se muestra el tablero.
@@ -94,6 +96,10 @@ class _GameScreenState extends State<GameScreen> {
   late final int _objetivo;
   final List<int> _historialHuecos = <int>[];
   final ValueNotifier<bool> _puedeDeshacer = ValueNotifier<bool>(false);
+
+  /// Ficha sugerida actualmente por la pista inteligente; `null` si no hay pista activa.
+  final ValueNotifier<int?> _fichaSugerida = ValueNotifier<int?>(null);
+  Timer? _timerPista;
 
   /// Movimientos de la partida. Mismo motivo que [_tablero]: la tarjeta que lo
   /// muestra es la única que tiene que reaccionar a cada jugada.
@@ -480,6 +486,8 @@ class _GameScreenState extends State<GameScreen> {
     _tablero.dispose();
     _movimientos.dispose();
     _puedeDeshacer.dispose();
+    _timerPista?.cancel();
+    _fichaSugerida.dispose();
     // No detenemos la música: es un recurso compartido con el HomeScreen
     // (raíz). Detenerla acá corría DESPUÉS de que HomeScreen la reanudara al
     // volver del juego (el dispose corre al terminar la animación de salida),
@@ -680,6 +688,11 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
+    // Si había una pista visual activa, se cancela al realizar un movimiento.
+    _timerPista?.cancel();
+    _timerPista = null;
+    _fichaSugerida.value = null;
+
     // El reloj arranca con el primer movimiento y se reanuda si venía detenido
     // (partida retomada). _iniciarTimer continúa el Stopwatch en vez de
     // reiniciarlo, así que el tiempo ya acumulado se conserva.
@@ -836,8 +849,13 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 20),
                 KenneyButton(
                   tint: AppTheme.seedColor,
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.pop(context);
+                    final debe =
+                        await RecordsService.debeSolicitarCalificacion();
+                    if (debe && mounted) {
+                      await RatingDialog.mostrar(context);
+                    }
                     _reiniciar();
                   },
                   child: Text(
@@ -1124,13 +1142,20 @@ class _GameScreenState extends State<GameScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(context); // cierra el diálogo
+                          final debe =
+                              await RecordsService.debeSolicitarCalificacion();
+                          if (debe && mounted) {
+                            await RatingDialog.mostrar(context);
+                          }
                           unawaited(
                             AdMobService
                                 .registrarVictoriaYMostrarSiCorresponde(),
                           );
-                          Navigator.pop(context, true); // encadena el siguiente
+                          if (mounted) {
+                            Navigator.pop(context, true); // encadena el siguiente
+                          }
                         },
                         child: Text(
                           l10n.nextLevel,
@@ -1146,8 +1171,13 @@ class _GameScreenState extends State<GameScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context); // cierra el diálogo
+                        final debe =
+                            await RecordsService.debeSolicitarCalificacion();
+                        if (debe && mounted) {
+                          await RatingDialog.mostrar(context);
+                        }
                         _reiniciar();
                       },
                       child: Text(
@@ -1229,6 +1259,9 @@ class _GameScreenState extends State<GameScreen> {
     _movimientos.value = 0;
     _historialHuecos.clear();
     _puedeDeshacer.value = false;
+    _timerPista?.cancel();
+    _timerPista = null;
+    _fichaSugerida.value = null;
     _juegoIniciado = false;
     if (_pausado) setState(() => _pausado = false);
     if (veniaDeVictoria) {
@@ -1244,6 +1277,9 @@ class _GameScreenState extends State<GameScreen> {
 
   void _aplicarDeshacer() {
     if (_historialHuecos.isEmpty) return;
+    _timerPista?.cancel();
+    _timerPista = null;
+    _fichaSugerida.value = null;
     final huecoAnterior = _historialHuecos.removeLast();
     _puedeDeshacer.value = _historialHuecos.isNotEmpty;
     _tablero.value = PuzzleLogic.mover(_tablero.value, huecoAnterior, widget.size);
@@ -1346,6 +1382,140 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     if (mounted && !_juegoTerminado && !_pausado && _juegoIniciado && relojCorriendo) {
+      _iniciarTimer();
+    }
+  }
+
+  void _aplicarPista(int indiceFicha) {
+    if (!mounted) return;
+    _fichaSugerida.value = indiceFicha;
+    HapticFeedback.mediumImpact();
+    SoundService.reproducirClick();
+
+    final valorFicha = _tablero.value[indiceFicha];
+    final l10n = AppLocalizations.of(context);
+    if (l10n != null) {
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        l10n.hintSuggestedTile(valorFicha),
+        TextDirection.ltr,
+      );
+    }
+
+    _timerPista?.cancel();
+    _timerPista = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        _fichaSugerida.value = null;
+      }
+    });
+  }
+
+  Future<void> _onPista() async {
+    if (_pausado || _juegoTerminado || widget.esDiario) return;
+
+    final ultimoIndice =
+        _historialHuecos.isNotEmpty ? _historialHuecos.last : null;
+    final pista = PuzzleLogic.calcularPista(
+      _tablero.value,
+      widget.size,
+      ultimoIndiceMovido: ultimoIndice,
+    );
+    if (pista == null) return;
+
+    final tieneMonedas = CoinsService.saldo >= CoinsService.costoPista;
+    if (tieneMonedas) {
+      final gastado = await CoinsService.gastarMonedas(CoinsService.costoPista);
+      if (gastado && mounted) {
+        _aplicarPista(pista);
+      }
+      return;
+    }
+
+    // Saldo insuficiente (< 15): pausar cronómetro y confirmar si desea ver anuncio
+    final relojCorriendo = _timer != null;
+    if (relojCorriendo) _detenerTimer();
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    final deseaVerAd = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          icon: const Icon(
+            Icons.smart_display_rounded,
+            size: 40,
+            color: Color(0xFFF59E0B),
+          ),
+          title: Text(
+            l10n.hintNotEnoughCoinsTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            l10n.hintNotEnoughCoinsBody(CoinsService.costoPista),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: colors.textSecondary,
+            ),
+          ),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.textSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(l10n.cancel),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: Text(
+                      l10n.undoWatchAd,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+
+    if (deseaVerAd == true) {
+      final vioAd = await AdMobService.mostrarRewardedParaPista();
+      if (vioAd && mounted) {
+        _aplicarPista(pista);
+      }
+    }
+
+    if (mounted &&
+        !_juegoTerminado &&
+        !_pausado &&
+        _juegoIniciado &&
+        relojCorriendo) {
       _iniciarTimer();
     }
   }
@@ -1548,16 +1718,22 @@ class _GameScreenState extends State<GameScreen> {
                                     builder: (_, imagen, _) =>
                                         ValueListenableBuilder<List<int>>(
                                       valueListenable: _tablero,
-                                      builder: (_, tablero, _) => PuzzleBoard(
-                                        tablero: tablero,
-                                        size: widget.size,
-                                        onTileTap: _onTapFicha,
-                                        // Solo el diario se arma como imagen;
-                                        // los otros dos modos siguen con fichas
-                                        // numéricas (`imagen` es `null` ahí).
-                                        imagen: imagen,
-                                        imagenRespaldo: DailyChallengeService
-                                            .imagenRespaldo,
+                                      builder: (_, tablero, _) =>
+                                          ValueListenableBuilder<int?>(
+                                        valueListenable: _fichaSugerida,
+                                        builder: (_, fichaSugerida, _) =>
+                                            PuzzleBoard(
+                                          tablero: tablero,
+                                          size: widget.size,
+                                          onTileTap: _onTapFicha,
+                                          fichaSugerida: fichaSugerida,
+                                          // Solo el diario se arma como imagen;
+                                          // los otros dos modos siguen con fichas
+                                          // numéricas (`imagen` es `null` ahí).
+                                          imagen: imagen,
+                                          imagenRespaldo: DailyChallengeService
+                                              .imagenRespaldo,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1568,12 +1744,16 @@ class _GameScreenState extends State<GameScreen> {
                                 valueListenable: _puedeDeshacer,
                                 builder: (context, puedeDeshacer, _) =>
                                     GameControls(
-                                pausado: _pausado,
-                                puedeDeshacer: puedeDeshacer,
-                                onReiniciar: _reiniciar,
-                                onDeshacer: _onDeshacer,
-                                onPausar: _alternarPausa,
-                              ),
+                                  pausado: _pausado,
+                                  puedeDeshacer: puedeDeshacer,
+                                  onReiniciar: _reiniciar,
+                                  onDeshacer: _onDeshacer,
+                                  onPausar: _alternarPausa,
+                                  onPista: widget.esDiario ? null : _onPista,
+                                  puedePista: !_juegoTerminado &&
+                                      !_pausado &&
+                                      !widget.esDiario,
+                                ),
                               ),
                             ],
                           ),

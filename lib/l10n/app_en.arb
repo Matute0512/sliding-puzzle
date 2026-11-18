@@ -195,5 +195,47 @@
   "achievements": "Achievements",
   "@achievements": {
     "description": "Text for Google Play Games achievements button."
-  }
+  },
+
+  "skinsShopTitle": "Tile Skins Shop",
+  "skinClassic": "Classic Blue",
+  "skinEmerald": "Retro Emerald",
+  "skinCrimson": "Crimson Fire",
+  "skinCyber": "Cyber Neon",
+  "skinAmber": "Royal Gold",
+  "skinEquipped": "EQUIPPED",
+  "skinEquip": "EQUIP",
+  "skinUnlock": "BUY",
+  "skinCost": "{costo} 🪙",
+  "@skinCost": {
+    "description": "Skin price in coins.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "skinInsufficientCoins": "Not enough coins to unlock this skin.",
+  "hint": "Hint",
+  "hintCost": "{costo} 🪙",
+  "@hintCost": {
+    "description": "Coin cost to use a hint.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "hintNotEnoughCoinsTitle": "Use Smart Hint?",
+  "hintNotEnoughCoinsBody": "You don't have enough coins ({costo} required). Watch an ad to get this hint for free?",
+  "@hintNotEnoughCoinsBody": {
+    "description": "Message when player has insufficient coins for a hint.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "hintSuggestedTile": "Hint: Slide tile {numero}",
+  "@hintSuggestedTile": {
+    "description": "Accessibility and feedback message when hint is activated.",
+    "placeholders": {
+      "numero": { "type": "int" }
+    }
+  },
+  "hintUnavailableInDaily": "Hints are disabled in the Daily Challenge."
 }

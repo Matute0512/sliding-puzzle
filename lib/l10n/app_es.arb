@@ -375,5 +375,47 @@
   "achievements": "Logros",
   "@achievements": {
     "description": "Texto del botón de logros de Google Play Games."
-  }
+  },
+
+  "skinsShopTitle": "Tienda de Fichas",
+  "skinClassic": "Clásico Azul",
+  "skinEmerald": "Esmeralda Retro",
+  "skinCrimson": "Fuego Carmesí",
+  "skinCyber": "Ciber Neón",
+  "skinAmber": "Oro Real",
+  "skinEquipped": "EQUIPADA",
+  "skinEquip": "USAR",
+  "skinUnlock": "COMPRAR",
+  "skinCost": "{costo} 🪙",
+  "@skinCost": {
+    "description": "Precio de la skin en monedas.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "skinInsufficientCoins": "No tenés suficientes monedas para desbloquear esta skin.",
+  "hint": "Pista",
+  "hintCost": "{costo} 🪙",
+  "@hintCost": {
+    "description": "Costo en monedas para usar una pista.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "hintNotEnoughCoinsTitle": "¿Usar Pista Inteligente?",
+  "hintNotEnoughCoinsBody": "No tenés suficientes monedas (necesitás {costo}). ¿Querés ver un anuncio para obtener la pista gratis?",
+  "@hintNotEnoughCoinsBody": {
+    "description": "Mensaje cuando no alcanzan las monedas para la pista.",
+    "placeholders": {
+      "costo": { "type": "int" }
+    }
+  },
+  "hintSuggestedTile": "Pista: Se sugiere mover la ficha {numero}",
+  "@hintSuggestedTile": {
+    "description": "Semántica y aviso de accesibilidad al activar la pista.",
+    "placeholders": {
+      "numero": { "type": "int" }
+    }
+  },
+  "hintUnavailableInDaily": "Las pistas no están disponibles en el Desafío Diario."
 }

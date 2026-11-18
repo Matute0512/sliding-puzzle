@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sliding_puzzle/services/coins_service.dart';
 import 'package:sliding_puzzle/services/records_service.dart';
+import 'package:sliding_puzzle/services/skin_service.dart';
 
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
@@ -73,6 +74,9 @@ void main() async {
     }),
     SoundService.inicializar().catchError((e) {
       debugPrint('SoundService no disponible al iniciar: $e');
+    }),
+    SkinService.inicializar().catchError((e) {
+      debugPrint('SkinService no disponible al iniciar: $e');
     }),
   ]);
   unawaited(RecordsService.limpiarDatosViejos());

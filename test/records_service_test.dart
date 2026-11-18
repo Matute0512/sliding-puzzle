@@ -109,15 +109,19 @@ void main() {
       expect(await RecordsService.yaCalificoApp(), isTrue);
     });
 
-    test('debeSolicitarCalificacion solo pide tras 2 victorias y respeta cooldown', () async {
+    test('debeSolicitarCalificacion solo pide cada 3 partidas y respeta cooldown', () async {
       // 0 victorias: no pide
       expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
 
-      // 1 victoria: no pide todavia
+      // 1 victoria: no pide todavía
       await RecordsService.incrementarVictoriasParaRating();
       expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
 
-      // 2 victorias: momento oportuno (Happy Moment)
+      // 2 victorias: no pide todavía
+      await RecordsService.incrementarVictoriasParaRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 3 victorias: momento oportuno (Happy Moment)
       await RecordsService.incrementarVictoriasParaRating();
       expect(await RecordsService.debeSolicitarCalificacion(), isTrue);
 
@@ -125,17 +129,19 @@ void main() {
       await RecordsService.registrarSolicitudRating();
       expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
 
-      // 4 victorias mas (total 6): sigue en cooldown (6 - 2 = 4 < 5)
-      for (var i = 0; i < 4; i++) {
-        await RecordsService.incrementarVictoriasParaRating();
-      }
+      // 1 victoria más (total 4): sigue en cooldown (4 - 3 = 1 < 3)
+      await RecordsService.incrementarVictoriasParaRating();
       expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
 
-      // 5ta victoria tras rechazo (total 7): vuelve a ser oportuno (7 - 2 = 5)
+      // 2da victoria tras rechazo (total 5): sigue en cooldown (5 - 3 = 2 < 3)
+      await RecordsService.incrementarVictoriasParaRating();
+      expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
+
+      // 3ra victoria tras rechazo (total 6): vuelve a ser oportuno (6 - 3 = 3)
       await RecordsService.incrementarVictoriasParaRating();
       expect(await RecordsService.debeSolicitarCalificacion(), isTrue);
 
-      // Si califica, nunca mas vuelve a pedir
+      // Si califica, nunca más vuelve a pedir
       await RecordsService.marcarAppCalificada();
       expect(await RecordsService.debeSolicitarCalificacion(), isFalse);
     });

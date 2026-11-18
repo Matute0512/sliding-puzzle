@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../app_info.dart';
 import '../l10n/app_localizations.dart';
 import '../logic/dificultad.dart';
 import '../logic/puzzle_logic.dart';
@@ -26,6 +24,7 @@ import '../widgets/daily_results_dialog.dart';
 import '../widgets/difficulty_button.dart';
 import '../widgets/home_header.dart';
 import '../widgets/mode_switch.dart';
+import '../widgets/rating_dialog.dart';
 
 /// Violeta del Desafío Diario. Está acá y no en `AppTheme` porque es el único
 /// lugar que lo usa; el frame no incluye este botón, así que el color es el que
@@ -165,122 +164,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /// Si el usuario alcanzó un momento ideal (Happy Moment tras victorias)
+  /// Si el usuario alcanzó un momento ideal (Happy Moment tras partidas)
   /// y aún no calificó, muestra el modal de calificación.
   Future<void> _verificarCalificacion() async {
     final debe = await RecordsService.debeSolicitarCalificacion();
     if (!mounted || !debe) return;
-    _mostrarCalificacion();
-  }
-
-  /// Modal que invita a calificar la app en Google Play.
-  void _mostrarCalificacion() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final colors = Theme.of(dialogContext).extension<AppColors>()!;
-        final l10n = AppLocalizations.of(dialogContext)!;
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            l10n.rateTitle,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                size: 56,
-                color: Color(0xFFF59E0B),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.rateBody,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.seedColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      _marcarYAbirTienda();
-                    },
-                    child: Text(
-                      l10n.rateButton,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    unawaited(RecordsService.registrarSolicitudRating());
-                  },
-                  child: Text(
-                    l10n.notNow,
-                    style: TextStyle(color: colors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Marca que el usuario ya calificó (aunque el launch falle, no volvemos a
-  /// preguntar) y abre la tienda fuera de la app.
-  Future<void> _marcarYAbirTienda() async {
-    await RecordsService.marcarAppCalificada();
-
-    final uri = Uri.parse(urlPlayStore);
-    try {
-      final abierto = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!abierto && mounted) {
-        _avisarFalloTienda();
-      }
-    } catch (_) {
-      if (mounted) _avisarFalloTienda();
-    }
-  }
-
-  void _avisarFalloTienda() {
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.playStoreError),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    await RatingDialog.mostrar(context);
   }
 
   /// Muestra el aviso simplificado de privacidad del Top 5 Global.

@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/coins_service.dart';
+import '../services/sound_service.dart';
+import 'skins_dialog.dart';
 
 /// Píldora compacta que muestra el saldo de monedas en tiempo real.
+///
+/// Si [esInteractivo] es `true` (por defecto), tocar la píldora abre la
+/// Tienda de Fichas ([SkinsDialog]).
 class CoinsPill extends StatelessWidget {
-  const CoinsPill({super.key});
+  final bool esInteractivo;
+
+  const CoinsPill({
+    super.key,
+    this.esInteractivo = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: CoinsService.saldoListenable,
       builder: (context, saldo, _) {
-        return Container(
+        final contenido = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: const Color(0xFF231C0F),
@@ -42,8 +53,22 @@ class CoinsPill extends StatelessWidget {
             ],
           ),
         );
+
+        if (!esInteractivo) return contenido;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(99),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              SoundService.reproducirClick();
+              SkinsDialog.mostrar(context);
+            },
+            child: contenido,
+          ),
+        );
       },
     );
   }
 }
-
